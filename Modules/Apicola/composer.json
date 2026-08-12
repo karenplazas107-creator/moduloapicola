@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/apicola",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Apicola\\": "app/",
+            "Modules\\Apicola\\Database\\Factories\\": "database/factories/",
+            "Modules\\Apicola\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Apicola\\Tests\\": "tests/"
+        }
+    }
+}

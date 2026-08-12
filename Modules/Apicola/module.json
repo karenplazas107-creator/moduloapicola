@@ -1,0 +1,11 @@
+{
+    "name": "Apicola",
+    "alias": "apicola",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Apicola\\Providers\\ApicolaServiceProvider"
+    ],
+    "files": []
+}
