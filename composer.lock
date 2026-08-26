@@ -642,6 +642,7 @@
         },
         {
             "name": "guzzlehttp/guzzle",
+<<<<<<< HEAD
             "version": "8.0.2",
             "source": {
                 "type": "git",
@@ -652,13 +653,31 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/guzzle/guzzle/zipball/d1cbca76970939a9c2ced55b1e25ea26f34fc773",
                 "reference": "d1cbca76970939a9c2ced55b1e25ea26f34fc773",
+=======
+            "version": "7.15.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/guzzle/guzzle.git",
+                "reference": "ae311b8f045ea93ce7b1c9cdb7cec06c53f944bc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/ae311b8f045ea93ce7b1c9cdb7cec06c53f944bc",
+                "reference": "ae311b8f045ea93ce7b1c9cdb7cec06c53f944bc",
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
+<<<<<<< HEAD
                 "guzzlehttp/promises": "^3.0.1",
                 "guzzlehttp/psr7": "^3.0",
                 "php": "^7.4 || ^8.0",
+=======
+                "guzzlehttp/promises": "^2.5.2",
+                "guzzlehttp/psr7": "^2.13",
+                "php": "^7.2.5 || ^8.0",
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
                 "psr/http-client": "^1.0",
                 "psr/http-factory": "^1.0",
                 "symfony/polyfill-php80": "^1.25",
@@ -748,7 +767,11 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
+<<<<<<< HEAD
                 "source": "https://github.com/guzzle/guzzle/tree/8.0.2"
+=======
+                "source": "https://github.com/guzzle/guzzle/tree/7.15.3"
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
             },
             "funding": [
                 {
@@ -764,6 +787,7 @@
                     "type": "tidelift"
                 }
             ],
+<<<<<<< HEAD
             "time": "2026-08-05T19:50:26+00:00"
         },
         {
@@ -778,6 +802,22 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/guzzle/promises/zipball/64f38b87fa7d371853804161bfc701c9bc2cc00a",
                 "reference": "64f38b87fa7d371853804161bfc701c9bc2cc00a",
+=======
+            "time": "2026-08-05T19:48:21+00:00"
+        },
+        {
+            "name": "guzzlehttp/promises",
+            "version": "2.5.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/guzzle/promises.git",
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
                 "shasum": ""
             },
             "require": {
@@ -831,7 +871,11 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
+<<<<<<< HEAD
                 "source": "https://github.com/guzzle/promises/tree/3.0.1"
+=======
+                "source": "https://github.com/guzzle/promises/tree/2.5.2"
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
             },
             "funding": [
                 {
@@ -847,7 +891,11 @@
                     "type": "tidelift"
                 }
             ],
+<<<<<<< HEAD
             "time": "2026-08-05T19:35:04+00:00"
+=======
+            "time": "2026-08-05T19:30:54+00:00"
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
         },
         {
             "name": "guzzlehttp/psr7",
@@ -1056,6 +1104,7 @@
         },
         {
             "name": "laravel/framework",
+<<<<<<< HEAD
             "version": "v13.26.1",
             "source": {
                 "type": "git",
@@ -1066,6 +1115,18 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/laravel/framework/zipball/e4a1bc52ef551d52e60244bb004256d6861da7ab",
                 "reference": "e4a1bc52ef551d52e60244bb004256d6861da7ab",
+=======
+            "version": "v13.25.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/framework.git",
+                "reference": "ed36fe882bd4eed4e6ff75343cbad8dbda03fdba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/ed36fe882bd4eed4e6ff75343cbad8dbda03fdba",
+                "reference": "ed36fe882bd4eed4e6ff75343cbad8dbda03fdba",
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
                 "shasum": ""
             },
             "require": {
@@ -1279,7 +1340,11 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
+<<<<<<< HEAD
             "time": "2026-08-18T20:31:28+00:00"
+=======
+            "time": "2026-08-11T13:56:22+00:00"
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
         },
         {
             "name": "laravel/prompts",
@@ -6629,6 +6694,7 @@
         },
         {
             "name": "laravel/sail",
+<<<<<<< HEAD
             "version": "v1.67.0",
             "source": {
                 "type": "git",
@@ -6639,6 +6705,18 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/laravel/sail/zipball/639e03ac12cf23def171770bcab05758045b2642",
                 "reference": "639e03ac12cf23def171770bcab05758045b2642",
+=======
+            "version": "v1.66.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/sail.git",
+                "reference": "ebf286104306c50c8fd060cbc57de35b9dffa779"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/sail/zipball/ebf286104306c50c8fd060cbc57de35b9dffa779",
+                "reference": "ebf286104306c50c8fd060cbc57de35b9dffa779",
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
                 "shasum": ""
             },
             "require": {
@@ -6688,7 +6766,11 @@
                 "issues": "https://github.com/laravel/sail/issues",
                 "source": "https://github.com/laravel/sail"
             },
+<<<<<<< HEAD
             "time": "2026-08-12T13:55:56+00:00"
+=======
+            "time": "2026-08-10T13:09:27+00:00"
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
         },
         {
             "name": "mockery/mockery",

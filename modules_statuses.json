@@ -2,6 +2,10 @@
     "ADSO": true,
     "Direccion": true,
     "SST": true,
+<<<<<<< HEAD
     "RUB": true,
     "CEFA": true
+=======
+    "Apicola": true
+>>>>>>> 8c1c9e7ab19932f59ccef3f469783072942ee518
 }
