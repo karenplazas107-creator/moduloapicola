@@ -100,6 +100,15 @@ class BloqueAppSeeder extends Seeder
             'description_english' => 'Supplier management, quotations, supply requests and purchase orders.'
         ]);
 
+        App::updateOrCreate(['name' => 'Apicola'], [
+'bloque_id' => $misional->id, // O $misional->id o $apoyo->id
+'url' => '/nombredelmodulo',
+'color' => '#05bed2', // Color del botón y detalles
+'icon' => 'fas fa-clipboard-check', // Icono de FontAwesome
+'description' => 'Breve descripción de la funcionalidad del submódulo para la tarjeta.',
+'description_english' => 'Short description in english.'
+]);
+
         // Submódulos de Apoyo
         App::updateOrCreate(['name' => 'Contabilidad'], [
             'bloque_id' => $apoyo->id,
@@ -118,5 +127,7 @@ class BloqueAppSeeder extends Seeder
             'description' => 'Administración de aprendices, instructores, asignación de turnos operacionales en SENA Empresa y control de asistencia.',
             'description_english' => 'Management of apprentices, instructors, operational shifts and attendance control.'
         ]);
+
+        
     }
 }
