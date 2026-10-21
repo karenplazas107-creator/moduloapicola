@@ -16,13 +16,15 @@
             <h1 class="ap-view-main-title">Calendario floral</h1>
         </div>
         <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #047857;">SB</div>
+            <div class="ap-user-chip-avatar" style="background: #047857;">
+                {{ auth()->check() ? strtoupper(substr(auth()->user()->nickname ?? 'AP', 0, 2)) : 'AP' }}
+            </div>
             <div class="ap-user-chip-info">
                 <span class="ap-user-chip-name" style="display:flex; align-items:center; gap:5px;">
-                    Sergio Barrera
+                    {{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : 'Administrador Apícola') }}
                 </span>
                 <span class="ap-user-chip-role" style="display:flex; align-items:center; gap:4px;">
-                    Rol: Administrador <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
+                    Rol: {{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Administrador' }}
                 </span>
             </div>
         </div>
@@ -35,7 +37,7 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
             <div>
                 <h2 style="font-size: 1.45rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem; letter-spacing: -0.3px;">
-                    Calendario floral 2026
+                    Calendario floral <span id="labelAnioSeleccionado">2026</span>
                 </h2>
                 <p style="font-size: 0.88rem; color: #64748b; margin: 0;">
                     Meses de floración de las plantas melíferas de la zona, con su etapa en cada mes.
@@ -44,6 +46,15 @@
 
             <!-- Controles a la derecha: Filtros y Botón + Nueva planta -->
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <select id="filtroAnio" class="ap-filter-select" onchange="filterPlantas()" style="min-width: 125px;">
+                    <option value="all">Año: todos</option>
+                    <option value="2024">Año: 2024</option>
+                    <option value="2025">Año: 2025</option>
+                    <option value="2026" selected>Año: 2026</option>
+                    <option value="2027">Año: 2027</option>
+                    <option value="2028">Año: 2028</option>
+                </select>
+
                 <select id="filtroEtapa" class="ap-filter-select" onchange="filterPlantas()" style="min-width: 140px;">
                     <option value="all">Etapa: todas</option>
                     <option value="inicio">Inicio de floración</option>
@@ -144,12 +155,17 @@
     <div class="ap-modal-backdrop" id="modalPlantaBackdrop">
         <div class="ap-modal-window" style="max-width: 580px; border-radius: 18px;">
             <div class="ap-modal-body" style="padding: 2.2rem 2.4rem 1.6rem;">
-                <h2 class="ap-modal-title" id="modalPlantaTitle" style="font-size: 1.65rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem;">
-                    Nueva planta melífera
-                </h2>
-                <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 1.5rem;">
-                    Marca los meses de floración y la etapa de cada uno.
-                </p>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem;">
+                    <div>
+                        <h2 class="ap-modal-title" id="modalPlantaTitle" style="font-size: 1.65rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem;">
+                            Nueva planta melífera
+                        </h2>
+                        <p style="font-size: 0.88rem; color: #64748b; margin-bottom: 0;">
+                            Marca los meses de floración y la etapa de cada uno.
+                        </p>
+                    </div>
+                    <button type="button" class="ap-modal-close-btn" onclick="closePlantaModal()" title="Cerrar">&times;</button>
+                </div>
 
                 <form id="formPlanta" onsubmit="savePlantaForm(event)">
                     <input type="hidden" id="modalPlantaId" value="">
@@ -157,17 +173,17 @@
                     <!-- 1. Nombre Común -->
                     <div class="ap-form-field" style="margin-bottom: 1.2rem;">
                         <label class="ap-field-label" for="modalPlantaNombreComun">NOMBRE COMÚN</label>
-                        <input type="text" id="modalPlantaNombreComun" class="ap-field-input" placeholder="Eucalipto" required>
+                        <input type="text" id="modalPlantaNombreComun" class="ap-field-input" placeholder="Ej: Eucalipto" value="" required>
                     </div>
 
                     <!-- 2. Nombre Científico -->
                     <div class="ap-form-field" style="margin-bottom: 1.2rem;">
                         <label class="ap-field-label" for="modalPlantaNombreCientifico">NOMBRE CIENTÍFICO</label>
-                        <input type="text" id="modalPlantaNombreCientifico" class="ap-field-input" placeholder="Eucalyptus globulus" style="font-style: italic;" required>
+                        <input type="text" id="modalPlantaNombreCientifico" class="ap-field-input" placeholder="Ej: Eucalyptus globulus" value="" style="font-style: italic;" required>
                     </div>
 
-                    <!-- 3. Aporte Principal y Estado -->
-                    <div class="ap-coords-row" style="margin-bottom: 1.4rem; gap: 14px;">
+                    <!-- 3. Aporte Principal, Año y Estado -->
+                    <div style="display: grid; grid-template-columns: 1.2fr 0.9fr 0.9fr; gap: 12px; margin-bottom: 1.4rem;">
                         <div>
                             <label class="ap-field-label" for="modalPlantaAporte">APORTE PRINCIPAL</label>
                             <select id="modalPlantaAporte" class="ap-field-input" required>
@@ -176,6 +192,10 @@
                                 <option value="Polen">Polen</option>
                                 <option value="Propóleo">Propóleo</option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="ap-field-label" for="modalPlantaAnio">AÑO</label>
+                            <input type="number" id="modalPlantaAnio" class="ap-field-input" min="2020" max="2050" value="2026" placeholder="Ej: 2026" required>
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalPlantaEstado">ESTADO</label>
@@ -505,86 +525,13 @@
         { key: "fin", label: "Fin de floración", short: "F", cardClass: "card-stage-fin" }
     ];
 
-    // 7 Plantas iniciales características del centro La Angostura
-    let plantasList = [
-        {
-            id: 1,
-            nombreComun: "Gualanday",
-            nombreCientifico: "Jacaranda caucana",
-            aporte: "Néctar y polen",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "ninguna", 2: "inicio", 3: "pico", 4: "fin",
-                5: "ninguna", 6: "ninguna", 7: "ninguna", 8: "ninguna", 9: "ninguna", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 2,
-            nombreComun: "Matarratón",
-            nombreCientifico: "Gliricidia sepium",
-            aporte: "Néctar y polen",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "inicio", 2: "pico", 3: "fin", 4: "ninguna",
-                5: "ninguna", 6: "ninguna", 7: "ninguna", 8: "ninguna", 9: "ninguna", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 3,
-            nombreComun: "Naranjo Dulce / Cítricos",
-            nombreCientifico: "Citrus sinensis",
-            aporte: "Néctar",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "ninguna", 2: "ninguna", 3: "inicio", 4: "pico",
-                5: "fin", 6: "ninguna", 7: "ninguna", 8: "ninguna", 9: "ninguna", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 4,
-            nombreComun: "Guácimo",
-            nombreCientifico: "Guazuma ulmifolia",
-            aporte: "Néctar y polen",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "ninguna", 2: "ninguna", 3: "ninguna", 4: "inicio",
-                5: "pico", 6: "fin", 7: "ninguna", 8: "ninguna", 9: "ninguna", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 5,
-            nombreComun: "Campanilla silvestre",
-            nombreCientifico: "Ipomoea spp.",
-            aporte: "Polen",
-            estado: "Activa",
-            meses: {
-                0: "inicio", 1: "pico", 2: "pico", 3: "fin", 4: "ninguna",
-                5: "ninguna", 6: "ninguna", 7: "inicio", 8: "pico", 9: "fin", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 6,
-            nombreComun: "Eucalipto",
-            nombreCientifico: "Eucalyptus globulus",
-            aporte: "Néctar y polen",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "ninguna", 2: "ninguna", 3: "ninguna", 4: "ninguna",
-                5: "ninguna", 6: "inicio", 7: "pico", 8: "fin", 9: "ninguna", 10: "ninguna", 11: "ninguna"
-            }
-        },
-        {
-            id: 7,
-            nombreComun: "Café",
-            nombreCientifico: "Coffea arabica",
-            aporte: "Néctar",
-            estado: "Activa",
-            meses: {
-                0: "ninguna", 1: "ninguna", 2: "ninguna", 3: "ninguna", 4: "ninguna",
-                5: "ninguna", 6: "ninguna", 7: "ninguna", 8: "inicio", 9: "pico", 10: "fin", 11: "ninguna"
-            }
-        }
-    ];
+    // Lista de plantas melíferas cargada directamente desde la base de datos MySQL (tabla calendario_floral y especie_malifera)
+    let plantasList = @json($plantasFormatted ?? []);
+
+    // Limpiar restos de localStorage si existían de versiones anteriores
+    try {
+        localStorage.removeItem('apicola_calendario_plantas');
+    } catch (e) {}
 
     // Estado temporal de los 12 meses para el modal
     let currentModalMonths = {};
@@ -613,18 +560,25 @@
 
     // Renderizar la tabla fenológica
     function renderPlantasTable() {
+        const filtroAnio = document.getElementById('filtroAnio')?.value || 'all';
         const filtroEtapa = document.getElementById('filtroEtapa')?.value || 'all';
         const filtroEstado = document.getElementById('filtroEstado')?.value || 'all';
 
+        const labelAnioEl = document.getElementById('labelAnioSeleccionado');
+        if (labelAnioEl) {
+            labelAnioEl.textContent = filtroAnio === 'all' ? '(Todos los años)' : filtroAnio;
+        }
+
         const filtered = plantasList.filter(planta => {
+            const matchAnio = (filtroAnio === 'all') || (String(planta.anio || 2026) === String(filtroAnio));
             const matchEstado = (filtroEstado === 'all') || (planta.estado === filtroEstado);
 
             let matchEtapa = true;
             if (filtroEtapa !== 'all') {
-                matchEtapa = Object.values(planta.meses).includes(filtroEtapa);
+                matchEtapa = Object.values(planta.meses || {}).includes(filtroEtapa);
             }
 
-            return matchEstado && matchEtapa;
+            return matchAnio && matchEstado && matchEtapa;
         });
 
         const tbody = document.getElementById('plantasTableBody');
@@ -650,7 +604,7 @@
 
             let mesesHtml = '';
             for (let i = 0; i < 12; i++) {
-                const etapa = planta.meses[i] || 'ninguna';
+                const etapa = (planta.meses && planta.meses[i]) ? planta.meses[i] : 'ninguna';
                 let cellContent = '';
 
                 if (etapa === 'inicio') {
@@ -673,14 +627,17 @@
             tr.innerHTML = `
                 <td class="col-planta-cell">
                     <div style="font-weight: 800; color: #0f172a; font-size: 0.93rem; line-height: 1.25;">
-                        ${planta.nombreComun}
+                        ${escapeHtml(planta.nombreComun || '')}
                     </div>
                     <div style="font-style: italic; color: #64748b; font-size: 0.82rem; margin-top: 2px;">
-                        ${planta.nombreCientifico}
+                        ${escapeHtml(planta.nombreCientifico || '')}
                     </div>
-                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
+                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span style="font-size: 0.7rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 4px;">
+                            Año ${planta.anio || 2026}
+                        </span>
                         <span style="font-size: 0.7rem; font-weight: 700; background: #f1f5f9; color: #475569; padding: 2px 7px; border-radius: 4px;">
-                            ${planta.aporte}
+                            ${escapeHtml(planta.aporte || 'Néctar y polen')}
                         </span>
                         ${!isActiva ? '<span style="font-size: 0.68rem; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 4px;">Inactiva</span>' : ''}
                     </div>
@@ -689,7 +646,10 @@
                 <td style="text-align: right; padding-right: 1.4rem;">
                     <div class="ap-actions-group" style="justify-content: flex-end;">
                         <button type="button" class="ap-action-btn edit" onclick="openEditPlantaModal(${planta.id})">Editar</button>
-                        <button type="button" class="ap-action-btn ${toggleActionClass}" onclick="togglePlantaStatus(${planta.id})">${toggleActionText}</button>
+                        ${isActiva 
+                            ? `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444; font-weight: 600;" onclick="desactivarPlanta(${planta.id}, '${escapeJs(planta.nombreComun)}')">Desactivar</button>`
+                            : `<button type="button" class="ap-action-btn activate" style="color: #059669; font-weight: 600;" onclick="togglePlantaStatus(${planta.id})">Activar</button>`
+                        }
                     </div>
                 </td>
             `;
@@ -702,6 +662,21 @@
         renderPlantasTable();
     }
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeJs(str) {
+        if (!str) return '';
+        return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
     // ==================== MODAL DE NUEVA / EDITAR PLANTA ====================
     function openNewPlantaModal() {
         document.getElementById('modalPlantaTitle').textContent = 'Nueva planta melífera';
@@ -709,6 +684,11 @@
         document.getElementById('modalPlantaNombreComun').value = '';
         document.getElementById('modalPlantaNombreCientifico').value = '';
         document.getElementById('modalPlantaAporte').value = 'Néctar y polen';
+        
+        const filtroAnioVal = document.getElementById('filtroAnio')?.value;
+        const defaultAnio = (filtroAnioVal && filtroAnioVal !== 'all') ? parseInt(filtroAnioVal) : 2026;
+        document.getElementById('modalPlantaAnio').value = defaultAnio;
+
         document.getElementById('modalPlantaEstado').value = 'Activa';
 
         // Inicializar todos los 12 meses en "ninguna" (Sin floración)
@@ -730,10 +710,14 @@
         document.getElementById('modalPlantaNombreComun').value = planta.nombreComun;
         document.getElementById('modalPlantaNombreCientifico').value = planta.nombreCientifico;
         document.getElementById('modalPlantaAporte').value = planta.aporte;
+        document.getElementById('modalPlantaAnio').value = planta.anio || 2026;
         document.getElementById('modalPlantaEstado').value = planta.estado;
 
         // Copiar el estado de los meses
-        currentModalMonths = { ...planta.meses };
+        currentModalMonths = {};
+        for (let i = 0; i < 12; i++) {
+            currentModalMonths[i] = (planta.meses && planta.meses[i]) ? planta.meses[i] : 'ninguna';
+        }
 
         renderModalMonthsGrid();
         document.getElementById('modalPlantaBackdrop').classList.add('is-open');
@@ -775,51 +759,138 @@
         renderModalMonthsGrid();
     }
 
-    // Guardar el formulario de planta melífera
-    function savePlantaForm(e) {
+    // Guardar el formulario de planta melífera enviando datos reales a MySQL
+    async function savePlantaForm(e) {
         e.preventDefault();
+
+        const btnSave = document.getElementById('btnSavePlanta');
+        const originalText = btnSave.innerHTML;
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
         const id = document.getElementById('modalPlantaId').value;
         const nombreComun = document.getElementById('modalPlantaNombreComun').value.trim();
         const nombreCientifico = document.getElementById('modalPlantaNombreCientifico').value.trim();
         const aporte = document.getElementById('modalPlantaAporte').value;
+        const anio = parseInt(document.getElementById('modalPlantaAnio').value) || 2026;
         const estado = document.getElementById('modalPlantaEstado').value;
 
-        if (id) {
-            const planta = plantasList.find(p => p.id === parseInt(id));
-            if (planta) {
-                planta.nombreComun = nombreComun;
-                planta.nombreCientifico = nombreCientifico;
-                planta.aporte = aporte;
-                planta.estado = estado;
-                planta.meses = { ...currentModalMonths };
-                showToast(`Planta "${nombreComun}" actualizada con éxito.`);
-            }
-        } else {
-            const newId = plantasList.length ? Math.max(...plantasList.map(p => p.id)) + 1 : 1;
-            plantasList.push({
-                id: newId,
-                nombreComun,
-                nombreCientifico,
-                aporte,
-                estado,
-                meses: { ...currentModalMonths }
-            });
-            showToast(`Nueva planta "${nombreComun}" agregada al calendario.`);
-        }
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-        closePlantaModal();
-        renderPlantasTable();
+        const payload = {
+            nombre_comun: nombreComun,
+            nombre_cientifico: nombreCientifico,
+            aporte: aporte,
+            anio: anio,
+            estado: estado,
+            meses: currentModalMonths
+        };
+
+        const url = id ? `{{ url('apicola/calendario') }}/${id}` : `{{ route('apicola.admin.calendario.store') }}`;
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || 'Error al procesar la solicitud.');
+            }
+
+            if (id) {
+                const index = plantasList.findIndex(p => p.id === parseInt(id));
+                if (index !== -1) {
+                    plantasList[index] = result.data;
+                }
+            } else {
+                plantasList.unshift(result.data);
+            }
+
+            showToast(result.message || 'Planta guardada correctamente en la base de datos.');
+            closePlantaModal();
+            renderPlantasTable();
+        } catch (err) {
+            console.error('Error guardando planta:', err);
+            alert(err.message || 'No se pudo guardar la planta en la base de datos.');
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+        }
     }
 
-    // Alternar estado activo / inactivo de una planta
-    function togglePlantaStatus(id) {
+    // Alternar estado activo / inactivo de una planta en MySQL
+    async function togglePlantaStatus(id) {
         const planta = plantasList.find(p => p.id === id);
         if (!planta) return;
 
-        planta.estado = (planta.estado === 'Activa') ? 'Inactiva' : 'Activa';
-        showToast(`Planta "${planta.nombreComun}" marcada como ${planta.estado.toLowerCase()}.`);
-        renderPlantasTable();
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        try {
+            const res = await fetch(`{{ url('apicola/calendario') }}/${id}/toggle-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
+
+            const result = await res.json();
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || 'Error al cambiar estado.');
+            }
+
+            planta.estado = result.nuevoEstado;
+            showToast(result.message || `Planta "${planta.nombreComun}" marcada como ${planta.estado.toLowerCase()}.`);
+            renderPlantasTable();
+        } catch (err) {
+            console.error('Error toggling status:', err);
+            alert(err.message || 'Error al actualizar estado en la base de datos.');
+        }
+    }
+
+    // Desactivar una planta del calendario floral (cambio de estado a Inactiva)
+    async function desactivarPlanta(id, nombreComun) {
+        if (!confirm(`¿Estás seguro de que deseas desactivar la planta "${nombreComun}" del calendario floral?`)) {
+            return;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        try {
+            const res = await fetch(`{{ url('apicola/calendario') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                }
+            });
+
+            const result = await res.json();
+            if (!res.ok || !result.success) {
+                throw new Error(result.message || 'Error al desactivar la planta.');
+            }
+
+            const planta = plantasList.find(p => p.id === id);
+            if (planta) {
+                planta.estado = 'Inactiva';
+            }
+            showToast(result.message || `Planta "${nombreComun}" desactivada con éxito.`);
+            renderPlantasTable();
+        } catch (err) {
+            console.error('Error desactivando planta:', err);
+            alert(err.message || 'Error al desactivar en la base de datos.');
+        }
     }
 </script>
 @endsection

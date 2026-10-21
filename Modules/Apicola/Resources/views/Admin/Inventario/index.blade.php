@@ -1,262 +1,346 @@
 @extends('apicola::Admin.layout')
 
-@section('title', 'Gestión de Inventario • SENA APÍCOLA')
+@section('title', 'Inventario de las bodegas • SENA APÍCOLA')
 
 @section('breadcrumb')
     <a href="{{ route('apicola.admin.inventario.index') }}">Inventario</a>
     <span>/</span>
-    <span class="active-page">Gestión de inventario</span>
+    <span class="active-page">Inventario de las bodegas</span>
 @endsection
 
 @section('styles')
 <style>
-    /* Estilos específicos para la vista de Inventario */
-    .ap-metric-card.border-green {
-        border-left: 4px solid #059669;
+    /* ================= ESTILOS PREMIUM E INTERFAZ ELEGANTE ================= */
+    @keyframes apFadeUp {
+        0% {
+            opacity: 0;
+            transform: translateY(18px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    .ap-metric-card.border-amber {
-        border-left: 4px solid #f59e0b;
+
+    .inv-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        animation: apFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .ap-metric-card.border-red {
-        border-left: 4px solid #ef4444;
+    .inv-subtitle-tag {
+        font-family: var(--ap-font-main);
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #047857;
+        background: rgba(4, 120, 87, 0.08);
+        padding: 4px 10px;
+        border-radius: 6px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-bottom: 4px;
     }
-    .ap-metric-card-title {
+    .inv-main-title {
+        font-family: var(--ap-font-display, 'Outfit', sans-serif);
+        font-size: 2.15rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        margin: 0;
+    }
+    .inv-user-chip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #ffffff;
+        padding: 7px 16px 7px 7px;
+        border-radius: 50px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .inv-user-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    }
+    .inv-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--ap-font-display, 'Outfit', sans-serif);
+        font-weight: 800;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+        box-shadow: 0 3px 8px rgba(4, 120, 87, 0.28);
+    }
+    .inv-user-name {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .inv-user-role {
+        font-size: 0.74rem;
+        color: #64748b;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* 4 Tarjetas de Métricas (Entrada en Cascada) */
+    .inv-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.35rem;
+        margin-bottom: 2.25rem;
+        animation: apFadeUp 0.55s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .inv-metric-card {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        padding: 1.35rem 1.5rem;
+        box-shadow: 0 4px 18px -3px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 114px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .inv-metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.08);
+    }
+    .inv-metric-card.border-green {
+        border-left: 5px solid #059669;
+    }
+    .inv-metric-card.border-amber {
+        border-left: 5px solid #f59e0b;
+    }
+    .inv-metric-card.border-red {
+        border-left: 5px solid #ef4444;
+    }
+    .inv-metric-title {
         font-size: 0.72rem;
         font-weight: 800;
         color: #64748b;
-        letter-spacing: 0.6px;
+        letter-spacing: 0.85px;
         text-transform: uppercase;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.4rem;
     }
-    .ap-metric-card-num {
-        font-size: 2.25rem;
-        font-weight: 900;
+    .inv-metric-num {
+        font-family: var(--ap-font-display, 'Outfit', sans-serif);
+        font-size: 2.45rem;
+        font-weight: 800;
         color: #0f172a;
-        line-height: 1.1;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
         margin-bottom: 0.35rem;
     }
-    .ap-metric-card-sub {
+    .inv-metric-sub {
         font-size: 0.78rem;
         color: #94a3b8;
         font-weight: 500;
     }
 
-    /* Sección de listado */
-    .ap-list-section {
+    /* Sección Principal: Existencias por bodega */
+    .inv-main-card {
         background: #ffffff;
-        border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        padding: 1.75rem 1.75rem 1.25rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        border-radius: 20px;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        padding: 2rem;
+        box-shadow: 0 4px 22px -4px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+        animation: apFadeUp 0.65s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .ap-list-header {
-        margin-bottom: 1.25rem;
+    .inv-section-header {
+        margin-bottom: 1.5rem;
     }
-    .ap-list-title {
-        font-size: 1.25rem;
+    .inv-section-title {
+        font-family: var(--ap-font-display, 'Outfit', sans-serif);
+        font-size: 1.35rem;
         font-weight: 800;
         color: #0f172a;
+        letter-spacing: -0.02em;
         margin-bottom: 0.25rem;
     }
-    .ap-list-desc {
+    .inv-section-desc {
         font-size: 0.85rem;
         color: #64748b;
+        margin: 0;
     }
 
-    /* Barra de búsqueda y controles */
-    .ap-controls-bar {
+    /* Barra de Búsqueda y Filtros */
+    .inv-filter-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 14px;
+        margin-bottom: 1.75rem;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 1.25rem;
     }
-    .ap-controls-left {
+    .inv-filter-left {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
         flex: 1;
+        flex-wrap: wrap;
     }
-    .ap-search-box {
+    .inv-search-wrap {
         position: relative;
-        min-width: 260px;
+        min-width: 250px;
         max-width: 320px;
         flex: 1;
     }
-    .ap-search-box i {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #94a3b8;
-        font-size: 0.85rem;
-    }
-    .ap-search-input {
+    .inv-search-input {
         width: 100%;
-        padding: 9px 12px 9px 36px;
-        border-radius: 10px;
-        border: 1px solid #cbd5e1;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1.5px solid #cbd5e1;
         background: #ffffff;
         font-size: 0.88rem;
+        font-family: var(--ap-font-main);
         color: #0f172a;
         outline: none;
-        transition: all 0.2s;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .ap-search-input:focus {
+    .inv-search-input:focus {
         border-color: #059669;
-        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+        box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
     }
-
-    .ap-filter-dropdown {
-        padding: 9px 14px;
-        border-radius: 10px;
-        border: 1px solid #cbd5e1;
-        background: #ffffff;
+    .inv-select-filter {
+        padding: 10px 34px 10px 14px;
+        border-radius: 12px;
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 12px center;
+        background-size: 16px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
         font-size: 0.88rem;
+        font-family: var(--ap-font-main);
         color: #334155;
+        font-weight: 500;
         outline: none;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .ap-filter-dropdown:focus {
+    .inv-select-filter:focus {
         border-color: #059669;
+        box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
     }
-
-    .ap-controls-right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .ap-btn-categories {
-        background: #ffffff;
-        color: #059669;
-        border: 1.5px solid #059669;
-        padding: 9px 18px;
-        border-radius: 10px;
-        font-size: 0.88rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .ap-btn-categories:hover {
-        background: #ecfdf5;
-        transform: translateY(-1px);
-    }
-
-    .ap-btn-new-item {
-        background: #059669;
+    .inv-btn-add {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
         color: #ffffff;
         border: none;
-        padding: 9px 20px;
-        border-radius: 10px;
+        padding: 10px 22px;
+        border-radius: 12px;
         font-size: 0.88rem;
+        font-family: var(--ap-font-main);
         font-weight: 700;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
-        transition: all 0.2s;
-        text-decoration: none;
+        gap: 8px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
     }
-    .ap-btn-new-item:hover {
-        background: #047857;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35);
+    .inv-btn-add:hover {
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
     }
 
-    /* Tabla de inventario */
-    .ap-table-wrap {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
+    /* Tabla de Existencias */
+    .inv-table-wrap {
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 14px;
         overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     }
-    .ap-inv-table {
+    .inv-table {
         width: 100%;
         border-collapse: collapse;
         text-align: left;
         font-size: 0.88rem;
     }
-    .ap-inv-table thead {
+    .inv-table thead {
         background: #f8fafc;
         border-bottom: 1px solid #e2e8f0;
     }
-    .ap-inv-table th {
-        padding: 0.95rem 1.15rem;
+    .inv-table th {
+        padding: 0.95rem 1.25rem;
         font-size: 0.72rem;
         font-weight: 800;
         color: #64748b;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.7px;
         white-space: nowrap;
     }
-    .ap-inv-table td {
-        padding: 1rem 1.15rem;
+    .inv-table td {
+        padding: 1.05rem 1.25rem;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
         color: #334155;
     }
-    .ap-inv-table tbody tr {
-        transition: background-color 0.15s ease;
+    .inv-table tbody tr {
+        transition: background-color 0.18s ease;
     }
-    .ap-inv-table tbody tr:hover {
+    .inv-table tbody tr:hover {
         background-color: #f8fafc;
     }
-    
-    /* Destaque de fila bajo stock mínimo */
-    .ap-inv-table tbody tr.row-low-stock {
-        background-color: #fffbeb !important;
-    }
-    .ap-inv-table tbody tr.row-low-stock:hover {
-        background-color: #fef3c7 !important;
+    .inv-table tbody tr:last-child td {
+        border-bottom: none;
     }
 
-    /* Badges de estado y advertencia */
-    .badge-status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 4px 10px;
+    /* Filas destacadas cuando están bajo stock */
+    .inv-table tbody tr.row-stock-bajo {
+        background-color: #fffbfb;
+    }
+    .inv-table tbody tr.row-stock-bajo:hover {
+        background-color: #fef2f2;
+    }
+
+    /* Badges de Estado */
+    .inv-badge-disponible {
+        display: inline-block;
+        padding: 4px 14px;
         border-radius: 50px;
         font-size: 0.78rem;
         font-weight: 700;
-    }
-    .badge-status-pill.activo {
         background: #ecfdf5;
         color: #059669;
     }
-    .badge-status-pill.inactivo {
-        background: #f1f5f9;
-        color: #64748b;
-    }
-
-    .badge-low-stock {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 0.72rem;
+    .inv-badge-bajo {
+        display: inline-block;
+        padding: 4px 14px;
+        border-radius: 50px;
+        font-size: 0.78rem;
         font-weight: 700;
-        color: #b45309;
-        background: #fef3c7;
-        padding: 2px 8px;
-        border-radius: 6px;
-        margin-left: 6px;
+        background: #fef2f2;
+        color: #dc2626;
     }
 
-    /* Acciones en la tabla */
-    .ap-table-actions {
+    /* Enlaces de Acción */
+    .inv-action-links {
         display: flex;
         align-items: center;
         gap: 12px;
     }
-    .ap-table-action-link {
+    .inv-action-link {
         color: #059669;
         font-weight: 700;
         font-size: 0.84rem;
@@ -265,522 +349,615 @@
         cursor: pointer;
         padding: 0;
         text-decoration: none;
-        transition: all 0.15s;
+        transition: color 0.15s;
     }
-    .ap-table-action-link:hover {
+    .inv-action-link:hover {
         color: #047857;
         text-decoration: underline;
     }
-    .ap-table-action-link.secondary {
-        color: #0284c7;
-    }
-    .ap-table-action-link.secondary:hover {
-        color: #0369a1;
-    }
 
-    /* Footer de la tabla */
-    .ap-table-footer {
-        display: flex;
-        justify-content: space-between;
+    /* ==================== ESTILOS DEL MODAL (Fieles a imágenes 2, 3 y 4) ==================== */
+    .ap-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.52);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 2000;
+        display: none;
         align-items: center;
-        padding: 1rem 0.5rem 0.25rem;
-        font-size: 0.8rem;
-        color: #64748b;
-        flex-wrap: wrap;
-        gap: 10px;
+        justify-content: center;
+        padding: 1rem;
     }
-
-    /* Estilos del modal */
-    .modal-subtitle {
-        font-size: 0.85rem;
-        color: #64748b;
-        margin-top: -0.8rem;
-        margin-bottom: 1.4rem;
+    .ap-modal-backdrop.is-open {
+        display: flex;
     }
-    .modal-form-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
+    .ap-modal-card {
+        background: #ffffff;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 490px;
+        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.28);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        overflow: hidden;
+        animation: apFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .modal-form-grid-3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 12px;
+    .ap-modal-card.wide {
+        max-width: 740px;
     }
-
-    .type-pill-select {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
+    @keyframes apFadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .ap-modal-inner {
+        padding: 2.25rem 2.4rem 2rem;
+    }
+    .ap-modal-heading {
+        font-family: var(--ap-font-display, 'Outfit', sans-serif);
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.025em;
+        margin-bottom: 1.35rem;
+    }
+    .ap-field-group {
         margin-bottom: 1.25rem;
     }
-    .type-pill-btn {
-        padding: 10px;
+    .ap-label-text {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 0.45rem;
+    }
+
+    /* Toggle Pills para TIPO (Herramienta / Insumo) */
+    .tipo-pill-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 1.25rem;
+    }
+    .tipo-pill-btn {
+        padding: 10px 14px;
         border-radius: 10px;
         border: 1.5px solid #cbd5e1;
         background: #ffffff;
-        color: #64748b;
-        font-size: 0.85rem;
-        font-weight: 700;
+        color: #475569;
+        font-size: 0.88rem;
+        font-weight: 600;
         cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
+        text-align: center;
         transition: all 0.2s;
     }
-    .type-pill-btn:hover {
-        border-color: #94a3b8;
-    }
-    .type-pill-btn.active-entrada {
+    .tipo-pill-btn.active {
         background: #ecfdf5;
         border-color: #059669;
         color: #059669;
-    }
-    .type-pill-btn.active-salida {
-        background: #fef2f2;
-        border-color: #ef4444;
-        color: #dc2626;
-    }
-    .type-pill-btn.active-ajuste {
-        background: #f0f9ff;
-        border-color: #0284c7;
-        color: #0284c7;
+        font-weight: 700;
     }
 
-    /* Historial en modal de ver */
-    .history-timeline-table {
+    /* Selects e Inputs en Modal */
+    .ap-form-control {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        font-size: 0.9rem;
+        color: #0f172a;
+        outline: none;
+        transition: all 0.2s;
+    }
+    .ap-form-control:focus {
+        border-color: #059669;
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+    }
+    select.ap-form-control {
+        background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") no-repeat right 12px center;
+        background-size: 16px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        cursor: pointer;
+    }
+    .ap-field-note {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-top: 5px;
+        line-height: 1.35;
+    }
+
+    /* Modal Grid 2 columnas */
+    .modal-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    /* Botones Cancelar / Guardar */
+    .ap-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-top: 1.75rem;
+    }
+    .ap-btn-cancel {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        padding: 11px 24px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-family: var(--ap-font-main);
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ap-btn-cancel:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+    .ap-btn-submit {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: #ffffff;
+        border: none;
+        padding: 11px 28px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        font-family: var(--ap-font-main);
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.28);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ap-btn-submit:hover {
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+        transform: translateY(-1.5px);
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.38);
+    }
+
+    /* Historial Tabla en Modal */
+    .history-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 0.82rem;
         margin-top: 10px;
     }
-    .history-timeline-table th {
+    .history-table th {
         background: #f8fafc;
-        padding: 8px 10px;
+        padding: 8px 12px;
         font-size: 0.72rem;
         font-weight: 800;
         color: #64748b;
         text-align: left;
     }
-    .history-timeline-table td {
-        padding: 9px 10px;
+    .history-table td {
+        padding: 9px 12px;
         border-bottom: 1px solid #f1f5f9;
         color: #334155;
+    }
+
+    @media (max-width: 900px) {
+        .inv-metrics-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media (max-width: 600px) {
+        .inv-metrics-grid {
+            grid-template-columns: 1fr;
+        }
+        .inv-filter-left {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .inv-search-wrap {
+            max-width: 100%;
+        }
     }
 </style>
 @endsection
 
 @section('content')
-    <!-- Encabezado de la vista con perfil apicultor/administrador -->
-    <div class="ap-view-header-row">
+
+    <!-- Encabezado de la Vista (Imagen 1) -->
+    <div class="inv-header-row">
         <div>
-            <span class="ap-view-subtitle-tag">INVENTARIO</span>
-            <h1 class="ap-view-main-title">Gestión de inventario</h1>
+            <span class="inv-subtitle-tag">INVENTARIO</span>
+            <h1 class="inv-main-title">Inventario de las bodegas</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #047857;">
-                {{ Auth::user()?->initials ?? 'AC' }}
+        <div class="inv-user-chip">
+            <div class="inv-avatar">
+                {{ Auth::user()?->initials ?? 'JR' }}
             </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">
-                    {{ Auth::user()?->full_name ?? 'Andrés Felipe Cuéllar' }}
-                </span>
-                <span class="ap-user-chip-role" style="display:flex; align-items:center; gap:4px;">
-                    Rol: Administrador <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
-                </span>
+            <div>
+                <div class="inv-user-name">
+                    {{ Auth::user()?->full_name ?? 'Jhon Ramírez Ortiz' }}
+                </div>
+                <div class="inv-user-role">
+                    Rol: Apicultor
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 4 Tarjetas de Métricas (Fieles al diseño) -->
-    <div class="ap-metrics-grid">
-        <!-- 1. Elementos Registrados -->
-        <div class="ap-metric-card border-green">
-            <div class="ap-metric-card-title">ELEMENTOS REGISTRADOS</div>
-            <div class="ap-metric-card-num" id="cardTotalElementos">{{ $metrics['elementos_registrados'] }}</div>
-            <div class="ap-metric-card-sub" id="cardSubCategorias">{{ $metrics['categorias_count'] == 1 ? 'En 1 categoría' : 'En ' . $metrics['categorias_count'] . ' categorías' }}</div>
+    <!-- 4 Tarjetas de Métricas (Imagen 1) -->
+    <div class="inv-metrics-grid">
+        <!-- 1. ELEMENTOS REGISTRADOS -->
+        <div class="inv-metric-card border-green">
+            <div class="inv-metric-title">ELEMENTOS REGISTRADOS</div>
+            <div class="inv-metric-num" id="cardTotalElementos">{{ $metrics['elementos_registrados'] }}</div>
+            <div class="inv-metric-sub">En las dos bodegas</div>
         </div>
 
-        <!-- 2. Unidades en Existencia -->
-        <div class="ap-metric-card border-green">
-            <div class="ap-metric-card-title">UNIDADES EN EXISTENCIA</div>
-            <div class="ap-metric-card-num" id="cardTotalUnidades">{{ $metrics['unidades_existencia'] }}</div>
-            <div class="ap-metric-card-sub">Suma de todas las cantidades</div>
+        <!-- 2. BODEGA CENTRAL -->
+        <div class="inv-metric-card border-green">
+            <div class="inv-metric-title">BODEGA CENTRAL</div>
+            <div class="inv-metric-num" id="cardBodegaCentral">{{ $metrics['bodega_central'] }}</div>
+            <div class="inv-metric-sub">Centro de Formación</div>
         </div>
 
-        <!-- 3. Bajo Stock Mínimo -->
-        <div class="ap-metric-card border-red">
-            <div class="ap-metric-card-title">BAJO STOCK MÍNIMO</div>
-            <div class="ap-metric-card-num" id="cardBajoStock" style="color: #dc2626;">{{ $metrics['bajo_stock'] }}</div>
-            <div class="ap-metric-card-sub">Requieren reposición</div>
+        <!-- 3. BODEGA DEL APIARIO -->
+        <div class="inv-metric-card border-amber">
+            <div class="inv-metric-title">BODEGA DEL APIARIO</div>
+            <div class="inv-metric-num" id="cardBodegaApiario">{{ $metrics['bodega_apiario'] }}</div>
+            <div class="inv-metric-sub">Apiario La Angostura</div>
         </div>
 
-        <!-- 4. Movimientos de Agosto / Mes Actual -->
-        <div class="ap-metric-card border-amber">
-            <div class="ap-metric-card-title">MOVIMIENTOS DE {{ strtoupper($metrics['mes_nombre']) }}</div>
-            <div class="ap-metric-card-num" id="cardTotalMovimientos">{{ $metrics['movimientos_total'] }}</div>
-            <div class="ap-metric-card-sub" id="cardSubMovimientos">{{ $metrics['movimientos_salidas'] }} salidas · {{ $metrics['movimientos_entradas'] }} entradas</div>
+        <!-- 4. EN ALERTA DE STOCK -->
+        <div class="inv-metric-card border-red">
+            <div class="inv-metric-title">EN ALERTA DE STOCK</div>
+            <div class="inv-metric-num" id="cardAlertaStock" style="color: #dc2626;">{{ $metrics['alerta_stock'] }}</div>
+            <div class="inv-metric-sub">Bajo el mínimo</div>
         </div>
     </div>
 
-    <!-- Sección: Listado de Inventario -->
-    <div class="ap-list-section">
-        <div class="ap-list-header">
-            <h2 class="ap-list-title">Listado de inventario</h2>
-            <p class="ap-list-desc">Herramientas y materiales de la unidad apícola. Las filas por debajo del stock mínimo aparecen destacadas.</p>
+    <!-- Sección Principal: Existencias por bodega -->
+    <div class="inv-main-card">
+        <div class="inv-section-header">
+            <h2 class="inv-section-title">Existencias por bodega</h2>
+            <p class="inv-section-desc">Un mismo elemento puede estar en las dos bodegas con cantidades distintas.</p>
         </div>
 
-        <!-- Controles: Búsqueda, Filtros y Acciones -->
-        <div class="ap-controls-bar">
-            <div class="ap-controls-left">
-                <!-- Buscador -->
-                <div class="ap-search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" class="ap-search-input" placeholder="Buscar por nombre o código..." oninput="filtrarInventario()">
+        <!-- Barra de Búsqueda y Filtros -->
+        <div class="inv-filter-bar">
+            <div class="inv-filter-left">
+                <!-- Buscar por nombre... -->
+                <div class="inv-search-wrap">
+                    <input type="text" id="searchInput" class="inv-search-input" placeholder="Buscar por nombre..." oninput="filtrarInventario()">
                 </div>
 
-                <!-- Filtro Categoría -->
-                <select id="categoriaFilter" class="ap-filter-dropdown" onchange="filtrarInventario()">
-                    <option value="all">Categoría: todas</option>
+                <!-- Bodega: todas -->
+                <select id="bodegaFilter" class="inv-select-filter" onchange="filtrarInventario()">
+                    <option value="todas">Bodega: todas</option>
+                    <option value="Bodega central">Bodega central</option>
+                    <option value="Bodega del apiario">Bodega del apiario</option>
+                </select>
+
+                <!-- Categoría: todas -->
+                <select id="categoriaFilter" class="inv-select-filter" onchange="filtrarInventario()">
+                    <option value="todas">Categoría: todas</option>
+                    <option value="Herramienta">Herramienta</option>
+                    <option value="Insumo">Insumo</option>
                     @foreach($categorias as $cat)
-                        <option value="{{ $cat }}">{{ $cat }}</option>
+                        @if(!in_array($cat, ['Herramienta', 'Insumo']))
+                            <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endif
                     @endforeach
                 </select>
 
-                <!-- Filtro Estado -->
-                <select id="estadoFilter" class="ap-filter-dropdown" onchange="filtrarInventario()">
-                    <option value="all">Estado: todos</option>
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
+                <!-- Estado: todos -->
+                <select id="estadoFilter" class="inv-select-filter" onchange="filtrarInventario()">
+                    <option value="todos">Estado: todos</option>
+                    <option value="Activo">Activos</option>
+                    <option value="Inactivo">Inactivos</option>
                 </select>
             </div>
 
-            <div class="ap-controls-right">
-                <button type="button" class="ap-btn-categories" onclick="abrirModalCategorias()">
-                    Categorías
-                </button>
-                <button type="button" class="ap-btn-new-item" onclick="abrirModalNuevo()">
-                    + Nuevo elemento
+            <div>
+                <!-- + Agregar al inventario -->
+                <button type="button" class="inv-btn-add" onclick="abrirModalAgregar()">
+                    + Agregar al inventario
                 </button>
             </div>
         </div>
 
-        <!-- Tabla de Inventario -->
-        <div class="ap-table-wrap">
-            <table class="ap-inv-table">
+        <!-- Tabla de Existencias -->
+        <div class="inv-table-wrap">
+            <table class="inv-table">
                 <thead>
                     <tr>
-                        <th>ELEMENTO</th>
                         <th>CÓDIGO</th>
+                        <th>ELEMENTO</th>
                         <th>CATEGORÍA</th>
-                        <th>CANTIDAD</th>
-                        <th>STOCK MÍNIMO</th>
-                        <th>RESPONSABLE</th>
+                        <th>BODEGA</th>
+                        <th>DISPONIBLE</th>
+                        <th>MÍNIMO</th>
                         <th>ESTADO</th>
                         <th>ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody id="inventarioTableBody">
-                    <!-- Rellenado dinámicamente con JavaScript desde datos de Laravel -->
+                    <!-- Filas renderizadas por JS -->
                 </tbody>
             </table>
         </div>
 
-        <!-- Pie de la Tabla -->
-        <div class="ap-table-footer">
+        <!-- Footer Informativo -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; font-size: 0.8rem; color: #94a3b8; flex-wrap: wrap; gap: 8px;">
             <div>
-                Mostrando <strong id="shownCount">{{ count($items) }}</strong> de <strong id="totalCount">{{ count($items) }}</strong> elementos
+                Mostrando <strong id="shownCount" style="color: #0f172a;">{{ count($items) }}</strong> de <strong id="totalCount" style="color: #0f172a;">{{ count($items) }}</strong> registros
             </div>
-            <div style="font-style: italic; color: #94a3b8;">
-                Los elementos no se eliminan: se desactivan y conservan su historial de movimientos.
+            <div style="font-style: italic;">
+                Las cantidades se actualizan mediante registros de movimiento para trazabilidad completa.
             </div>
         </div>
     </div>
+
 @endsection
 
 @section('modals')
-    <!-- ==================== MODAL 1: NUEVO / EDITAR ELEMENTO (DISEÑO EXACTO IMAGEN 2) ==================== -->
-    <div class="ap-modal-backdrop" id="modalElementoBackdrop">
-        <div class="ap-modal-window">
-            <div class="ap-modal-body" style="padding: 2rem 2.2rem 1.5rem;">
-                <h2 class="ap-modal-title" id="modalElementoTitle" style="font-size: 1.55rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
-                    Nuevo elemento
-                </h2>
-                <p class="modal-subtitle" id="modalElementoSubtitle">
-                    Herramienta, material o insumo de la unidad apícola.
-                </p>
 
-                <form id="formElemento" onsubmit="guardarElementoForm(event)">
-                    <input type="hidden" id="modalItemId" value="">
+    <!-- ==================== MODAL: AGREGAR AL INVENTARIO (Imágenes 2, 3 y 4) ==================== -->
+    <div class="ap-modal-backdrop" id="modalAgregarBackdrop">
+        <div class="ap-modal-card">
+            <div class="ap-modal-inner">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                    <h2 class="ap-modal-heading" style="margin-bottom:0;" id="modalAgregarTitulo">Agregar al inventario</h2>
+                    <button type="button" class="ap-modal-close-btn" onclick="cerrarModalAgregar()" title="Cerrar">&times;</button>
+                </div>
 
-                    <!-- 1. NOMBRE -->
-                    <div class="ap-form-field">
-                        <label class="ap-field-label" for="inputNombre">NOMBRE</label>
-                        <input type="text" id="inputNombre" class="ap-field-input" placeholder="Ahumador de acero inoxidable" required>
-                    </div>
-
-                    <!-- 2. CÓDIGO Y CATEGORÍA (2 Columnas) -->
-                    <div class="modal-form-grid-2">
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="inputCodigo">CÓDIGO</label>
-                            <input type="text" id="inputCodigo" class="ap-field-input" placeholder="INV-AHU-002" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="inputCategoria">CATEGORÍA</label>
-                            <select id="inputCategoria" class="ap-field-input" required>
-                                <option value="Herramientas">Herramientas</option>
-                                <option value="Indumentaria">Indumentaria</option>
-                                <option value="Insumos">Insumos</option>
-                                <option value="Equipos">Equipos</option>
-                            </select>
+                <form id="formAgregarInventario" onsubmit="guardarInventario(event)">
+                    <!-- 1. TIPO (Herramienta / Insumo) -->
+                    <div class="ap-field-group">
+                        <label class="ap-label-text">TIPO</label>
+                        <input type="hidden" id="inputTipo" value="Herramienta">
+                        <div class="tipo-pill-group">
+                            <button type="button" id="btnHerramienta" class="tipo-pill-btn active" onclick="seleccionarTipo('Herramienta')">Herramienta</button>
+                            <button type="button" id="btnInsumo" class="tipo-pill-btn" onclick="seleccionarTipo('Insumo')">Insumo</button>
                         </div>
                     </div>
 
-                    <!-- 3. CANTIDAD, STOCK MÍNIMO Y ESTADO (3 Columnas) -->
-                    <div class="modal-form-grid-3">
-                        <div class="ap-form-field" id="wrapCantidad">
-                            <label class="ap-field-label" for="inputCantidad">CANTIDAD</label>
-                            <input type="number" id="inputCantidad" class="ap-field-input" min="0" value="1" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="inputStockMinimo">STOCK MÍNIMO</label>
-                            <input type="number" id="inputStockMinimo" class="ap-field-input" min="0" value="1" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="inputEstado">ESTADO</label>
-                            <select id="inputEstado" class="ap-field-input" required>
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 4. RESPONSABLE -->
-                    <div class="ap-form-field">
-                        <label class="ap-field-label" for="inputResponsable">RESPONSABLE</label>
-                        <select id="inputResponsable" class="ap-field-input" required>
-                            <option value="Diana Carolina Vargas">Diana Carolina Vargas</option>
-                            <option value="Sergio Barrera">Sergio Barrera</option>
-                            <option value="Andrés Felipe Cuéllar">Andrés Felipe Cuéllar</option>
-                            <option value="Instructor Apícola SENA">Instructor Apícola SENA</option>
+                    <!-- 2. ELEMENTO (Dropdown con opción '+ Registrar uno nuevo...') -->
+                    <div class="ap-field-group">
+                        <label class="ap-label-text" for="selectElemento">ELEMENTO</label>
+                        <select id="selectElemento" class="ap-form-control" onchange="toggleRegistrarNuevo(this.value)" required>
+                            <option value="Traje apícola">Traje apícola</option>
+                            <option value="Ahumador">Ahumador</option>
+                            <option value="Palanca apícola">Palanca apícola</option>
+                            <option value="Alza">Alza</option>
+                            @foreach($elementosUnicos as $elem)
+                                @if(!in_array($elem->nombre, ['Traje apícola', 'Ahumador', 'Palanca apícola', 'Alza']))
+                                    <option value="{{ $elem->nombre }}">{{ $elem->nombre }}</option>
+                                @endif
+                            @endforeach
+                            <option value="__nuevo__">+ Registrar uno nuevo...</option>
                         </select>
                     </div>
 
-                    <!-- Texto de ayuda inferior -->
-                    <p class="ap-field-hint" style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; line-height: 1.4;">
-                        Cuando la cantidad quede por debajo del stock mínimo, el elemento se destaca en el listado.
-                    </p>
+                    <!-- 2.1 NUEVO ELEMENTO (Aparece sólo si selecciona '+ Registrar uno nuevo...') (Imagen 4) -->
+                    <div id="seccionRegistrarNuevo" style="display: none; margin-bottom: 1.25rem;">
+                        <div class="modal-grid-2">
+                            <div>
+                                <label class="ap-label-text" for="inputNombreNuevo">NOMBRE DEL ELEMENTO</label>
+                                <input type="text" id="inputNombreNuevo" class="ap-form-control" placeholder="Ej: Traje apícola">
+                            </div>
+                            <div>
+                                <label class="ap-label-text" for="selectUnidadMedida">UNIDAD DE MEDIDA</label>
+                                <select id="selectUnidadMedida" class="ap-form-control">
+                                    <option value="unidad">Unidad</option>
+                                    <option value="kg">kg</option>
+                                    <option value="litro">Litro</option>
+                                    <option value="par">Par</option>
+                                    <option value="caja">Caja</option>
+                                    <option value="frasco">Frasco</option>
+                                    <option value="rollo">Rollo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div class="ap-modal-footer" style="padding: 1.25rem 0 0; margin-top: 1.25rem; border-top: 1px solid #f1f5f9;">
-                        <button type="button" class="ap-btn-modal-cancel" onclick="cerrarModalElemento()">Cancelar</button>
-                        <button type="submit" class="ap-btn-modal-save" style="background: #059669;" id="btnSubmitElemento">Guardar elemento</button>
+                    <!-- 3. BODEGA (Dropdown con texto de ayuda) -->
+                    <div class="ap-field-group">
+                        <label class="ap-label-text" for="selectBodega">BODEGA</label>
+                        <select id="selectBodega" class="ap-form-control" required>
+                            <option value="Bodega central">Bodega central · Centro de Formación</option>
+                            <option value="Bodega del apiario">Bodega del apiario · Apiario La Angostura</option>
+                        </select>
+                        <p class="ap-field-note">
+                            El mismo elemento puede estar en las dos bodegas con cantidades distintas.
+                        </p>
+                    </div>
+
+                    <!-- 4. CANTIDAD INICIAL Y STOCK MÍNIMO (2 Columnas) -->
+                    <div class="modal-grid-2 ap-field-group">
+                        <div>
+                            <label class="ap-label-text" for="inputCantidadInicial">CANTIDAD INICIAL</label>
+                            <input type="number" id="inputCantidadInicial" class="ap-form-control" min="0" value="0" required>
+                        </div>
+                        <div>
+                            <label class="ap-label-text" for="inputStockMinimo">STOCK MÍNIMO</label>
+                            <input type="number" id="inputStockMinimo" class="ap-form-control" min="0" value="5" required>
+                        </div>
+                    </div>
+
+                    <!-- Botones Cancelar / Guardar -->
+                    <div class="ap-modal-actions">
+                        <button type="button" class="ap-btn-cancel" onclick="cerrarModalAgregar()">Cancelar</button>
+                        <button type="submit" class="ap-btn-submit" id="btnSubmitAgregar">Guardar</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- ==================== MODAL 2: REGISTRAR MOVIMIENTO (ENTRADA / SALIDA) ==================== -->
+    <!-- ==================== MODAL: REGISTRAR MOVIMIENTO ==================== -->
     <div class="ap-modal-backdrop" id="modalMovimientoBackdrop">
-        <div class="ap-modal-window">
-            <div class="ap-modal-body" style="padding: 2rem 2.2rem 1.5rem;">
-                <h2 class="ap-modal-title" style="font-size: 1.55rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
-                    Registrar movimiento
-                </h2>
-                <p class="modal-subtitle" id="movimientoSubtitle">
-                    Actualiza la existencia física y guarda la trazabilidad del elemento.
-                </p>
+        <div class="ap-modal-card">
+            <div class="ap-modal-inner">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.35rem;">
+                    <div>
+                        <h2 class="ap-modal-heading" style="margin-bottom: 0.35rem;">Registrar movimiento</h2>
+                        <p style="font-size: 0.82rem; color: #64748b; margin-top: 0; margin-bottom: 1.25rem;">
+                            Actualiza la existencia física en bodega y conserva trazabilidad.
+                        </p>
+                    </div>
+                    <button type="button" class="ap-modal-close-btn" onclick="cerrarModalMovimiento()" title="Cerrar">&times;</button>
+                </div>
 
-                <!-- Resumen de elemento seleccionado -->
+                <!-- Resumen de elemento -->
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div id="movItemNombre" style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">Ahumador</div>
-                        <div id="movItemCodigo" style="font-size: 0.78rem; color: #64748b;">INV-AHU-002</div>
+                        <div id="movItemNombre" style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">-</div>
+                        <div style="font-size: 0.78rem; color: #64748b;">
+                            <span id="movItemCodigo">-</span> · <span id="movItemBodega">-</span>
+                        </div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Stock actual</div>
-                        <div id="movItemStockActual" style="font-size: 1.35rem; font-weight: 900; color: #059669;">5</div>
+                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Disponible</div>
+                        <div id="movItemDisponible" style="font-size: 1.25rem; font-weight: 900; color: #059669;">-</div>
                     </div>
                 </div>
 
-                <form id="formMovimiento" onsubmit="guardarMovimientoForm(event)">
+                <form id="formMovimiento" onsubmit="guardarMovimiento(event)">
                     <input type="hidden" id="movItemId" value="">
                     <input type="hidden" id="movTipo" value="Entrada">
 
-                    <!-- Tipo de movimiento (Pills) -->
-                    <label class="ap-field-label">TIPO DE MOVIMIENTO</label>
-                    <div class="type-pill-select">
-                        <button type="button" class="type-pill-btn active-entrada" id="btnTipoEntrada" onclick="setTipoMovimiento('Entrada')">
-                            <i class="fas fa-arrow-down-left" style="font-size: 1.1rem;"></i>
-                            <span>Entrada (+)</span>
-                        </button>
-                        <button type="button" class="type-pill-btn" id="btnTipoSalida" onclick="setTipoMovimiento('Salida')">
-                            <i class="fas fa-arrow-up-right" style="font-size: 1.1rem;"></i>
-                            <span>Salida (-)</span>
-                        </button>
-                        <button type="button" class="type-pill-btn" id="btnTipoAjuste" onclick="setTipoMovimiento('Ajuste')">
-                            <i class="fas fa-sliders" style="font-size: 1.1rem;"></i>
-                            <span>Ajuste (=)</span>
-                        </button>
+                    <!-- Tipo de movimiento -->
+                    <div class="ap-field-group">
+                        <label class="ap-label-text">TIPO DE MOVIMIENTO</label>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                            <button type="button" id="btnTipoEntrada" class="tipo-pill-btn active" onclick="setTipoMovimiento('Entrada')">
+                                Entrada (+)
+                            </button>
+                            <button type="button" id="btnTipoSalida" class="tipo-pill-btn" onclick="setTipoMovimiento('Salida')">
+                                Salida (-)
+                            </button>
+                            <button type="button" id="btnTipoAjuste" class="tipo-pill-btn" onclick="setTipoMovimiento('Ajuste')">
+                                Ajuste (=)
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Cantidad y Fecha -->
-                    <div class="modal-form-grid-2">
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="movCantidad">CANTIDAD</label>
-                            <input type="number" id="movCantidad" class="ap-field-input" min="1" value="1" required>
+                    <div class="modal-grid-2 ap-field-group">
+                        <div>
+                            <label class="ap-label-text" for="movCantidad">CANTIDAD</label>
+                            <input type="number" id="movCantidad" class="ap-form-control" min="1" value="1" required>
                         </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="movFecha">FECHA</label>
-                            <input type="date" id="movFecha" class="ap-field-input" value="{{ date('Y-m-d') }}" required>
+                        <div>
+                            <label class="ap-label-text" for="movFecha">FECHA</label>
+                            <input type="date" id="movFecha" class="ap-form-control" value="{{ date('Y-m-d') }}" required>
                         </div>
                     </div>
 
                     <!-- Motivo -->
-                    <div class="ap-form-field">
-                        <label class="ap-field-label" for="movMotivo">MOTIVO / CONCEPTO</label>
-                        <input type="text" id="movMotivo" class="ap-field-input" placeholder="Ej: Reposición de almacén, práctica de campo..." required>
+                    <div class="ap-field-group">
+                        <label class="ap-label-text" for="movMotivo">MOTIVO / CONCEPTO</label>
+                        <input type="text" id="movMotivo" class="ap-form-control" placeholder="Ej: Abastecimiento, práctica pedagógica, reposición" required>
                     </div>
 
                     <!-- Responsable -->
-                    <div class="ap-form-field">
-                        <label class="ap-field-label" for="movResponsable">RESPONSABLE</label>
-                        <select id="movResponsable" class="ap-field-input" required>
-                            <option value="Diana Carolina Vargas">Diana Carolina Vargas</option>
-                            <option value="Sergio Barrera">Sergio Barrera</option>
-                            <option value="Andrés Felipe Cuéllar">Andrés Felipe Cuéllar</option>
-                            <option value="Instructor Apícola SENA">Instructor Apícola SENA</option>
-                        </select>
+                    <div class="ap-field-group">
+                        <label class="ap-label-text" for="movResponsable">RESPONSABLE</label>
+                        <input type="text" id="movResponsable" class="ap-form-control" value="{{ Auth::user()?->full_name ?? 'Jhon Ramírez Ortiz' }}" required>
                     </div>
 
-                    <div class="ap-modal-footer" style="padding: 1.25rem 0 0; margin-top: 1.25rem; border-top: 1px solid #f1f5f9;">
-                        <button type="button" class="ap-btn-modal-cancel" onclick="cerrarModalMovimiento()">Cancelar</button>
-                        <button type="submit" class="ap-btn-modal-save" style="background: #059669;">Confirmar movimiento</button>
+                    <div class="ap-modal-actions">
+                        <button type="button" class="ap-btn-cancel" onclick="cerrarModalMovimiento()">Cancelar</button>
+                        <button type="submit" class="ap-btn-submit" id="btnSubmitMovimiento">Confirmar movimiento</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- ==================== MODAL 3: VER DETALLE E HISTORIAL ==================== -->
-    <div class="ap-modal-backdrop" id="modalDetalleBackdrop">
-        <div class="ap-modal-window large" style="max-width: 720px;">
-            <div class="ap-modal-body" style="padding: 2rem 2.2rem 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+    <!-- ==================== MODAL: HISTORIAL DE MOVIMIENTOS ==================== -->
+    <div class="ap-modal-backdrop" id="modalHistorialBackdrop">
+        <div class="ap-modal-card wide">
+            <div class="ap-modal-inner">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
                     <div>
-                        <span class="ap-view-subtitle-tag" id="detCategoria">HERRAMIENTAS</span>
-                        <h2 class="ap-modal-title" id="detNombre" style="margin-bottom: 0.2rem; font-size: 1.5rem;">
-                            Ahumador de acero inoxidable
-                        </h2>
-                        <span style="font-size: 0.85rem; font-weight: 700; color: #64748b;" id="detCodigo">INV-AHU-002</span>
+                        <span id="histCategoria" class="inv-subtitle-tag">HERRAMIENTA</span>
+                        <h2 id="histNombre" class="ap-modal-heading" style="margin-bottom: 0.2rem; font-size: 1.4rem;">Traje apícola</h2>
+                        <div style="font-size: 0.82rem; color: #64748b;">
+                            Código: <strong id="histCodigo" style="color: #0f172a;">INV-001</strong> · Bodega: <strong id="histBodega" style="color: #0f172a;">Bodega central</strong>
+                        </div>
                     </div>
-                    <div id="detEstadoBadge">
-                        <span class="badge-status-pill activo">Activo</span>
-                    </div>
-                </div>
-
-                <!-- Tarjetas de datos rápidos -->
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem;">
-                    <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Existencia</div>
-                        <div style="font-size: 1.4rem; font-weight: 900; color: #0f172a;" id="detCantidad">5</div>
-                    </div>
-                    <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Stock mínimo</div>
-                        <div style="font-size: 1.4rem; font-weight: 900; color: #64748b;" id="detStockMinimo">3</div>
-                    </div>
-                    <div style="background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; grid-column: span 2;">
-                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Responsable</div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-top: 4px;" id="detResponsable">Diana Carolina Vargas</div>
+                    <div style="display:flex; align-items:flex-start; gap:12px;">
+                        <div style="text-align: right;">
+                            <span id="histEstadoBadge" class="inv-badge-disponible">Disponible</span>
+                            <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 4px;" id="histDisponible">
+                                12 unidad
+                            </div>
+                        </div>
+                        <button type="button" class="ap-modal-close-btn" onclick="cerrarModalHistorial()" title="Cerrar">&times;</button>
                     </div>
                 </div>
 
-                <!-- Historial de movimientos -->
-                <div style="margin-bottom: 0.5rem;">
-                    <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span>Historial de movimientos</span>
-                        <button type="button" class="ap-table-action-link" style="font-size: 0.8rem;" onclick="abrirMovimientoDesdeDetalle()">+ Nuevo movimiento</button>
-                    </h3>
-
-                    <div style="max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px;">
-                        <table class="history-timeline-table">
-                            <thead>
-                                <tr>
-                                    <th>FECHA</th>
-                                    <th>TIPO</th>
-                                    <th>CANTIDAD</th>
-                                    <th>STOCK RESULTANTE</th>
-                                    <th>MOTIVO</th>
-                                    <th>RESPONSABLE</th>
-                                </tr>
-                            </thead>
-                            <tbody id="detHistorialBody">
-                                <!-- Filas de movimientos -->
-                            </tbody>
-                        </table>
-                    </div>
+                <!-- Tabla de Historial -->
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 1.25rem;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>TIPO</th>
+                                <th>CANTIDAD</th>
+                                <th>STOCK RESULTANTE</th>
+                                <th>MOTIVO</th>
+                                <th>RESPONSABLE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historialTableBody">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
                 </div>
 
-                <div class="ap-modal-footer" style="padding: 1.25rem 0 0; margin-top: 1.25rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between;">
-                    <button type="button" id="btnToggleEstadoDetalle" class="ap-table-action-link" style="color: #ef4444;" onclick="toggleEstadoDesdeDetalle()">
-                        Desactivar elemento
+                <div class="ap-modal-actions" style="justify-content: space-between;">
+                    <button type="button" class="inv-action-link" style="font-size: 0.88rem;" onclick="abrirMovimientoDesdeHistorial()">
+                        + Registrar nuevo movimiento
                     </button>
-                    <button type="button" class="ap-btn-modal-cancel" onclick="cerrarModalDetalle()">Cerrar</button>
+                    <button type="button" class="ap-btn-cancel" onclick="cerrarModalHistorial()">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ==================== MODAL 4: CATEGORÍAS ==================== -->
-    <div class="ap-modal-backdrop" id="modalCategoriasBackdrop">
-        <div class="ap-modal-window">
-            <div class="ap-modal-body" style="padding: 2rem 2.2rem 1.5rem;">
-                <h2 class="ap-modal-title" style="font-size: 1.55rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
-                    Categorías de inventario
-                </h2>
-                <p class="modal-subtitle">
-                    Resumen de distribución de herramientas y suministros de la unidad apícola.
-                </p>
-
-                <div id="categoriasListContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
-                    <!-- Rellenado dinámicamente -->
-                </div>
-
-                <div class="ap-modal-footer" style="padding: 1.25rem 0 0; margin-top: 1.25rem; border-top: 1px solid #f1f5f9;">
-                    <button type="button" class="ap-btn-modal-cancel" onclick="cerrarModalCategorias()">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
 
 @section('scripts')
 <script>
-    // Inyección de datos iniciales del backend de Laravel
+    // Datos inyectados desde el backend
     let inventarioData = @json($items);
-    let metricsData = @json($metrics);
     let selectedItemId = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         renderInventarioTable();
-        updateMetricsCards();
+        actualizarMetricas();
     });
 
-    // ==================== RENDERIZADO DE TABLA Y FILTROS ====================
+    // ==================== RENDERIZADO Y FILTROS ====================
     function renderInventarioTable() {
         const search = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-        const cat = document.getElementById('categoriaFilter')?.value || 'all';
-        const est = document.getElementById('estadoFilter')?.value || 'all';
+        const bodega = document.getElementById('bodegaFilter')?.value || 'todas';
+        const categoria = document.getElementById('categoriaFilter')?.value || 'todas';
+        const estado = document.getElementById('estadoFilter')?.value || 'todos';
 
         const filtered = inventarioData.filter(item => {
             const matchSearch = item.nombre.toLowerCase().includes(search) ||
-                                item.codigo.toLowerCase().includes(search) ||
-                                item.responsable.toLowerCase().includes(search);
-            const matchCat = (cat === 'all') || (item.categoria === cat);
-            const matchEst = (est === 'all') || (item.estado === est);
+                                item.codigo.toLowerCase().includes(search);
+            const matchBodega = (bodega === 'todas') || (item.bodega === bodega);
+            const matchCategoria = (categoria === 'todas') || (item.categoria.toLowerCase() === categoria.toLowerCase());
+            const matchEstado = (estado === 'todos') || (item.estado === estado);
 
-            return matchSearch && matchCat && matchEst;
+            return matchSearch && matchBodega && matchCategoria && matchEstado;
         });
 
         const tbody = document.getElementById('inventarioTableBody');
@@ -795,7 +972,7 @@
                 <tr>
                     <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
                         <i class="fas fa-search" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
-                        No se encontraron elementos de inventario con los filtros aplicados.
+                        No se encontraron registros de inventario con los filtros aplicados.
                     </td>
                 </tr>
             `;
@@ -804,51 +981,54 @@
 
         filtered.forEach(item => {
             const tr = document.createElement('tr');
-            const isLowStock = item.cantidad <= item.stock_minimo;
-            if (isLowStock) {
-                tr.className = 'row-low-stock';
+            const isStockBajo = parseInt(item.cantidad) <= parseInt(item.stock_minimo);
+            const isInactive = (item.estado === 'Inactivo');
+
+            if (isStockBajo) {
+                tr.className = 'row-stock-bajo';
             }
 
-            const lowStockBadge = isLowStock 
-                ? `<span class="badge-low-stock" title="Cantidad por debajo del stock mínimo (${item.stock_minimo})"><i class="fas fa-exclamation-triangle"></i> Bajo</span>` 
-                : '';
+            let estadoBadge = isStockBajo 
+                ? `<span class="inv-badge-bajo">Stock bajo</span>`
+                : `<span class="inv-badge-disponible">Disponible</span>`;
 
-            const statusClass = item.estado === 'Activo' ? 'activo' : 'inactivo';
+            if (isInactive) {
+                estadoBadge += ` <span style="display:inline-block; padding: 2px 8px; border-radius: 50px; font-size: 0.72rem; font-weight: 800; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; margin-left: 4px;">Inactivo</span>`;
+            }
+
+            const unidad = item.unidad_medida || 'unidad';
 
             tr.innerHTML = `
-                <td style="font-weight: 700; color: #0f172a;">
-                    ${item.nombre}
-                </td>
-                <td style="font-weight: 600; color: #64748b;">
+                <td style="font-weight: 500; color: #475569;">
                     ${item.codigo}
                 </td>
-                <td>
-                    <span style="background: #f1f5f9; color: #475569; padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
-                        ${item.categoria}
-                    </span>
+                <td style="font-weight: 800; color: #0f172a;">
+                    ${item.nombre}
+                </td>
+                <td style="color: #475569;">
+                    ${item.categoria}
+                </td>
+                <td style="color: #475569;">
+                    ${item.bodega}
                 </td>
                 <td>
-                    <span style="font-weight: 800; font-size: 0.95rem; color: ${isLowStock ? '#b45309' : '#0f172a'};">
-                        ${item.cantidad}
-                    </span>
-                    ${lowStockBadge}
+                    <strong style="color: #0f172a; font-weight: 800;">${item.cantidad}</strong> 
+                    <span style="color: #64748b; font-size: 0.82rem;">${unidad}</span>
                 </td>
-                <td style="color: #64748b; font-weight: 600;">
+                <td style="color: #475569; font-weight: 500;">
                     ${item.stock_minimo}
                 </td>
-                <td style="color: #334155;">
-                    ${item.responsable}
+                <td>
+                    ${estadoBadge}
                 </td>
                 <td>
-                    <span class="badge-status-pill ${statusClass}">
-                        ${item.estado}
-                    </span>
-                </td>
-                <td>
-                    <div class="ap-table-actions">
-                        <button type="button" class="ap-table-action-link" onclick="abrirModalDetalle(${item.id})">Ver</button>
-                        <button type="button" class="ap-table-action-link" onclick="abrirModalEditar(${item.id})">Editar</button>
-                        <button type="button" class="ap-table-action-link" onclick="abrirModalMovimiento(${item.id})">Movimiento</button>
+                    <div class="inv-action-links">
+                        <button type="button" class="inv-action-link" onclick="abrirModalMovimiento(${item.id})">Movimiento</button>
+                        <button type="button" class="inv-action-link" onclick="abrirModalHistorial(${item.id})">Historial</button>
+                        ${isInactive
+                            ? `<button type="button" class="inv-action-link" style="color: #059669; font-weight: 700;" onclick="toggleInventarioStatus(${item.id})">Activar</button>`
+                            : `<button type="button" class="inv-action-link" style="color: #ef4444; font-weight: 700;" onclick="desactivarInventarioItem(${item.id}, '${item.codigo}', '${item.nombre}')">Desactivar</button>`
+                        }
                     </div>
                 </td>
             `;
@@ -860,81 +1040,90 @@
         renderInventarioTable();
     }
 
-    function updateMetricsCards() {
+    function actualizarMetricas() {
         const total = inventarioData.length;
-        const categoriasUnicas = new Set(inventarioData.map(i => i.categoria)).size;
-        const totalUnidades = inventarioData.reduce((acc, curr) => acc + parseInt(curr.cantidad || 0), 0);
-        const bajoStock = inventarioData.filter(i => i.cantidad <= i.stock_minimo).length;
+        const bodegaCentral = inventarioData.filter(i => (i.bodega || '').includes('Bodega central')).length;
+        const bodegaApiario = inventarioData.filter(i => (i.bodega || '').includes('apiario') || (i.bodega || '').includes('Apiario')).length;
+        const alertaStock = inventarioData.filter(i => parseInt(i.cantidad) <= parseInt(i.stock_minimo)).length;
 
         document.getElementById('cardTotalElementos').textContent = total;
-        document.getElementById('cardSubCategorias').textContent = categoriasUnicas === 1 ? 'En 1 categoría' : `En ${categoriasUnicas} categorías`;
-        document.getElementById('cardTotalUnidades').textContent = totalUnidades;
-        document.getElementById('cardBajoStock').textContent = bajoStock;
+        document.getElementById('cardBodegaCentral').textContent = bodegaCentral;
+        document.getElementById('cardBodegaApiario').textContent = bodegaApiario;
+        document.getElementById('cardAlertaStock').textContent = alertaStock;
     }
 
-    // ==================== MODAL NUEVO / EDITAR ====================
-    function abrirModalNuevo() {
-        document.getElementById('formElemento').reset();
-        document.getElementById('modalItemId').value = '';
-        document.getElementById('modalElementoTitle').textContent = 'Nuevo elemento';
-        document.getElementById('modalElementoSubtitle').textContent = 'Herramienta, material o insumo de la unidad apícola.';
-        document.getElementById('btnSubmitElemento').textContent = 'Guardar elemento';
-        document.getElementById('wrapCantidad').style.display = 'block';
-        document.getElementById('inputCantidad').required = true;
-        document.getElementById('modalElementoBackdrop').classList.add('is-open');
+    // ==================== MODAL: AGREGAR AL INVENTARIO ====================
+    function abrirModalAgregar() {
+        document.getElementById('formAgregarInventario').reset();
+        seleccionarTipo('Herramienta');
+        document.getElementById('selectElemento').value = 'Traje apícola';
+        toggleRegistrarNuevo('Traje apícola');
+        document.getElementById('selectBodega').value = 'Bodega central';
+        document.getElementById('inputCantidadInicial').value = 0;
+        document.getElementById('inputStockMinimo').value = 5;
+        document.getElementById('modalAgregarBackdrop').classList.add('is-open');
     }
 
-    function abrirModalEditar(id) {
-        const item = inventarioData.find(i => i.id === id);
-        if (!item) return;
-
-        document.getElementById('modalItemId').value = item.id;
-        document.getElementById('modalElementoTitle').textContent = 'Editar elemento';
-        document.getElementById('modalElementoSubtitle').textContent = `Modificar información de ${item.codigo}.`;
-        document.getElementById('btnSubmitElemento').textContent = 'Guardar cambios';
-
-        document.getElementById('inputNombre').value = item.nombre;
-        document.getElementById('inputCodigo').value = item.codigo;
-        document.getElementById('inputCategoria').value = item.categoria;
-        document.getElementById('inputStockMinimo').value = item.stock_minimo;
-        document.getElementById('inputEstado').value = item.estado;
-        document.getElementById('inputResponsable').value = item.responsable;
-
-        // Ocultar cantidad en edición para dirigir cambios a través de movimientos de trazabilidad
-        document.getElementById('wrapCantidad').style.display = 'none';
-        document.getElementById('inputCantidad').required = false;
-
-        document.getElementById('modalElementoBackdrop').classList.add('is-open');
+    function cerrarModalAgregar() {
+        document.getElementById('modalAgregarBackdrop').classList.remove('is-open');
     }
 
-    function cerrarModalElemento() {
-        document.getElementById('modalElementoBackdrop').classList.remove('is-open');
+    function seleccionarTipo(tipo) {
+        document.getElementById('inputTipo').value = tipo;
+        const btnHerramienta = document.getElementById('btnHerramienta');
+        const btnInsumo = document.getElementById('btnInsumo');
+
+        if (tipo === 'Herramienta') {
+            btnHerramienta.classList.add('active');
+            btnInsumo.classList.remove('active');
+        } else {
+            btnInsumo.classList.add('active');
+            btnHerramienta.classList.remove('active');
+        }
     }
 
-    async function guardarElementoForm(e) {
+    function toggleRegistrarNuevo(val) {
+        const seccion = document.getElementById('seccionRegistrarNuevo');
+        const inputNombreNuevo = document.getElementById('inputNombreNuevo');
+        if (val === '__nuevo__') {
+            seccion.style.display = 'block';
+            inputNombreNuevo.required = true;
+            inputNombreNuevo.focus();
+        } else {
+            seccion.style.display = 'none';
+            inputNombreNuevo.required = false;
+        }
+    }
+
+    async function guardarInventario(e) {
         e.preventDefault();
-        const id = document.getElementById('modalItemId').value;
-        const isEdit = !!id;
+
+        const tipo = document.getElementById('inputTipo').value;
+        const elementoSelect = document.getElementById('selectElemento').value;
+        const isNuevo = (elementoSelect === '__nuevo__');
+        const nombreNuevo = document.getElementById('inputNombreNuevo').value.trim();
+        const unidadMedida = isNuevo ? document.getElementById('selectUnidadMedida').value : 'unidad';
+        const bodega = document.getElementById('selectBodega').value;
+        const cantidadInicial = parseInt(document.getElementById('inputCantidadInicial').value) || 0;
+        const stockMinimo = parseInt(document.getElementById('inputStockMinimo').value) || 0;
 
         const payload = {
-            nombre: document.getElementById('inputNombre').value.trim(),
-            codigo: document.getElementById('inputCodigo').value.trim(),
-            categoria: document.getElementById('inputCategoria').value,
-            stock_minimo: parseInt(document.getElementById('inputStockMinimo').value) || 0,
-            estado: document.getElementById('inputEstado').value,
-            responsable: document.getElementById('inputResponsable').value,
+            tipo: tipo,
+            elemento: elementoSelect,
+            nombre_nuevo: isNuevo ? nombreNuevo : '',
+            unidad_medida: unidadMedida,
+            bodega: bodega,
+            cantidad_inicial: cantidadInicial,
+            stock_minimo: stockMinimo,
         };
 
-        if (!isEdit) {
-            payload.cantidad = parseInt(document.getElementById('inputCantidad').value) || 0;
-        }
-
-        const url = isEdit ? `{{ url('apicola/inventario') }}/${id}` : `{{ route('apicola.admin.inventario.store') }}`;
-        const method = isEdit ? 'PUT' : 'POST';
+        const btnSubmit = document.getElementById('btnSubmitAgregar');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Guardando...';
 
         try {
-            const resp = await fetch(url, {
-                method: method,
+            const resp = await fetch(`{{ route('apicola.admin.inventario.store') }}`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -946,27 +1135,24 @@
             const data = await resp.json();
 
             if (resp.ok && data.success) {
-                if (isEdit) {
-                    const idx = inventarioData.findIndex(i => i.id == id);
-                    if (idx !== -1) inventarioData[idx] = data.data;
-                } else {
-                    inventarioData.unshift(data.data);
-                }
-
-                cerrarModalElemento();
+                inventarioData.push(data.data);
+                cerrarModalAgregar();
                 renderInventarioTable();
-                updateMetricsCards();
-                showToast(data.message || 'Elemento guardado con éxito');
+                actualizarMetricas();
+                showToast(data.message || 'Elemento agregado con éxito');
             } else {
-                alert(data.message || 'Ocurrió un error al guardar el elemento. Verifica los datos.');
+                alert(data.message || 'Error al guardar el elemento.');
             }
         } catch (err) {
             console.error(err);
-            alert('Error de conexión al servidor al guardar el elemento.');
+            alert('Error de conexión al servidor al guardar elemento.');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Guardar';
         }
     }
 
-    // ==================== MODAL REGISTRAR MOVIMIENTO ====================
+    // ==================== MODAL: REGISTRAR MOVIMIENTO ====================
     function abrirModalMovimiento(id) {
         const item = inventarioData.find(i => i.id === id);
         if (!item) return;
@@ -976,7 +1162,8 @@
         document.getElementById('movItemId').value = item.id;
         document.getElementById('movItemNombre').textContent = item.nombre;
         document.getElementById('movItemCodigo').textContent = item.codigo;
-        document.getElementById('movItemStockActual').textContent = item.cantidad;
+        document.getElementById('movItemBodega').textContent = item.bodega;
+        document.getElementById('movItemDisponible').textContent = `${item.cantidad} ${item.unidad_medida || 'unidad'}`;
         document.getElementById('movFecha').value = new Date().toISOString().split('T')[0];
         setTipoMovimiento('Entrada');
 
@@ -989,17 +1176,16 @@
 
     function setTipoMovimiento(tipo) {
         document.getElementById('movTipo').value = tipo;
+        const btnE = document.getElementById('btnTipoEntrada');
+        const btnS = document.getElementById('btnTipoSalida');
+        const btnA = document.getElementById('btnTipoAjuste');
 
-        const btnEntrada = document.getElementById('btnTipoEntrada');
-        const btnSalida = document.getElementById('btnTipoSalida');
-        const btnAjuste = document.getElementById('btnTipoAjuste');
-
-        btnEntrada.className = 'type-pill-btn' + (tipo === 'Entrada' ? ' active-entrada' : '');
-        btnSalida.className = 'type-pill-btn' + (tipo === 'Salida' ? ' active-salida' : '');
-        btnAjuste.className = 'type-pill-btn' + (tipo === 'Ajuste' ? ' active-ajuste' : '');
+        btnE.className = 'tipo-pill-btn' + (tipo === 'Entrada' ? ' active' : '');
+        btnS.className = 'tipo-pill-btn' + (tipo === 'Salida' ? ' active' : '');
+        btnA.className = 'tipo-pill-btn' + (tipo === 'Ajuste' ? ' active' : '');
     }
 
-    async function guardarMovimientoForm(e) {
+    async function guardarMovimiento(e) {
         e.preventDefault();
         const id = document.getElementById('movItemId').value;
         const payload = {
@@ -1007,8 +1193,12 @@
             cantidad: parseInt(document.getElementById('movCantidad').value) || 1,
             fecha: document.getElementById('movFecha').value,
             motivo: document.getElementById('movMotivo').value.trim(),
-            responsable: document.getElementById('movResponsable').value,
+            responsable: document.getElementById('movResponsable').value.trim(),
         };
+
+        const btnSubmit = document.getElementById('btnSubmitMovimiento');
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Confirmando...';
 
         try {
             const resp = await fetch(`{{ url('apicola/inventario') }}/${id}/movimiento`, {
@@ -1029,47 +1219,47 @@
                     inventarioData[idx] = data.data.item;
                 }
 
-                // Actualizar métrica de movimientos
-                const currMovs = parseInt(document.getElementById('cardTotalMovimientos').textContent) || 0;
-                document.getElementById('cardTotalMovimientos').textContent = currMovs + 1;
-
                 cerrarModalMovimiento();
                 renderInventarioTable();
-                updateMetricsCards();
-                showToast(`Movimiento de ${payload.tipo} registrado.`);
+                actualizarMetricas();
+                showToast(data.message || 'Movimiento registrado con éxito');
             } else {
                 alert(data.message || 'Error al registrar el movimiento.');
             }
         } catch (err) {
             console.error(err);
             alert('Error de conexión al registrar el movimiento.');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = 'Confirmar movimiento';
         }
     }
 
-    // ==================== MODAL VER DETALLE ====================
-    async function abrirModalDetalle(id) {
+    // ==================== MODAL: HISTORIAL ====================
+    async function abrirModalHistorial(id) {
         selectedItemId = id;
         const item = inventarioData.find(i => i.id === id);
         if (!item) return;
 
-        document.getElementById('detCategoria').textContent = item.categoria.toUpperCase();
-        document.getElementById('detNombre').textContent = item.nombre;
-        document.getElementById('detCodigo').textContent = item.codigo;
-        document.getElementById('detCantidad').textContent = item.cantidad;
-        document.getElementById('detStockMinimo').textContent = item.stock_minimo;
-        document.getElementById('detResponsable').textContent = item.responsable;
+        document.getElementById('histCategoria').textContent = (item.categoria || 'HERRAMIENTA').toUpperCase();
+        document.getElementById('histNombre').textContent = item.nombre;
+        document.getElementById('histCodigo').textContent = item.codigo;
+        document.getElementById('histBodega').textContent = item.bodega;
+        document.getElementById('histDisponible').textContent = `${item.cantidad} ${item.unidad_medida || 'unidad'}`;
 
-        const isActivo = item.estado === 'Activo';
-        document.getElementById('detEstadoBadge').innerHTML = `
-            <span class="badge-status-pill ${isActivo ? 'activo' : 'inactivo'}">${item.estado}</span>
-        `;
-        document.getElementById('btnToggleEstadoDetalle').textContent = isActivo ? 'Desactivar elemento' : 'Reactivar elemento';
-        document.getElementById('btnToggleEstadoDetalle').style.color = isActivo ? '#dc2626' : '#059669';
+        const isStockBajo = parseInt(item.cantidad) <= parseInt(item.stock_minimo);
+        const badge = document.getElementById('histEstadoBadge');
+        if (isStockBajo) {
+            badge.className = 'inv-badge-bajo';
+            badge.textContent = 'Stock bajo';
+        } else {
+            badge.className = 'inv-badge-disponible';
+            badge.textContent = 'Disponible';
+        }
 
-        // Cargar historial de movimientos
-        const tbody = document.getElementById('detHistorialBody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 1rem;">Cargando historial...</td></tr>';
-        document.getElementById('modalDetalleBackdrop').classList.add('is-open');
+        const tbody = document.getElementById('historialTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 1.25rem;">Cargando historial...</td></tr>';
+        document.getElementById('modalHistorialBackdrop').classList.add('is-open');
 
         try {
             const resp = await fetch(`{{ url('apicola/inventario') }}/${id}`, {
@@ -1092,9 +1282,9 @@
                     tr.innerHTML = `
                         <td style="font-weight: 600; color: #64748b;">${m.fecha ? m.fecha.substring(0, 10) : '-'}</td>
                         <td>
-                            <span style="font-weight: 800; color: ${badgeColor}; font-size: 0.78rem;">
+                            <strong style="color: ${badgeColor}; font-size: 0.8rem;">
                                 ${sign} ${m.tipo}
-                            </span>
+                            </strong>
                         </td>
                         <td style="font-weight: 800; color: #0f172a;">${m.cantidad}</td>
                         <td style="font-weight: 600; color: #64748b;">${m.stock_nuevo}</td>
@@ -1110,83 +1300,82 @@
         }
     }
 
-    function cerrarModalDetalle() {
-        document.getElementById('modalDetalleBackdrop').classList.remove('is-open');
+    function cerrarModalHistorial() {
+        document.getElementById('modalHistorialBackdrop').classList.remove('is-open');
     }
 
-    function abrirMovimientoDesdeDetalle() {
+    function abrirMovimientoDesdeHistorial() {
         const id = selectedItemId;
-        cerrarModalDetalle();
+        cerrarModalHistorial();
         if (id) {
             abrirModalMovimiento(id);
         }
     }
 
-    async function toggleEstadoDesdeDetalle() {
-        if (!selectedItemId) return;
+    async function toggleInventarioStatus(id) {
         try {
-            const resp = await fetch(`{{ url('apicola/inventario') }}/${selectedItemId}/toggle-status`, {
+            const resp = await fetch(`{{ url('apicola/inventario') }}/${id}/toggle-status`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
+
             const data = await resp.json();
-            if (data.success) {
-                const idx = inventarioData.findIndex(i => i.id == selectedItemId);
-                if (idx !== -1) {
-                    inventarioData[idx].estado = data.data.estado;
-                }
-                cerrarModalDetalle();
-                renderInventarioTable();
-                showToast(data.message);
+            if (!resp.ok || !data.success) {
+                throw new Error(data.message || 'Error al cambiar estado.');
             }
-        } catch (e) {
-            console.error(e);
-            alert('Error al alternar estado.');
+
+            const item = inventarioData.find(i => i.id === id);
+            if (item) {
+                item.estado = data.data.estado;
+            }
+
+            showToast(data.message || 'Estado actualizado con éxito.');
+            renderInventarioTable();
+            actualizarMetricas();
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Error al cambiar estado del elemento.');
         }
     }
 
-    // ==================== MODAL CATEGORÍAS ====================
-    function abrirModalCategorias() {
-        const catsMap = {};
-        inventarioData.forEach(item => {
-            if (!catsMap[item.categoria]) {
-                catsMap[item.categoria] = { items: 0, unidades: 0 };
+    async function desactivarInventarioItem(id, codigo, nombre) {
+        if (!confirm(`¿Estás seguro de que deseas desactivar "${codigo} - ${nombre}" del inventario?`)) {
+            return;
+        }
+
+        try {
+            const resp = await fetch(`{{ url('apicola/inventario') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                throw new Error(data.message || 'Error al desactivar el elemento.');
             }
-            catsMap[item.categoria].items += 1;
-            catsMap[item.categoria].unidades += parseInt(item.cantidad || 0);
-        });
 
-        const container = document.getElementById('categoriasListContainer');
-        container.innerHTML = '';
-
-        Object.keys(catsMap).forEach(cat => {
-            const row = document.createElement('div');
-            row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;';
-            row.innerHTML = `
-                <div>
-                    <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">${cat}</div>
-                    <div style="font-size: 0.78rem; color: #64748b;">${catsMap[cat].items} elementos registrados</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 1.15rem; font-weight: 900; color: #059669;">${catsMap[cat].unidades}</div>
-                    <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">UNIDADES</div>
-                </div>
-            `;
-            container.appendChild(row);
-        });
-
-        document.getElementById('modalCategoriasBackdrop').classList.add('is-open');
+            const item = inventarioData.find(i => i.id === id);
+            if (item) {
+                item.estado = 'Inactivo';
+            }
+            showToast(data.message || `Elemento ${codigo} desactivado con éxito.`);
+            renderInventarioTable();
+            actualizarMetricas();
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Error al desactivar elemento del inventario.');
+        }
     }
 
-    function cerrarModalCategorias() {
-        document.getElementById('modalCategoriasBackdrop').classList.remove('is-open');
-    }
-
-    // Cerrar modales con clic en backdrop
+    // Cerrar modal al hacer clic en el backdrop
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('ap-modal-backdrop')) {
             e.target.classList.remove('is-open');

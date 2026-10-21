@@ -182,6 +182,9 @@ class ApicolaDatabaseSeeder extends Seeder
         // 10. Asignar el rol exclusivo 'apicola.aprendiz'
         $userAprendiz->roles()->sync([$roleAprendiz->id]);
 
+        // 11. Sembrar Colmenas base sincronizadas
+        $this->call(ColmenasTableSeeder::class);
+
         if (isset($this->command)) {
             $this->command->info('=============================================');
             $this->command->info('✅ Administrador de Apícola configurado con éxito:');

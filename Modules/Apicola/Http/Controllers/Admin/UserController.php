@@ -11,9 +11,13 @@ use Modules\SICA\Entities\App;
 use Modules\SICA\Entities\EPS;
 use Modules\SICA\Entities\PopulationGroup;
 use Modules\SICA\Entities\PensionEntity;
+use Modules\SICA\Entities\Course;
+use Modules\SICA\Entities\Program;
+use Modules\SICA\Entities\Apprentice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -27,7 +31,7 @@ class UserController extends Controller
 
         // Query base para usuarios vinculados al módulo Apícola
         $query = User::withTrashed()
-            ->with(['person', 'roles'])
+            ->with(['person.apprentices.course.program', 'roles'])
             ->whereHas('roles', function ($q) {
                 $q->whereIn('slug', ['apicola.admin', 'apicola.aprendiz']);
             });
@@ -90,6 +94,12 @@ class UserController extends Controller
         // Roles disponibles para asignación
         $rolesDisponibles = Role::whereIn('slug', ['apicola.admin', 'apicola.aprendiz'])->get();
 
+        // Cursos activos para autocompletado de Ficha y Programa
+        $activeCourses = Course::with('program')
+            ->where('status', 'Activo')
+            ->orderBy('code', 'desc')
+            ->get();
+
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -98,7 +108,7 @@ class UserController extends Controller
             ]);
         }
 
-        return view('apicola::Admin.Usuarios.index', compact('users', 'metrics', 'rolesDisponibles'));
+        return view('apicola::Admin.Usuarios.index', compact('users', 'metrics', 'rolesDisponibles', 'activeCourses'));
     }
 
     /**
@@ -123,6 +133,14 @@ class UserController extends Controller
         if ($person) {
             // Verificar si la persona ya tiene un usuario registrado
             $existingUser = User::withTrashed()->where('person_id', $person->id)->with('roles')->first();
+            $apprentice = Apprentice::where('person_id', $person->id)->with('course.program')->latest()->first();
+
+            $hasApicola = false;
+            if ($existingUser) {
+                $hasApicola = $existingUser->roles->contains(function ($r) {
+                    return in_array($r->slug, ['apicola.admin', 'apicola.aprendiz']);
+                });
+            }
 
             return response()->json([
                 'success' => true,
@@ -134,15 +152,20 @@ class UserController extends Controller
                     'first_name' => $person->first_name,
                     'first_last_name' => $person->first_last_name,
                     'second_last_name' => $person->second_last_name,
-                    'personal_email' => $person->personal_email,
+                    'last_name' => trim(($person->first_last_name ?? '') . ' ' . ($person->second_last_name ?? '')),
+                    'personal_email' => $person->personal_email ?: ($existingUser?->email ?? ''),
+                    'ficha' => $apprentice?->course?->code ?? '',
+                    'programa' => $apprentice?->course?->program?->name ?? '',
                 ],
                 'has_user' => (bool) $existingUser,
+                'has_apicola' => $hasApicola,
                 'user' => $existingUser ? [
                     'id' => $existingUser->id,
                     'nickname' => $existingUser->nickname,
                     'email' => $existingUser->email,
                     'is_active' => !$existingUser->trashed(),
                     'roles' => $existingUser->roles->pluck('name', 'slug'),
+                    'has_apicola' => $hasApicola,
                 ] : null,
             ]);
         }
@@ -150,32 +173,66 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'found' => false,
-            'message' => 'La persona no se encuentra registrada en el sistema SICA. Se registrarán sus datos junto con el nuevo usuario.'
+            'message' => 'La persona no se encuentra registrada en SICA.'
         ]);
     }
 
     /**
-     * Almacena un nuevo usuario y su persona asociada en el módulo Apícola.
+     * Almacena un nuevo usuario y su persona/aprendiz asociada en el módulo Apícola.
      */
     public function store(Request $request)
     {
+        $documentNumber = preg_replace('/[^0-9]/', '', $request->document_number ?? '');
+
+        // 1. Identificar si la persona y/o usuario ya existen en SICA
+        $person = null;
+        $existingUser = null;
+
+        if (!empty($documentNumber)) {
+            $person = Person::withTrashed()->where('document_number', $documentNumber)->first();
+            if ($person) {
+                $existingUser = User::withTrashed()->where('person_id', $person->id)->first();
+            }
+        }
+
         $rules = [
-            'document_type' => 'required|string|max:50',
-            'document_number' => 'required|numeric',
             'first_name' => 'required|string|max:60',
-            'first_last_name' => 'required|string|max:60',
-            'second_last_name' => 'nullable|string|max:60',
-            'nickname' => 'required|string|max:50|unique:users,nickname',
-            'email' => 'required|email|max:100|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role_slug' => 'required|in:apicola.admin,apicola.aprendiz',
+            'last_name' => 'required|string|max:120',
+            'document_number' => 'required|numeric',
+            'ficha' => 'nullable|string|max:50',
+            'programa' => 'nullable|string|max:200',
+            'role_slug' => 'nullable|in:apicola.admin,apicola.aprendiz',
         ];
 
-        $validator = Validator::make($request->all(), $rules);
+        $messages = [
+            'first_name.required' => 'El nombre es obligatorio.',
+            'last_name.required' => 'Los apellidos son obligatorios.',
+            'document_number.required' => 'El número de documento es obligatorio.',
+            'document_number.numeric' => 'El número de documento debe ser numérico.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Por favor ingrese un correo electrónico válido.',
+            'email.unique' => 'El correo electrónico ya está registrado con otro usuario en el sistema.',
+            'password.required' => 'La contraseña es obligatoria (mínimo 6 caracteres).',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'nickname.unique' => 'El nombre de usuario (nickname) ya está en uso.',
+        ];
+
+        if ($existingUser) {
+            $rules['email'] = ['required', 'email', 'max:100', Rule::unique('users', 'email')->ignore($existingUser->id)];
+            $rules['password'] = 'nullable|string|min:6';
+            $rules['nickname'] = ['nullable', 'string', 'max:50', Rule::unique('users', 'nickname')->ignore($existingUser->id)];
+        } else {
+            $rules['email'] = 'required|email|max:100|unique:users,email';
+            $rules['password'] = 'required|string|min:6';
+            $rules['nickname'] = 'nullable|string|max:50|unique:users,nickname';
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
+                'message' => $validator->errors()->first(),
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -183,71 +240,172 @@ class UserController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Buscar o crear la persona
-            $person = Person::withTrashed()->where('document_number', $request->document_number)->first();
+            // Separar apellidos en primer apellido y segundo apellido
+            $lastNameRaw = trim($request->last_name ?? $request->apellidos ?? '');
+            $parts = preg_split('/\s+/', $lastNameRaw);
+            $firstLastName = mb_strtoupper($parts[0] ?? '');
+            $secondLastName = count($parts) > 1 ? mb_strtoupper(implode(' ', array_slice($parts, 1))) : null;
+            $documentType = $request->document_type ?: 'Cédula de ciudadanía';
 
+            // 1. Guardar o actualizar datos de la persona
             if ($person) {
                 if (method_exists($person, 'trashed') && $person->trashed()) {
                     $person->restore();
                 }
-                // Si la persona ya tiene un usuario vinculado
-                $existingUser = User::withTrashed()->where('person_id', $person->id)->first();
-                if ($existingUser) {
-                    DB::rollBack();
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Esta persona ya cuenta con el usuario '{$existingUser->nickname}' en el sistema. Puedes editarlo para asignarle el rol de Apícola."
-                    ], 422);
-                }
 
-                // Actualizar datos básicos de la persona
                 $person->update([
-                    'document_type' => $request->document_type,
+                    'document_type' => $documentType,
                     'first_name' => mb_strtoupper(trim($request->first_name)),
-                    'first_last_name' => mb_strtoupper(trim($request->first_last_name)),
-                    'second_last_name' => $request->second_last_name ? mb_strtoupper(trim($request->second_last_name)) : null,
-                    'personal_email' => $request->email,
+                    'first_last_name' => $firstLastName,
+                    'second_last_name' => $secondLastName,
+                    'personal_email' => trim($request->email),
                 ]);
             } else {
-                // Crear nueva persona con defaults para SICA
-                $eps = EPS::firstOrCreate(['name' => 'NO REGISTRA']);
-                $populationGroup = PopulationGroup::firstOrCreate(['name' => 'NINGUNA']);
-                $pensionEntity = PensionEntity::firstOrCreate(['name' => 'NO REGISTRA']);
+                $epsId = EPS::where('name', 'like', '%no registra%')->value('id') ?? (EPS::first()?->id ?? 0);
+                $popGroupId = PopulationGroup::where('name', 'like', '%ningun%')->value('id') ?? (PopulationGroup::first()?->id ?? 22);
+                $pensionId = PensionEntity::where('name', 'like', '%no registra%')->value('id') ?? (PensionEntity::first()?->id ?? 1);
 
                 $person = Person::create([
-                    'document_type' => $request->document_type,
-                    'document_number' => $request->document_number,
+                    'document_type' => $documentType,
+                    'document_number' => $documentNumber,
                     'first_name' => mb_strtoupper(trim($request->first_name)),
-                    'first_last_name' => mb_strtoupper(trim($request->first_last_name)),
-                    'second_last_name' => $request->second_last_name ? mb_strtoupper(trim($request->second_last_name)) : null,
-                    'personal_email' => $request->email,
-                    'eps_id' => $eps->id,
-                    'population_group_id' => $populationGroup->id,
-                    'pension_entity_id' => $pensionEntity->id,
+                    'first_last_name' => $firstLastName,
+                    'second_last_name' => $secondLastName,
+                    'personal_email' => trim($request->email),
+                    'eps_id' => $epsId,
+                    'population_group_id' => $popGroupId,
+                    'pension_entity_id' => $pensionId,
                 ]);
             }
 
-            // 2. Crear el usuario
-            $user = User::create([
-                'nickname' => trim($request->nickname),
-                'email' => trim($request->email),
-                'person_id' => $person->id,
-                'password' => Hash::make($request->password),
-                'email_verified_at' => now(),
-            ]);
+            // 2. Crear o actualizar la cuenta de usuario
+            if ($existingUser) {
+                $user = $existingUser;
+                if ($user->trashed()) {
+                    $user->restore();
+                }
+
+                $user->email = trim($request->email);
+                if ($request->filled('password')) {
+                    $user->password = Hash::make($request->password);
+                }
+                if ($request->filled('nickname')) {
+                    $user->nickname = trim($request->nickname);
+                }
+                $user->save();
+            } else {
+                $nickname = trim($request->nickname ?? '');
+                if (empty($nickname)) {
+                    $emailPrefix = explode('@', $request->email)[0];
+                    $baseNick = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $emailPrefix));
+                    if (empty($baseNick)) {
+                        $baseNick = strtolower(substr($request->first_name, 0, 1) . $firstLastName);
+                        $baseNick = preg_replace('/[^a-zA-Z0-9]/', '', $baseNick);
+                    }
+                    if (empty($baseNick)) {
+                        $baseNick = 'user' . rand(100, 999);
+                    }
+                    $nickname = $baseNick;
+                    $counter = 1;
+                    while (User::where('nickname', $nickname)->exists()) {
+                        $nickname = $baseNick . $counter;
+                        $counter++;
+                    }
+                }
+
+                $user = User::create([
+                    'nickname' => $nickname,
+                    'email' => trim($request->email),
+                    'person_id' => $person->id,
+                    'password' => Hash::make($request->password),
+                    'email_verified_at' => now(),
+                ]);
+            }
 
             // 3. Asignar rol seleccionado para Apícola
-            $role = Role::where('slug', $request->role_slug)->first();
+            $roleSlug = $request->role_slug ?: 'apicola.aprendiz';
+            $role = Role::where('slug', $roleSlug)->first();
             if ($role) {
                 $user->roles()->syncWithoutDetaching([$role->id]);
             }
 
+            // 4. Asignar Ficha y Programa si se especificaron
+            $cleanCode = preg_replace('/[^0-9]/', '', $request->ficha ?? '');
+            if (!empty($cleanCode)) {
+                $course = Course::where('code', (int) $cleanCode)->first();
+
+                if (!$course) {
+                    $programName = $request->filled('programa') ? mb_strtoupper(trim($request->programa)) : 'PROGRAMA FORMACIÓN SENA';
+                    $program = Program::where('name', $programName)->first();
+
+                    if (!$program) {
+                        $maxSofia = (int) (Program::max('sofia_code') ?: 100000);
+                        $program = Program::create([
+                            'name' => $programName,
+                            'sofia_code' => $maxSofia + 1,
+                            'program_type' => 'Técnico',
+                            'training_type' => 'Titulada',
+                            'modality' => 'Presencial',
+                            'maximum_duration' => 12,
+                            'fic' => 'No',
+                            'months_lectiva' => 6,
+                            'months_productiva' => 6,
+                        ]);
+                    }
+
+                    $muniId = DB::table('municipalities')->where('id', 4796)->exists() ? 4796 : (DB::table('municipalities')->value('id') ?? 1);
+
+                    $course = Course::create([
+                        'code' => (int) $cleanCode,
+                        'program_id' => $program->id,
+                        'start_date' => now()->toDateString(),
+                        'end_date' => now()->addYear()->toDateString(),
+                        'status' => 'Activo',
+                        'deschooling' => 'Presencial',
+                        'municipality_id' => $muniId,
+                        'person_id' => $person->id,
+                    ]);
+                } elseif ($request->filled('programa')) {
+                    $programName = mb_strtoupper(trim($request->programa));
+                    if (!$course->program || $course->program->name !== $programName) {
+                        $program = Program::where('name', $programName)->first();
+                        if (!$program) {
+                            $maxSofia = (int) (Program::max('sofia_code') ?: 100000);
+                            $program = Program::create([
+                                'name' => $programName,
+                                'sofia_code' => $maxSofia + 1,
+                                'program_type' => 'Técnico',
+                                'training_type' => 'Titulada',
+                                'modality' => 'Presencial',
+                                'maximum_duration' => 12,
+                                'fic' => 'No',
+                                'months_lectiva' => 6,
+                                'months_productiva' => 6,
+                            ]);
+                        }
+                        $course->update(['program_id' => $program->id]);
+                    }
+                }
+
+                Apprentice::updateOrCreate(
+                    ['person_id' => $person->id],
+                    [
+                        'course_id' => $course->id,
+                        'apprentice_status' => 'EN FORMACIÓN'
+                    ]
+                );
+            }
+
             DB::commit();
+
+            $successMessage = $existingUser 
+                ? "Usuario '{$user->nickname}' vinculado exitosamente al módulo Apícola con el rol asignado." 
+                : "Usuario registrado exitosamente con acceso a Apícola.";
 
             return response()->json([
                 'success' => true,
-                'message' => 'Usuario registrado exitosamente con acceso a Apícola.',
-                'user' => $user->load(['person', 'roles'])
+                'message' => $successMessage,
+                'user' => $user->load(['person.apprentices.course.program', 'roles'])
             ]);
 
         } catch (\Exception $e) {
@@ -270,6 +428,20 @@ class UserController extends Controller
             return in_array($r->slug, ['apicola.admin', 'apicola.aprendiz']);
         });
 
+        // Buscar aprendiz vinculado a la persona
+        $apprentice = null;
+        if ($user->person) {
+            $apprentice = Apprentice::where('person_id', $user->person->id)
+                ->with('course.program')
+                ->latest()
+                ->first();
+        }
+
+        $lastName = '';
+        if ($user->person) {
+            $lastName = trim(($user->person->first_last_name ?? '') . ' ' . ($user->person->second_last_name ?? ''));
+        }
+
         return response()->json([
             'success' => true,
             'user' => [
@@ -278,6 +450,11 @@ class UserController extends Controller
                 'email' => $user->email,
                 'is_active' => !$user->trashed(),
                 'role_slug' => $apicolaRole ? $apicolaRole->slug : 'apicola.aprendiz',
+                'first_name' => $user->person?->first_name ?? '',
+                'last_name' => $lastName,
+                'document_number' => $user->person?->document_number ?? '',
+                'ficha' => $apprentice?->course?->code ?? '',
+                'programa' => $apprentice?->course?->program?->name ?? '',
                 'person' => [
                     'id' => $user->person?->id,
                     'document_type' => $user->person?->document_type ?? 'Cédula de ciudadanía',
@@ -285,6 +462,9 @@ class UserController extends Controller
                     'first_name' => $user->person?->first_name ?? '',
                     'first_last_name' => $user->person?->first_last_name ?? '',
                     'second_last_name' => $user->person?->second_last_name ?? '',
+                    'last_name' => $lastName,
+                    'ficha' => $apprentice?->course?->code ?? '',
+                    'programa' => $apprentice?->course?->program?->name ?? '',
                 ]
             ]
         ]);
@@ -298,14 +478,14 @@ class UserController extends Controller
         $user = User::withTrashed()->findOrFail($id);
 
         $rules = [
-            'document_type' => 'required|string|max:50',
             'first_name' => 'required|string|max:60',
-            'first_last_name' => 'required|string|max:60',
-            'second_last_name' => 'nullable|string|max:60',
-            'nickname' => 'required|string|max:50|unique:users,nickname,' . $user->id,
+            'last_name' => 'required|string|max:120',
+            'document_number' => 'nullable|numeric',
             'email' => 'required|email|max:100|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6',
-            'role_slug' => 'required|in:apicola.admin,apicola.aprendiz',
+            'role_slug' => 'nullable|in:apicola.admin,apicola.aprendiz',
+            'ficha' => 'nullable|string|max:50',
+            'programa' => 'nullable|string|max:200',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -320,19 +500,26 @@ class UserController extends Controller
         try {
             DB::beginTransaction();
 
+            $lastNameRaw = trim($request->last_name ?? $request->apellidos ?? '');
+            $parts = preg_split('/\s+/', $lastNameRaw);
+            $firstLastName = mb_strtoupper($parts[0] ?? '');
+            $secondLastName = count($parts) > 1 ? mb_strtoupper(implode(' ', array_slice($parts, 1))) : null;
+
             // 1. Actualizar persona
             if ($user->person) {
-                $user->person->update([
-                    'document_type' => $request->document_type,
+                $personData = [
                     'first_name' => mb_strtoupper(trim($request->first_name)),
-                    'first_last_name' => mb_strtoupper(trim($request->first_last_name)),
-                    'second_last_name' => $request->second_last_name ? mb_strtoupper(trim($request->second_last_name)) : null,
-                    'personal_email' => $request->email,
-                ]);
+                    'first_last_name' => $firstLastName,
+                    'second_last_name' => $secondLastName,
+                    'personal_email' => trim($request->email),
+                ];
+                if ($request->filled('document_number')) {
+                    $personData['document_number'] = $request->document_number;
+                }
+                $user->person->update($personData);
             }
 
             // 2. Actualizar usuario
-            $user->nickname = trim($request->nickname);
             $user->email = trim($request->email);
 
             if ($request->filled('password')) {
@@ -341,14 +528,81 @@ class UserController extends Controller
 
             $user->save();
 
-            // 3. Sincronizar rol de Apícola (desasociar los otros roles apícola y poner el nuevo)
+            // 3. Sincronizar rol de Apícola
+            $roleSlug = $request->role_slug ?: 'apicola.aprendiz';
             $allApicolaRoles = Role::whereIn('slug', ['apicola.admin', 'apicola.aprendiz'])->pluck('id')->toArray();
-            $newRole = Role::where('slug', $request->role_slug)->first();
+            $newRole = Role::where('slug', $roleSlug)->first();
 
             if ($newRole) {
-                // Quitar roles viejos de apicola y agregar el nuevo sin tocar roles de otros módulos
                 $user->roles()->detach($allApicolaRoles);
                 $user->roles()->attach($newRole->id);
+            }
+
+            // 4. Actualizar o crear Ficha y Programa
+            $cleanCode = preg_replace('/[^0-9]/', '', $request->ficha ?? '');
+            if (!empty($cleanCode) && $user->person) {
+                $course = Course::where('code', (int) $cleanCode)->first();
+
+                if (!$course) {
+                    $programName = $request->filled('programa') ? mb_strtoupper(trim($request->programa)) : 'PROGRAMA FORMACIÓN SENA';
+                    $program = Program::where('name', $programName)->first();
+
+                    if (!$program) {
+                        $maxSofia = (int) (Program::max('sofia_code') ?: 100000);
+                        $program = Program::create([
+                            'name' => $programName,
+                            'sofia_code' => $maxSofia + 1,
+                            'program_type' => 'Técnico',
+                            'training_type' => 'Titulada',
+                            'modality' => 'Presencial',
+                            'maximum_duration' => 12,
+                            'fic' => 'No',
+                            'months_lectiva' => 6,
+                            'months_productiva' => 6,
+                        ]);
+                    }
+
+                    $muniId = DB::table('municipalities')->where('id', 4796)->exists() ? 4796 : (DB::table('municipalities')->value('id') ?? 1);
+
+                    $course = Course::create([
+                        'code' => (int) $cleanCode,
+                        'program_id' => $program->id,
+                        'start_date' => now()->toDateString(),
+                        'end_date' => now()->addYear()->toDateString(),
+                        'status' => 'Activo',
+                        'deschooling' => 'Presencial',
+                        'municipality_id' => $muniId,
+                        'person_id' => $user->person->id,
+                    ]);
+                } elseif ($request->filled('programa')) {
+                    $programName = mb_strtoupper(trim($request->programa));
+                    if (!$course->program || $course->program->name !== $programName) {
+                        $program = Program::where('name', $programName)->first();
+                        if (!$program) {
+                            $maxSofia = (int) (Program::max('sofia_code') ?: 100000);
+                            $program = Program::create([
+                                'name' => $programName,
+                                'sofia_code' => $maxSofia + 1,
+                                'program_type' => 'Técnico',
+                                'training_type' => 'Titulada',
+                                'modality' => 'Presencial',
+                                'maximum_duration' => 12,
+                                'fic' => 'No',
+                                'months_lectiva' => 6,
+                                'months_productiva' => 6,
+                            ]);
+                        }
+                        $course->update(['program_id' => $program->id]);
+                    }
+                }
+
+                Apprentice::updateOrCreate(
+                    ['person_id' => $user->person->id],
+                    [
+                        'course_id' => $course->id,
+                        'apprentice_status' => 'EN FORMACIÓN'
+                    ]
+                );
             }
 
             DB::commit();
@@ -356,7 +610,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario actualizado con éxito.',
-                'user' => $user->load(['person', 'roles'])
+                'user' => $user->load(['person.apprentices.course.program', 'roles'])
             ]);
 
         } catch (\Exception $e) {
@@ -431,3 +685,4 @@ class UserController extends Controller
         );
     }
 }
+

@@ -16,10 +16,12 @@
             <h1 class="ap-view-main-title">Gestión de apiarios</h1>
         </div>
         <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar">SB</div>
+            <div class="ap-user-chip-avatar" style="background: #047857;">
+                {{ auth()->check() ? strtoupper(substr(auth()->user()->nickname ?? 'AP', 0, 2)) : 'AP' }}
+            </div>
             <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">Sergio Barrera</span>
-                <span class="ap-user-chip-role">Rol: Apicultor</span>
+                <span class="ap-user-chip-name">{{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : 'Administrador Apícola') }}</span>
+                <span class="ap-user-chip-role">Rol: {{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Apicultor' }}</span>
             </div>
         </div>
     </div>
@@ -28,13 +30,13 @@
     <div class="ap-metrics-grid">
         <div class="ap-metric-card border-green">
             <div class="ap-metric-card-title">APIARIOS REGISTRADOS</div>
-            <div class="ap-metric-card-num" id="metricTotalApiarios">{{ $metrics['total'] ?? 1 }}</div>
+            <div class="ap-metric-card-num" id="metricTotalApiarios">{{ $metrics['total'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">Total en el sistema</div>
         </div>
 
         <div class="ap-metric-card border-teal">
             <div class="ap-metric-card-title">ACTIVOS</div>
-            <div class="ap-metric-card-num" id="metricActivos">{{ $metrics['activos'] ?? 1 }}</div>
+            <div class="ap-metric-card-num" id="metricActivos">{{ $metrics['activos'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">En operación</div>
         </div>
 
@@ -46,7 +48,7 @@
 
         <div class="ap-metric-card border-amber">
             <div class="ap-metric-card-title">COLMENAS ASOCIADAS</div>
-            <div class="ap-metric-card-num" id="metricColmenas">{{ $metrics['colmenas'] ?? 20 }}</div>
+            <div class="ap-metric-card-num" id="metricColmenas">{{ $metrics['colmenas'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">Cálculo automático</div>
         </div>
     </div>
@@ -119,7 +121,10 @@
     <div class="ap-modal-backdrop" id="modalApiarioBackdrop">
         <div class="ap-modal-window">
             <div class="ap-modal-body">
-                <h2 class="ap-modal-title" id="modalApiarioTitle">Nuevo apiario</h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                    <h2 class="ap-modal-title" id="modalApiarioTitle" style="margin-bottom:0;">Nuevo apiario</h2>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeNewApiarioModal()" title="Cerrar">&times;</button>
+                </div>
 
                 <form id="formApiario" onsubmit="saveApiarioForm(event)">
                     <input type="hidden" id="modalApiarioId" value="">
@@ -133,9 +138,15 @@
                     <!-- 2. Responsable -->
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalApiarioResp">RESPONSABLE</label>
-                        <select id="modalApiarioResp" class="ap-field-input" required>
-                            <option value="Sergio Barrera" selected>Sergio Barrera (Responsable Apícola)</option>
-                        </select>
+                        <input type="text" id="modalApiarioResp" list="responsablesSugeridosApiario" class="ap-field-input" placeholder="Escribe el nombre del responsable..." value="" required>
+                        <datalist id="responsablesSugeridosApiario">
+                            @if(auth()->check() && auth()->user()->person)
+                                <option value="{{ trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) }}"></option>
+                            @endif
+                            @if(auth()->check() && auth()->user()->nickname)
+                                <option value="{{ auth()->user()->nickname }}"></option>
+                            @endif
+                        </datalist>
                     </div>
 
                     <!-- 3. Estado -->
@@ -151,7 +162,7 @@
                     <!-- 4. Colmenas Iniciales -->
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalApiarioColmenas">COLMENAS INICIALES</label>
-                        <input type="number" id="modalApiarioColmenas" class="ap-field-input" min="0" value="20" placeholder="20" required>
+                        <input type="number" id="modalApiarioColmenas" class="ap-field-input" min="0" value="" placeholder="Ej: 0">
                     </div>
 
                     <!-- 5. Ubicación & Mapa -->
@@ -163,11 +174,11 @@
                         <div class="ap-coords-row">
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLat">LATITUD</label>
-                                <input type="text" id="modalApiarioLat" class="ap-field-input" value="2.6857" required>
+                                <input type="text" id="modalApiarioLat" class="ap-field-input" value="" placeholder="Ej: 2.6857">
                             </div>
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLng">LONGITUD</label>
-                                <input type="text" id="modalApiarioLng" class="ap-field-input" value="-75.3241" required>
+                                <input type="text" id="modalApiarioLng" class="ap-field-input" value="" placeholder="Ej: -75.3241">
                             </div>
                         </div>
                     </div>
@@ -189,7 +200,7 @@
                     <h2 class="ap-modal-title" style="margin-bottom:0;">
                         <i class="fas fa-map-marked-alt" style="color: #059669;"></i> Mapa general de apiarios
                     </h2>
-                    <button type="button" class="ap-btn-modal-cancel" onclick="closeGeneralMapModal()">✕ Cerrar</button>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeGeneralMapModal()" title="Cerrar">&times;</button>
                 </div>
                 <p style="font-size:0.84rem; color:#64748b; margin-bottom:1rem;">
                     Visualización georreferenciada de los apiarios en el Centro La Angostura y zonas aledañas de Campoalegre, Huila.
@@ -208,7 +219,7 @@
                         <span class="ap-view-subtitle-tag" id="detailModalBadge">DETALLE DEL APIARIO</span>
                         <h2 class="ap-modal-title" id="detailModalNombre" style="margin-bottom:0;">Apiario</h2>
                     </div>
-                    <button type="button" class="ap-btn-modal-cancel" onclick="closeDetailModal()">✕</button>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeDetailModal()" title="Cerrar">&times;</button>
                 </div>
 
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.25rem; margin-bottom:1.25rem;">
@@ -332,7 +343,10 @@
                     <div class="ap-actions-group">
                         <button type="button" class="ap-action-btn view" onclick="openDetailModal(${item.id})">Ver detalle</button>
                         <button type="button" class="ap-action-btn edit" onclick="openEditApiarioModal(${item.id})">Editar</button>
-                        <button type="button" class="ap-action-btn ${toggleActionClass}" onclick="toggleApiarioStatus(${item.id})">${toggleActionText}</button>
+                        ${isActivo 
+                            ? `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444; font-weight: 600;" onclick="desactivarApiario(${item.id}, '${item.nombre}')">Desactivar</button>`
+                            : `<button type="button" class="ap-action-btn activate" style="color: #059669; font-weight: 600;" onclick="toggleApiarioStatus(${item.id})">Activar</button>`
+                        }
                     </div>
                 </td>
             `;
@@ -362,10 +376,10 @@
         document.getElementById('modalApiarioTitle').textContent = 'Nuevo apiario';
         document.getElementById('modalApiarioId').value = '';
         document.getElementById('modalApiarioNombre').value = '';
-        document.getElementById('modalApiarioResp').value = 'Sergio Barrera';
-        document.getElementById('modalApiarioColmenas').value = '20';
-        document.getElementById('modalApiarioLat').value = '2.6857';
-        document.getElementById('modalApiarioLng').value = '-75.3241';
+        document.getElementById('modalApiarioResp').value = '';
+        document.getElementById('modalApiarioColmenas').value = '';
+        document.getElementById('modalApiarioLat').value = '';
+        document.getElementById('modalApiarioLng').value = '';
         setApiarioEstado('Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
@@ -437,14 +451,22 @@
 
         const id = document.getElementById('modalApiarioId').value;
         const nombre = document.getElementById('modalApiarioNombre').value.trim();
-        const responsable = document.getElementById('modalApiarioResp').value;
+        const responsable = document.getElementById('modalApiarioResp').value.trim();
         const estado = document.getElementById('modalApiarioEstado').value;
         const colmenas = parseInt(document.getElementById('modalApiarioColmenas').value) || 0;
-        const lat = parseFloat(document.getElementById('modalApiarioLat').value) || 2.6857;
-        const lng = parseFloat(document.getElementById('modalApiarioLng').value) || -75.3241;
+        const latVal = document.getElementById('modalApiarioLat').value.trim();
+        const lngVal = document.getElementById('modalApiarioLng').value.trim();
+        const lat = latVal !== '' ? parseFloat(latVal) : 2.6857;
+        const lng = lngVal !== '' ? parseFloat(lngVal) : -75.3241;
 
         if (!nombre) {
             alert('Por favor ingrese el nombre del apiario.');
+            return;
+        }
+
+        if (!responsable) {
+            alert('Por favor ingrese el nombre del responsable.');
+            document.getElementById('modalApiarioResp').focus();
             return;
         }
 
@@ -459,6 +481,7 @@
 
             const payload = {
                 nombre_apiario: nombre,
+                responsable: responsable,
                 latitud: lat,
                 longitud: lng,
                 estado: estado,
@@ -534,6 +557,39 @@
         } catch (error) {
             console.error('Error al cambiar estado:', error);
             alert('Error al cambiar el estado: ' + error.message);
+        }
+    }
+
+    async function desactivarApiario(id, nombre) {
+        if (!confirm(`¿Estás seguro de que deseas desactivar el apiario "${nombre}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`{{ url('apicola/apiarios') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Error al desactivar el apiario.');
+            }
+
+            const item = apiariosList.find(a => a.id === id);
+            if (item) {
+                item.estado = 'Inactivo';
+            }
+            showToast(result.message || `Apiario "${nombre}" desactivado con éxito.`);
+            renderApiariosTable();
+            updateMetricCards();
+        } catch (error) {
+            console.error('Error al desactivar apiario:', error);
+            alert('Error al desactivar el apiario: ' + error.message);
         }
     }
 

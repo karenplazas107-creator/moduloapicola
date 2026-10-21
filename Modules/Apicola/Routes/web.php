@@ -8,6 +8,7 @@ use Modules\Apicola\Http\Controllers\Admin\InspeccionController;
 use Modules\Apicola\Http\Controllers\Admin\CalendarioController;
 use Modules\Apicola\Http\Controllers\Admin\InventarioController;
 use Modules\Apicola\Http\Controllers\Admin\UserController;
+use Modules\Apicola\Http\Controllers\Admin\ReporteController;
 use Modules\Apicola\Http\Controllers\Aprendiz\AprendizController;
 use Modules\Apicola\Http\Controllers\Aprendiz\ColmenaController as AprendizColmenaController;
 use Modules\Apicola\Http\Controllers\Aprendiz\InspeccionController as AprendizInspeccionController;
@@ -54,25 +55,33 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::get('apiarios', [ApiarioController::class, 'index'])->name('apicola.admin.apiarios.index');
     Route::post('apiarios', [ApiarioController::class, 'store'])->name('apicola.admin.apiarios.store');
     Route::put('apiarios/{id}', [ApiarioController::class, 'update'])->name('apicola.admin.apiarios.update');
+    Route::delete('apiarios/{id}', [ApiarioController::class, 'destroy'])->name('apicola.admin.apiarios.destroy');
     Route::post('apiarios/{id}/toggle-status', [ApiarioController::class, 'toggleStatus'])->name('apicola.admin.apiarios.toggle-status');
 
     // Módulo de Colmenas
     Route::post('colmenas/{id}/toggle-status', [ColmenaController::class, 'toggleStatus'])->name('apicola.admin.colmenas.toggle-status');
     Route::resource('colmenas', ColmenaController::class)->names('apicola.admin.colmenas');
 
-    // Submódulo de Registro e Inspección
+    // Submódulo de Producción e Inspección
     Route::get('inspecciones', [InspeccionController::class, 'index'])->name('apicola.admin.inspecciones.index');
     Route::get('colmenas/{code}/inspecciones', [InspeccionController::class, 'byColmena'])->name('apicola.admin.colmenas.inspecciones');
     Route::post('inspecciones', [InspeccionController::class, 'store'])->name('apicola.admin.inspecciones.store');
+    Route::delete('inspecciones/{id}', [InspeccionController::class, 'destroy'])->name('apicola.admin.inspecciones.destroy');
+    Route::post('inspecciones/{id}/toggle-status', [InspeccionController::class, 'toggleStatus'])->name('apicola.admin.inspecciones.toggle-status');
 
     // Módulo de Calendario Floral
     Route::get('calendario', [CalendarioController::class, 'index'])->name('apicola.admin.calendario.index');
+    Route::post('calendario', [CalendarioController::class, 'store'])->name('apicola.admin.calendario.store');
+    Route::put('calendario/{id}', [CalendarioController::class, 'update'])->name('apicola.admin.calendario.update');
+    Route::delete('calendario/{id}', [CalendarioController::class, 'destroy'])->name('apicola.admin.calendario.destroy');
+    Route::post('calendario/{id}/toggle-status', [CalendarioController::class, 'toggleStatus'])->name('apicola.admin.calendario.toggle-status');
 
     // Módulo de Inventario
     Route::get('inventario', [InventarioController::class, 'index'])->name('apicola.admin.inventario.index');
     Route::post('inventario', [InventarioController::class, 'store'])->name('apicola.admin.inventario.store');
     Route::get('inventario/{id}', [InventarioController::class, 'show'])->name('apicola.admin.inventario.show');
     Route::put('inventario/{id}', [InventarioController::class, 'update'])->name('apicola.admin.inventario.update');
+    Route::delete('inventario/{id}', [InventarioController::class, 'destroy'])->name('apicola.admin.inventario.destroy');
     Route::post('inventario/{id}/toggle-status', [InventarioController::class, 'toggleStatus'])->name('apicola.admin.inventario.toggle-status');
     Route::post('inventario/{id}/movimiento', [InventarioController::class, 'registrarMovimiento'])->name('apicola.admin.inventario.movimiento');
 
@@ -83,6 +92,12 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::put('usuarios/{id}', [UserController::class, 'update'])->name('apicola.admin.usuarios.update');
     Route::post('usuarios/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('apicola.admin.usuarios.toggle-status');
     Route::post('usuarios/buscar-persona', [UserController::class, 'searchPerson'])->name('apicola.admin.usuarios.search-person');
+
+    // Módulo de Reportes
+    Route::get('reportes', [ReporteController::class, 'index'])->name('apicola.admin.reportes.index');
+    Route::get('reportes/preview', [ReporteController::class, 'previewData'])->name('apicola.admin.reportes.preview');
+    Route::get('reportes/excel', [ReporteController::class, 'exportExcel'])->name('apicola.admin.reportes.excel');
+    Route::get('reportes/pdf', [ReporteController::class, 'exportPdf'])->name('apicola.admin.reportes.pdf');
 });
 
 Route::middleware(['auth', 'apicola.admin'])->group(function () {
@@ -97,9 +112,12 @@ Route::prefix('apicola/aprendiz')->middleware(['auth', 'apicola.aprendiz'])->gro
     Route::post('colmenas', [AprendizColmenaController::class, 'store'])->name('apicola.aprendiz.colmenas.store');
     Route::put('colmenas/{id}', [AprendizColmenaController::class, 'update'])->name('apicola.aprendiz.colmenas.update');
     Route::post('colmenas/{id}/toggle-status', [AprendizColmenaController::class, 'toggleStatus'])->name('apicola.aprendiz.colmenas.toggle-status');
+    Route::delete('colmenas/{id}', [AprendizColmenaController::class, 'destroy'])->name('apicola.aprendiz.colmenas.destroy');
 
-    // Submódulo de Registro e Inspección
+    // Submódulo de Producción e Inspección
     Route::get('inspecciones', [AprendizInspeccionController::class, 'index'])->name('apicola.aprendiz.inspecciones.index');
     Route::get('colmenas/{code}/inspecciones', [AprendizInspeccionController::class, 'byColmena'])->name('apicola.aprendiz.colmenas.inspecciones');
     Route::post('inspecciones', [AprendizInspeccionController::class, 'store'])->name('apicola.aprendiz.inspecciones.store');
+    Route::delete('inspecciones/{id}', [AprendizInspeccionController::class, 'destroy'])->name('apicola.aprendiz.inspecciones.destroy');
+    Route::post('inspecciones/{id}/toggle-status', [AprendizInspeccionController::class, 'toggleStatus'])->name('apicola.aprendiz.inspecciones.toggle-status');
 });

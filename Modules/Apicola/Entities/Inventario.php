@@ -16,6 +16,8 @@ class Inventario extends Model
         'nombre',
         'codigo',
         'categoria',
+        'bodega',
+        'unidad_medida',
         'cantidad',
         'stock_minimo',
         'estado',

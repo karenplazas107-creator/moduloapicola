@@ -7,10 +7,10 @@
     <title>@yield('title', 'Panel de Administración • SENA APÍCOLA')</title>
     <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}">
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts: Caveat (Slogan artesanal) + Outfit + Plus Jakarta Sans + Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -22,6 +22,10 @@
 
     <style>
         :root {
+            /* Tipografía de Lujo y Elegancia */
+            --ap-font-main: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --ap-font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+
             /* Paleta Premium Apícola & SENA */
             --ap-primary-dark: #071e18;       /* Medianoche bosque profundo */
             --ap-primary-forest: #0b2e23;     /* Bosque esmeralda oscuro */
@@ -66,13 +70,20 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--ap-font-main);
             background-color: var(--ap-bg);
             color: var(--ap-text-main);
             min-height: 100vh;
             display: flex;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        h1, h2, h3, h4, .ap-view-main-title, .ap-modal-title, .ap-brand-title {
+            font-family: var(--ap-font-display);
+            letter-spacing: -0.025em;
         }
 
         /* ================= BARRA LATERAL (SIDEBAR) ================= */
@@ -215,34 +226,43 @@
 
         .ap-sub-list {
             list-style: none;
-            padding-left: 2.85rem;
-            margin-top: 3px;
-            margin-bottom: 6px;
+            padding: 3px 0 4px 0;
+            margin: 3px 0 4px 1.25rem;
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
+            border-left: 2px solid rgba(245, 158, 11, 0.28);
+            padding-left: 0.75rem;
         }
 
         .ap-sub-link {
-            font-size: 0.78rem;
-            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.75);
             text-decoration: none;
-            display: block;
-            padding: 6px 10px;
-            border-radius: 6px;
-            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
         }
 
         .ap-sub-link:hover {
             color: #ffffff;
             background: rgba(255, 255, 255, 0.08);
-            padding-left: 12px;
+            transform: translateX(3px);
         }
 
         .ap-sub-link.active-sub {
             color: #fbbf24;
             font-weight: 700;
-            background: rgba(245, 158, 11, 0.15);
+            background: rgba(245, 158, 11, 0.16);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .ap-sub-link.active-sub i {
+            color: #fbbf24;
         }
 
         .ap-sidebar-user {
@@ -443,12 +463,176 @@
             transform: translateY(-1px);
         }
 
+        /* Barra superior estilo ApiGestión */
+        .ap-nav-search-wrap {
+            position: relative;
+            min-width: 260px;
+            max-width: 380px;
+            width: 100%;
+        }
+
+        .ap-nav-search-wrap input {
+            width: 100%;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 8px 16px 8px 38px;
+            font-size: 0.88rem;
+            color: #1e293b;
+            outline: none;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .ap-nav-search-wrap input:focus {
+            background: #ffffff;
+            border-color: #059669;
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+        }
+
+        .ap-nav-search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .ap-nav-bell-btn {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .ap-nav-bell-btn:hover {
+            background: #f8fafc;
+            color: #059669;
+            border-color: #cbd5e1;
+        }
+
+        .ap-nav-bell-badge {
+            position: absolute;
+            top: 7px;
+            right: 7px;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border: 1.5px solid #ffffff;
+            border-radius: 50%;
+        }
+
+        .ap-nav-profile-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 12px 4px 6px;
+            border-radius: 30px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .ap-nav-profile-pill:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .ap-nav-profile-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1e3d2f;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .ap-nav-profile-meta {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            line-height: 1.15;
+        }
+
+        .ap-nav-profile-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .ap-nav-profile-role {
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+
+        /* Slogan de apicultura sostenible en el pie del sidebar */
+        .ap-sidebar-slogan-box {
+            padding: 1.5rem 1.25rem;
+            margin-top: auto;
+            position: relative;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        .ap-slogan-handwritten {
+            font-family: 'Caveat', cursive;
+            font-size: 1.18rem;
+            font-weight: 600;
+            color: #fef08a;
+            display: block;
+            line-height: 1.25;
+            transform: rotate(-3deg);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .ap-slogan-bee-deco {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 6px;
+            color: #fbbf24;
+            font-size: 0.9rem;
+            opacity: 0.75;
+        }
+
         .ap-inner-content {
             padding: 2.25rem 2.5rem;
             flex: 1;
             max-width: 1440px;
             width: 100%;
             margin: 0 auto;
+            animation: apModuleEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes apModuleEntrance {
+            0% {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ================= ESTILOS COMPARTIDOS ================= */
@@ -1012,6 +1196,26 @@
             margin-bottom: 1.25rem;
         }
 
+        .ap-modal-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.35rem;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .ap-modal-close-btn:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
         .ap-form-section-title {
             font-size: 0.8rem;
             font-weight: 800;
@@ -1159,6 +1363,51 @@
             cursor: pointer;
         }
 
+        .ap-btn-add-mini {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: #059669;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease;
+            white-space: nowrap;
+        }
+
+        .ap-btn-add-mini:hover {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+
+        .ap-btn-remove-card {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.15rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.15s, background 0.15s;
+            margin-left: auto;
+        }
+
+        .ap-btn-remove-card:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .ap-add-item-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
         .ap-modal-footer {
             padding: 1rem 2rem 1.5rem;
             display: flex;
@@ -1269,41 +1518,40 @@
     <!-- ================= BARRA LATERAL (SIDEBAR) ================= -->
     <aside class="ap-sidebar" id="apSidebar">
         
-        <!-- Encabezado del Logo -->
-        <div class="ap-sidebar-header">
-            <div class="ap-logo-hex">
-                <img src="{{ asset('modules/apicola/img/logo.png') }}" 
+        <!-- Encabezado del Logo SENA APÍCOLA -->
+        <div class="ap-sidebar-header" style="gap: 14px; padding: 1.35rem 1.25rem;">
+            <div class="ap-logo-hex" style="border-radius: 14px; border: 2px solid #fbbf24; background: #ffffff;">
+                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}" 
                      alt="SENA Apícola" 
                      class="ap-logo-img"
-                     onerror="this.onerror=null; this.src='{{ asset('apicola-assets/assets/img/logo-apicola-bee-original.png') }}';">
+                     onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}';">
             </div>
             <div class="ap-brand-info">
-                <div class="ap-brand-title">
-                    <span style="color: #ffffff; font-weight: 900;">SENA</span>
-                    <span>APÍCOLA</span>
+                <div class="ap-brand-title" style="font-size: 1.18rem; font-weight: 800; letter-spacing: -0.3px;">
+                    <span style="color: #ffffff;">SENA </span><span style="color: #fbbf24;">APÍCOLA</span>
                 </div>
-                <div class="ap-brand-sub">GESTIÓN APÍCOLA</div>
+                <div class="ap-brand-sub" style="font-size: 0.72rem; color: #a7f3d0; letter-spacing: 0.5px; font-weight: 600;">SENA - LA ANGOSTURA</div>
             </div>
         </div>
 
         <!-- Menú de Navegación -->
         <ul class="ap-nav-list" id="apNavList">
 
-            <!-- 1. Panel principal -->
+            <!-- 1. Inicio -->
             <li class="ap-nav-item {{ request()->routeIs('apicola.admin.dashboard') || request()->routeIs('apicola.dashboard') ? 'active' : '' }}">
                 <a href="{{ route('apicola.admin.dashboard') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
-                        <i class="fas fa-chart-pie"></i>
+                        <i class="fas fa-house"></i>
                     </span>
-                    <span>Panel principal</span>
+                    <span>Inicio</span>
                 </a>
             </li>
 
-            <!-- 2. Gestión de Usuarios -->
+            <!-- 2. Usuarios -->
             <li class="ap-nav-item {{ request()->routeIs('apicola.admin.usuarios.*') ? 'active' : '' }}">
                 <a href="{{ route('apicola.admin.usuarios.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
-                        <i class="fas fa-users-cog"></i>
+                        <i class="far fa-user"></i>
                     </span>
                     <span>Usuarios</span>
                 </a>
@@ -1313,30 +1561,49 @@
             <li class="ap-nav-item {{ request()->routeIs('apicola.admin.apiarios.*') ? 'active' : '' }}">
                 <a href="{{ route('apicola.admin.apiarios.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
-                        <i class="fas fa-home"></i>
+                        <i class="fas fa-location-dot"></i>
                     </span>
                     <span>Apiarios</span>
                 </a>
             </li>
 
-            <!-- 4. Colmenas -->
-            <li class="ap-nav-item {{ request()->routeIs('apicola.colmenas.*') || request()->routeIs('apicola.admin.colmenas.*') || request()->routeIs('apicola.admin.inspecciones.*') ? 'active' : '' }}">
+            @php
+                $isInspeccionRoute = request()->routeIs('apicola.admin.inspecciones.*') 
+                    || request()->routeIs('apicola.admin.colmenas.inspecciones')
+                    || request()->is('*inspeccion*');
+                $isColmenaDirect = (request()->routeIs('apicola.colmenas.*') || request()->routeIs('apicola.admin.colmenas.*') || request()->is('apicola/colmenas*')) && !$isInspeccionRoute;
+            @endphp
+            <!-- 4. Módulo: Colmenas -->
+            <li class="ap-nav-item {{ $isColmenaDirect ? 'active' : '' }}">
                 <a href="{{ route('apicola.admin.colmenas.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
                         <i class="fas fa-boxes-stacked"></i>
                     </span>
                     <span>Colmenas</span>
                 </a>
+                <!-- Submódulo: Producción e inspección -->
                 <ul class="ap-sub-list">
                     <li>
-                        <a href="{{ route('apicola.admin.inspecciones.index') }}" class="ap-sub-link {{ request()->routeIs('apicola.admin.inspecciones.*') ? 'active-sub' : '' }}">
-                            Producción e inspección
+                        <a href="{{ route('apicola.admin.inspecciones.index') }}" 
+                           class="ap-sub-link {{ $isInspeccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-clipboard-check" style="font-size: 0.78rem;"></i>
+                            <span>Producción e inspección</span>
                         </a>
                     </li>
                 </ul>
             </li>
 
-            <!-- 5. Calendario floral -->
+            <!-- 5. Inventario -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.inventario.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.inventario.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-box-archive"></i>
+                    </span>
+                    <span>Inventario</span>
+                </a>
+            </li>
+
+            <!-- 6. Calendario Floral -->
             <li class="ap-nav-item {{ request()->routeIs('apicola.admin.calendario.*') ? 'active' : '' }}">
                 <a href="{{ route('apicola.admin.calendario.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
@@ -1346,16 +1613,26 @@
                 </a>
             </li>
 
-            <!-- 6. Inventario -->
-            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.inventario.*') ? 'active' : '' }}">
-                <a href="{{ route('apicola.admin.inventario.index') }}" class="ap-nav-link">
+            <!-- 7. Reportes -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.reportes.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.reportes.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon">
-                        <i class="fas fa-boxes-stacked"></i>
+                        <i class="fas fa-chart-column"></i>
                     </span>
-                    <span>Inventario</span>
+                    <span>Reportes</span>
                 </a>
             </li>
         </ul>
+
+        <!-- Slogan Sostenible Artístico en el pie del Sidebar -->
+        <div class="ap-sidebar-slogan-box">
+            <span class="ap-slogan-handwritten">Juntos por una apicultura sostenible</span>
+            <div class="ap-slogan-bee-deco">
+                <i class="fas fa-seedling"></i>
+                <span style="font-size: 0.75rem; letter-spacing: 1px;">SENA CEFA</span>
+                <i class="fas fa-feather-pointed"></i>
+            </div>
+        </div>
 
         <!-- Pie de Usuario (Conectado al fondo) -->
         <div class="ap-sidebar-user">
@@ -1365,7 +1642,7 @@
                 </div>
                 <div class="ap-user-details">
                     <div class="ap-user-title" title="{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador') }}">
-                        {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador') }}
+                        {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Karen Michelle Plazas') }}
                     </div>
                     <div class="ap-user-sub">
                         <i class="fas fa-shield-alt" style="color: #34d399;"></i> {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}
@@ -1381,30 +1658,34 @@
     <!-- ================= CONTENIDO PRINCIPAL ================= -->
     <div class="ap-main-area">
 
-        <!-- Barra Superior -->
+        <!-- Barra Superior ApiGestión -->
         <header class="ap-top-nav">
-            <div class="ap-top-left">
-                <button class="ap-toggle-btn" onclick="toggleSidebarMenu()">
+            <div class="ap-top-left" style="gap: 1.25rem;">
+                <button class="ap-toggle-btn" onclick="toggleSidebarMenu()" style="display:inline-flex;">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="ap-bread">
-                    <a href="{{ route('apicola.welcome') }}"><i class="fas fa-house"></i> Inicio</a>
-                    <span>/</span>
-                    <a href="{{ route('apicola.admin.dashboard') }}">Módulo Apícola</a>
-                    <span>/</span>
-                    @yield('breadcrumb', '<span class="active-page">Administración</span>')
+                <div class="ap-nav-search-wrap">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="text" id="apGlobalSearch" placeholder="Buscar apiarios, colmenas, registros...">
                 </div>
             </div>
 
-            <div class="ap-top-right">
-                <div class="ap-status-tag">
-                    <span class="dot"></span>
-                    <span>☀️ 29°C Campoalegre • Floración Activa</span>
+            <div class="ap-top-right" style="gap: 1.15rem;">
+                <!-- Perfil del Administrador -->
+                <div class="ap-nav-profile-pill" title="Cuenta activa">
+                    <div class="ap-nav-profile-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="ap-nav-profile-meta">
+                        <span class="ap-nav-profile-name">
+                            {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Karen Michelle Plazas') }}
+                        </span>
+                        <span class="ap-nav-profile-role">
+                            {{ Auth::user()?->primary_role ?? 'Administrador' }}
+                        </span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size: 0.72rem; color: #94a3b8; margin-left: 2px;"></i>
                 </div>
-
-                <a href="{{ route('apicola.welcome', ['public' => 1]) }}" class="ap-link-portal" target="_blank">
-                    <i class="fas fa-arrow-up-right-from-square"></i> Portal Público
-                </a>
             </div>
         </header>
 
@@ -1441,6 +1722,12 @@
 
         function toggleSidebarMenu() {
             document.getElementById('apSidebar').classList.toggle('open-sidebar');
+        }
+
+        function toggleSidebarSubmenu(id, el) {
+            const parent = el.closest('.ap-nav-item');
+            if (!parent) return;
+            parent.classList.toggle('open');
         }
     </script>
 

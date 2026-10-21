@@ -316,40 +316,47 @@
         grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
-    .ap-form-grid-3 {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
-    }
 
-    .ap-input-doc-group {
+    .ap-role-pill-group {
         display: flex;
-        gap: 8px;
-    }
-    .ap-btn-search-doc {
         background: #f1f5f9;
-        color: #334155;
-        border: 1px solid #cbd5e1;
-        padding: 0 14px;
+        padding: 3px;
         border-radius: 10px;
-        font-size: 0.85rem;
+        border: 1px solid #cbd5e1;
+        gap: 4px;
+        height: 42px;
+    }
+    .ap-role-pill {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.82rem;
         font-weight: 700;
+        border-radius: 8px;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        white-space: nowrap;
         transition: all 0.2s;
     }
-    .ap-btn-search-doc:hover {
-        background: #e2e8f0;
+    .ap-role-pill:hover {
         color: #0f172a;
+    }
+    .ap-role-pill.active {
+        background: #ffffff;
+        color: #059669;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .ap-role-pill.active.aprendiz {
+        color: #d97706;
     }
 
     .ap-person-alert {
         border-radius: 10px;
-        padding: 10px 14px;
-        font-size: 0.82rem;
+        padding: 8px 12px;
+        font-size: 0.8rem;
         margin-top: 8px;
         display: none;
         align-items: center;
@@ -366,55 +373,6 @@
         border: 1px solid #bfdbfe;
         color: #1e40af;
         display: flex;
-    }
-
-    .ap-role-card-select {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-top: 6px;
-    }
-    .ap-role-card-option {
-        border: 1.5px solid #cbd5e1;
-        border-radius: 12px;
-        padding: 12px 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        background: #ffffff;
-    }
-    .ap-role-card-option:hover {
-        border-color: #94a3b8;
-        background: #f8fafc;
-    }
-    .ap-role-card-option.selected {
-        border-color: #059669;
-        background: #ecfdf5;
-    }
-    .ap-role-card-option.selected .role-radio {
-        border-color: #059669;
-        background: #059669;
-    }
-    .role-radio {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 2px solid #cbd5e1;
-        margin-top: 2px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
-    .role-radio::after {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #ffffff;
     }
 </style>
 @endsection
@@ -547,6 +505,15 @@
                                         <div style="font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 4px;">
                                             <i class="fas fa-id-card" style="font-size: 0.75rem;"></i> {{ $docText }}
                                         </div>
+                                        @php
+                                            $appr = $person?->apprentices?->first();
+                                        @endphp
+                                        @if($appr && $appr->course)
+                                            <div style="font-size: 0.75rem; color: #059669; font-weight: 700; display: flex; align-items: center; gap: 5px; margin-top: 2px;">
+                                                <i class="fas fa-graduation-cap" style="font-size: 0.72rem; color: #d97706;"></i>
+                                                <span>Ficha: {{ $appr->course->code }} &bull; {{ $appr->course->program?->name ?? 'Programa SENA' }}</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
@@ -620,149 +587,117 @@
         </div>
     </div>
 
-    <!-- ==================== MODAL: CREAR / EDITAR USUARIO ==================== -->
+    <!-- ==================== MODAL: REGISTRAR / EDITAR USUARIO ==================== -->
     <div class="ap-modal-backdrop" id="modalUsuarioBackdrop">
-        <div class="ap-modal-window large" style="max-width: 680px;">
-            <div class="ap-modal-body">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+        <div class="ap-modal-window" style="max-width: 580px;">
+            <div class="ap-modal-body" style="padding: 1.5rem 1.75rem 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
                     <div>
                         <span class="ap-view-subtitle-tag" id="modalTag">REGISTRO</span>
-                        <h2 class="ap-modal-title" id="modalTitle" style="margin-bottom: 0.2rem;">Registrar Nuevo Usuario</h2>
+                        <h2 class="ap-modal-title" id="modalTitle" style="margin-bottom: 0.2rem; font-size: 1.35rem;">Registrar Nuevo Usuario</h2>
                     </div>
-                    <button type="button" onclick="cerrarModalUsuario()" style="background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button type="button" class="ap-modal-close-btn" onclick="cerrarModalUsuario()" title="Cerrar">&times;</button>
                 </div>
-                <p class="modal-subtitle" id="modalSubtitle">
-                    Ingresa los datos personales y credenciales para conceder acceso a la plataforma apícola.
+                <p class="modal-subtitle" id="modalSubtitle" style="font-size: 0.83rem; color: #64748b; margin-bottom: 1.15rem;">
+                    Ingresa los datos personales y de formación para conceder acceso a la plataforma.
                 </p>
 
                 <form id="formUsuario" onsubmit="guardarUsuario(event)">
                     @csrf
                     <input type="hidden" id="userId" name="userId" value="">
+                    <input type="hidden" id="role_slug" name="role_slug" value="apicola.aprendiz">
 
-                    <!-- SECCIÓN 1: DATOS PERSONALES / IDENTIFICACIÓN SICA -->
-                    <div class="ap-form-section-title">
-                        <i class="fas fa-id-card"></i> 1. Identificación y Persona (SICA)
+                    <!-- Fila 1: Nombres y Apellidos -->
+                    <div class="ap-form-grid-2" style="margin-bottom: 11px;">
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="first_name">NOMBRES *</label>
+                            <input type="text" id="first_name" name="first_name" class="ap-field-input" placeholder="Ej. Carlos Andrés" required>
+                        </div>
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="last_name">APELLIDOS *</label>
+                            <input type="text" id="last_name" name="last_name" class="ap-field-input" placeholder="Ej. Gómez Pérez" required>
+                        </div>
                     </div>
 
-                    <div class="ap-form-grid-2">
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="document_type">TIPO DE DOCUMENTO *</label>
-                            <select id="document_type" name="document_type" class="ap-field-input" required>
-                                <option value="Cédula de ciudadanía">Cédula de ciudadanía</option>
-                                <option value="Tarjeta de identidad">Tarjeta de identidad</option>
-                                <option value="Cédula de extranjería">Cédula de extranjería</option>
-                                <option value="Permiso por protección temporal">Permiso por protección temporal</option>
-                            </select>
+                    <!-- Fila 2: Documento de Identidad y Ficha -->
+                    <div class="ap-form-grid-2" style="margin-bottom: 11px;">
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="document_number">DOCUMENTO IDENTIDAD *</label>
+                            <div style="position: relative;">
+                                <input type="number" id="document_number" name="document_number" class="ap-field-input" placeholder="Ej. 1075258901" required onblur="autoConsultarPersona()">
+                                <span id="docSearchSpinner" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #059669;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </div>
                         </div>
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="ficha" id="labelFicha">FICHA <span id="fichaReqBadge" style="color: #ef4444;">*</span></label>
+                            <input type="text" id="ficha" name="ficha" list="listaFichas" class="ap-field-input" placeholder="Ej. 3406034" oninput="onFichaChanged()">
+                            <datalist id="listaFichas">
+                                @foreach($activeCourses ?? [] as $course)
+                                    <option value="{{ $course->code }}">{{ $course->program ? $course->program->name : '' }}</option>
+                                @endforeach
+                            </datalist>
+                        </div>
+                    </div>
 
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="document_number">NÚMERO DE DOCUMENTO *</label>
-                            <div class="ap-input-doc-group">
-                                <input type="number" id="document_number" name="document_number" class="ap-field-input" placeholder="Ej. 1075258901" required>
-                                <button type="button" class="ap-btn-search-doc" id="btnBuscarPersona" onclick="consultarPersona()" title="Consultar en la base de datos SICA">
-                                    <i class="fas fa-magnifying-glass"></i>
-                                    <span>Buscar</span>
+                    <!-- Fila 3: Programa y Correo -->
+                    <div class="ap-form-grid-2" style="margin-bottom: 11px;">
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="programa" id="labelPrograma">PROGRAMA <span id="progReqBadge" style="color: #ef4444;">*</span></label>
+                            <input type="text" id="programa" name="programa" list="listaProgramas" class="ap-field-input" placeholder="Ej. Gestión Agroempresarial">
+                            <datalist id="listaProgramas">
+                                @foreach($activeCourses ?? [] as $course)
+                                    @if($course->program)
+                                        <option value="{{ $course->program->name }}"></option>
+                                    @endif
+                                @endforeach
+                            </datalist>
+                        </div>
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="email">CORREO ELECTRÓNICO *</label>
+                            <input type="email" id="email" name="email" class="ap-field-input" placeholder="Ej. usuario@sena.edu.co" required>
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: Contraseña y Rol -->
+                    <div class="ap-form-grid-2" style="margin-bottom: 12px;">
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label" for="password" id="labelPassword">CONTRASEÑA *</label>
+                            <div style="position: relative;">
+                                <input type="password" id="password" name="password" class="ap-field-input" placeholder="Mínimo 6 caracteres" style="padding-right: 38px;" required>
+                                <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+                                    <i class="fas fa-eye" id="iconEye"></i>
+                                </button>
+                            </div>
+                            <div id="passwordHint" style="font-size: 0.72rem; color: #64748b; margin-top: 3px; display: none;">
+                                Dejar en blanco para conservar actual.
+                            </div>
+                        </div>
+                        <div class="ap-form-field" style="margin-bottom: 0;">
+                            <label class="ap-field-label">ROL DE ACCESO *</label>
+                            <div class="ap-role-pill-group">
+                                <button type="button" class="ap-role-pill active aprendiz" id="btnRoleAprendiz" onclick="seleccionarRolPill('apicola.aprendiz')">
+                                    <i class="fas fa-graduation-cap"></i> Aprendiz
+                                </button>
+                                <button type="button" class="ap-role-pill" id="btnRoleAdmin" onclick="seleccionarRolPill('apicola.admin')">
+                                    <i class="fas fa-shield-halved"></i> Administrador
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Alertas de consulta de persona -->
-                    <div id="alertPersonFound" class="ap-person-alert found">
-                        <i class="fas fa-check-circle" style="font-size: 1.1rem;"></i>
-                        <span id="textPersonFound">Persona encontrada en SICA. Se autocompletaron sus datos personales.</span>
-                    </div>
-                    <div id="alertPersonNotFound" class="ap-person-alert not-found">
-                        <i class="fas fa-info-circle" style="font-size: 1.1rem;"></i>
-                        <span>Persona no registrada previamente. Se creará automáticamente su registro en SICA.</span>
-                    </div>
-
-                    <div class="ap-form-grid-3" style="margin-top: 12px;">
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="first_name">NOMBRES *</label>
-                            <input type="text" id="first_name" name="first_name" class="ap-field-input" placeholder="Ej. Carlos Andrés" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="first_last_name">PRIMER APELLIDO *</label>
-                            <input type="text" id="first_last_name" name="first_last_name" class="ap-field-input" placeholder="Ej. Gómez" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="second_last_name">SEGUNDO APELLIDO</label>
-                            <input type="text" id="second_last_name" name="second_last_name" class="ap-field-input" placeholder="Ej. Pérez">
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 2: CREDENCIALES DE ACCESO -->
-                    <div class="ap-form-section-title">
-                        <i class="fas fa-key"></i> 2. Credenciales de la Cuenta
-                    </div>
-
-                    <div class="ap-form-grid-2">
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="nickname">NOMBRE DE USUARIO (NICKNAME) *</label>
-                            <input type="text" id="nickname" name="nickname" class="ap-field-input" placeholder="Ej. cgomez" required>
-                        </div>
-                        <div class="ap-form-field">
-                            <label class="ap-field-label" for="email">CORREO ELECTRÓNICO *</label>
-                            <input type="email" id="email" name="email" class="ap-field-input" placeholder="Ej. cgomez@sena.edu.co" required>
-                        </div>
-                    </div>
-
-                    <div class="ap-form-field" style="margin-top: 10px;">
-                        <label class="ap-field-label" for="password" id="labelPassword">CONTRASEÑA *</label>
-                        <div style="position: relative;">
-                            <input type="password" id="password" name="password" class="ap-field-input" placeholder="Mínimo 6 caracteres" style="padding-right: 40px;" required>
-                            <button type="button" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer;">
-                                <i class="fas fa-eye" id="iconEye"></i>
-                            </button>
-                        </div>
-                        <div id="passwordHint" style="font-size: 0.76rem; color: #64748b; margin-top: 4px; display: none;">
-                            Deja este campo en blanco si no deseas modificar la contraseña actual.
-                        </div>
-                    </div>
-
-                    <!-- SECCIÓN 3: ASIGNACIÓN DE ROL -->
-                    <div class="ap-form-section-title">
-                        <i class="fas fa-user-shield"></i> 3. Rol en el Módulo Apícola
-                    </div>
-
-                    <div class="ap-role-card-select">
-                        <input type="hidden" name="role_slug" id="role_slug" value="apicola.aprendiz">
-
-                        <!-- Opción Aprendiz -->
-                        <div class="ap-role-card-option selected" id="optRoleAprendiz" onclick="seleccionarRol('apicola.aprendiz')">
-                            <div class="role-radio"></div>
-                            <div>
-                                <div style="font-weight: 800; font-size: 0.9rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-graduation-cap" style="color: #d97706;"></i> Aprendiz Apícola
-                                </div>
-                                <div style="font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px;">
-                                    Acceso a consultar colmenas y diligenciar inspecciones y registros técnicos.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Opción Administrador -->
-                        <div class="ap-role-card-option" id="optRoleAdmin" onclick="seleccionarRol('apicola.admin')">
-                            <div class="role-radio"></div>
-                            <div>
-                                <div style="font-weight: 800; font-size: 0.9rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
-                                    <i class="fas fa-shield-halved" style="color: #059669;"></i> Administrador Apícola
-                                </div>
-                                <div style="font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px;">
-                                    Control total: apiarios, colmenas, inventario, calendario y administración de usuarios.
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Alerta de SICA -->
+                    <div id="alertPersonFound" class="ap-person-alert found" style="margin-bottom: 10px; display: none;">
+                        <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
+                        <span id="textPersonFound" style="font-size: 0.8rem;"></span>
                     </div>
 
                     <!-- Botones del Modal -->
-                    <div class="ap-modal-footer" style="padding: 1.5rem 0 0; margin-top: 1.5rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px;">
+                    <div class="ap-modal-footer" style="padding: 1rem 0 0; margin-top: 0.5rem; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px;">
                         <button type="button" class="ap-btn-modal-cancel" onclick="cerrarModalUsuario()">Cancelar</button>
                         <button type="submit" class="ap-btn-modal-save" style="background: #059669;" id="btnSubmitUsuario">
-                            <i class="fas fa-check"></i> <span id="btnSubmitText">Guardar Usuario</span>
+                            <i class="fas fa-check"></i> <span id="btnSubmitText">Registrar Usuario</span>
                         </button>
                     </div>
                 </form>
@@ -778,18 +713,45 @@
     const routeSearchPerson = '{{ route("apicola.admin.usuarios.search-person") }}';
     const baseUsersUrl = '{{ url("apicola/usuarios") }}';
 
+    // Mapeo de Fichas -> Programas para autocompletado
+    const cursosMap = {
+        @foreach($activeCourses ?? [] as $c)
+            '{{ $c->code }}': '{{ addslashes($c->program?->name ?? "") }}',
+        @endforeach
+    };
+
+    // Al cambiar la ficha, autocompletar el programa si existe en el sistema
+    function onFichaChanged() {
+        const fichaVal = document.getElementById('ficha').value.trim();
+        if (cursosMap[fichaVal]) {
+            document.getElementById('programa').value = cursosMap[fichaVal];
+        }
+    }
+
     // Selección interactiva de rol
-    function seleccionarRol(slug) {
+    function seleccionarRolPill(slug) {
         document.getElementById('role_slug').value = slug;
-        const optAprendiz = document.getElementById('optRoleAprendiz');
-        const optAdmin = document.getElementById('optRoleAdmin');
+        const btnAprendiz = document.getElementById('btnRoleAprendiz');
+        const btnAdmin = document.getElementById('btnRoleAdmin');
+        const fichaReq = document.getElementById('fichaReqBadge');
+        const progReq = document.getElementById('progReqBadge');
+        const inputFicha = document.getElementById('ficha');
+        const inputProg = document.getElementById('programa');
 
         if (slug === 'apicola.admin') {
-            optAdmin.classList.add('selected');
-            optAprendiz.classList.remove('selected');
+            btnAdmin.classList.add('active');
+            btnAprendiz.classList.remove('active', 'aprendiz');
+            if (fichaReq) fichaReq.style.display = 'none';
+            if (progReq) progReq.style.display = 'none';
+            if (inputFicha) inputFicha.required = false;
+            if (inputProg) inputProg.required = false;
         } else {
-            optAprendiz.classList.add('selected');
-            optAdmin.classList.remove('selected');
+            btnAprendiz.classList.add('active', 'aprendiz');
+            btnAdmin.classList.remove('active');
+            if (fichaReq) fichaReq.style.display = 'inline';
+            if (progReq) progReq.style.display = 'inline';
+            if (inputFicha) inputFicha.required = true;
+            if (inputProg) inputProg.required = true;
         }
     }
 
@@ -814,7 +776,7 @@
         document.getElementById('userId').value = '';
         document.getElementById('modalTag').innerText = 'REGISTRO';
         document.getElementById('modalTitle').innerText = 'Registrar Nuevo Usuario';
-        document.getElementById('modalSubtitle').innerText = 'Ingresa los datos personales y credenciales para conceder acceso a la plataforma apícola.';
+        document.getElementById('modalSubtitle').innerText = 'Ingresa los datos personales y de formación para conceder acceso a la plataforma.';
         document.getElementById('btnSubmitText').innerText = 'Registrar Usuario';
         
         // Contraseña obligatoria en creación
@@ -824,14 +786,13 @@
 
         // Documento editable
         document.getElementById('document_number').readOnly = false;
-        document.getElementById('btnBuscarPersona').style.display = 'inline-flex';
 
-        // Ocultar alertas de persona
-        document.getElementById('alertPersonFound').classList.remove('found');
-        document.getElementById('alertPersonNotFound').classList.remove('not-found');
+        // Ocultar alerta de SICA
+        const alertFound = document.getElementById('alertPersonFound');
+        if (alertFound) alertFound.style.display = 'none';
 
         // Rol por defecto: Aprendiz
-        seleccionarRol('apicola.aprendiz');
+        seleccionarRolPill('apicola.aprendiz');
 
         document.getElementById('modalUsuarioBackdrop').classList.add('is-open');
     }
@@ -841,23 +802,14 @@
         document.getElementById('modalUsuarioBackdrop').classList.remove('is-open');
     }
 
-    // Consultar si la persona ya existe en SICA
-    async function consultarPersona() {
+    // Consulta automática de persona en SICA por documento
+    async function autoConsultarPersona() {
         const docNumber = document.getElementById('document_number').value.trim();
-        if (!docNumber) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Número requerido',
-                text: 'Por favor escribe un número de documento para buscar.',
-                confirmButtonColor: '#059669'
-            });
-            return;
-        }
+        if (!docNumber || docNumber.length < 5) return;
+        if (document.getElementById('userId').value) return; // Si estamos editando, omitir
 
-        const btn = document.getElementById('btnBuscarPersona');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
+        const spinner = document.getElementById('docSearchSpinner');
+        if (spinner) spinner.style.display = 'inline-block';
 
         try {
             const response = await fetch(routeSearchPerson, {
@@ -871,40 +823,45 @@
 
             const data = await response.json();
 
-            const alertFound = document.getElementById('alertPersonFound');
-            const alertNotFound = document.getElementById('alertPersonNotFound');
-
             if (data.success && data.found) {
-                // Autocompletar datos
                 const p = data.person;
-                if (p.document_type) document.getElementById('document_type').value = p.document_type;
                 if (p.first_name) document.getElementById('first_name').value = p.first_name;
-                if (p.first_last_name) document.getElementById('first_last_name').value = p.first_last_name;
-                if (p.second_last_name) document.getElementById('second_last_name').value = p.second_last_name;
-                if (p.personal_email && !document.getElementById('email').value) {
-                    document.getElementById('email').value = p.personal_email;
+                if (p.last_name) document.getElementById('last_name').value = p.last_name;
+                if (p.personal_email) document.getElementById('email').value = p.personal_email;
+                if (p.ficha) {
+                    document.getElementById('ficha').value = p.ficha;
+                    onFichaChanged();
                 }
+                if (p.programa) document.getElementById('programa').value = p.programa;
 
-                alertFound.classList.add('found');
-                alertNotFound.classList.remove('not-found');
-
-                if (data.has_user) {
-                    document.getElementById('textPersonFound').innerText = 
-                        `Persona encontrada: ${p.first_name} ${p.first_last_name}. Ya tiene usuario (${data.user.nickname}).`;
-                } else {
-                    document.getElementById('textPersonFound').innerText = 
-                        `Persona encontrada en SICA: ${p.first_name} ${p.first_last_name}. Se vincularán sus datos.`;
+                const alertFound = document.getElementById('alertPersonFound');
+                const textFound = document.getElementById('textPersonFound');
+                if (alertFound && textFound) {
+                    if (data.has_user) {
+                        if (data.has_apicola) {
+                            textFound.innerHTML = `<strong>Persona encontrada en SICA:</strong> ${p.first_name} ${p.last_name || ''} ya tiene usuario (<code>${data.user.nickname}</code>) con acceso a Apícola. Al guardar se actualizará su información y rol.`;
+                        } else {
+                            textFound.innerHTML = `<strong>Usuario SICA detectado:</strong> ${p.first_name} ${p.last_name || ''} (<code>${data.user.nickname}</code>). Al guardar se le otorgará acceso directo al módulo Apícola.`;
+                        }
+                        document.getElementById('password').required = false;
+                        document.getElementById('labelPassword').innerText = 'CONTRASEÑA (OPCIONAL - CONSERVA LA DE SICA)';
+                        document.getElementById('passwordHint').style.display = 'block';
+                    } else {
+                        textFound.innerHTML = `<strong>Persona registrada en SICA:</strong> ${p.first_name} ${p.last_name || ''}. Se creará su cuenta de usuario para ingresar a Apícola.`;
+                        document.getElementById('password').required = true;
+                        document.getElementById('labelPassword').innerText = 'CONTRASEÑA *';
+                        document.getElementById('passwordHint').style.display = 'none';
+                    }
+                    alertFound.style.display = 'flex';
                 }
-
             } else {
-                alertFound.classList.remove('found');
-                alertNotFound.classList.add('not-found');
+                const alertFound = document.getElementById('alertPersonFound');
+                if (alertFound) alertFound.style.display = 'none';
             }
         } catch (error) {
             console.error(error);
         } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            if (spinner) spinner.style.display = 'none';
         }
     }
 
@@ -923,20 +880,21 @@
                 document.getElementById('userId').value = u.id;
                 document.getElementById('modalTag').innerText = 'EDICIÓN';
                 document.getElementById('modalTitle').innerText = 'Editar Usuario';
-                document.getElementById('modalSubtitle').innerText = 'Actualiza los datos personales, credenciales o rol del usuario.';
+                document.getElementById('modalSubtitle').innerText = 'Actualiza los datos personales, formación o credenciales del usuario.';
                 document.getElementById('btnSubmitText').innerText = 'Actualizar Usuario';
 
                 // Campos
-                document.getElementById('document_type').value = p.document_type || 'Cédula de ciudadanía';
-                document.getElementById('document_number').value = p.document_number || '';
+                document.getElementById('first_name').value = u.first_name || p.first_name || '';
+                document.getElementById('last_name').value = u.last_name || p.last_name || (p.first_last_name ? (p.first_last_name + ' ' + (p.second_last_name || '')) : '');
+                document.getElementById('document_number').value = u.document_number || p.document_number || '';
                 document.getElementById('document_number').readOnly = true;
-                document.getElementById('btnBuscarPersona').style.display = 'none';
 
-                document.getElementById('first_name').value = p.first_name || '';
-                document.getElementById('first_last_name').value = p.first_last_name || '';
-                document.getElementById('second_last_name').value = p.second_last_name || '';
+                document.getElementById('ficha').value = u.ficha || p.ficha || '';
+                document.getElementById('programa').value = u.programa || p.programa || '';
+                if (!document.getElementById('programa').value && document.getElementById('ficha').value) {
+                    onFichaChanged();
+                }
 
-                document.getElementById('nickname').value = u.nickname;
                 document.getElementById('email').value = u.email;
 
                 // Contraseña opcional en edición
@@ -945,12 +903,12 @@
                 document.getElementById('labelPassword').innerText = 'CAMBIAR CONTRASEÑA (OPCIONAL)';
                 document.getElementById('passwordHint').style.display = 'block';
 
-                // Ocultar alertas de persona
-                document.getElementById('alertPersonFound').classList.remove('found');
-                document.getElementById('alertPersonNotFound').classList.remove('not-found');
+                // Ocultar alerta de SICA
+                const alertFound = document.getElementById('alertPersonFound');
+                if (alertFound) alertFound.style.display = 'none';
 
                 // Rol
-                seleccionarRol(u.role_slug || 'apicola.aprendiz');
+                seleccionarRolPill(u.role_slug || 'apicola.aprendiz');
 
                 document.getElementById('modalUsuarioBackdrop').classList.add('is-open');
             }
@@ -979,12 +937,11 @@
         btnSubmit.disabled = true;
 
         const payload = {
-            document_type: document.getElementById('document_type').value,
-            document_number: document.getElementById('document_number').value,
             first_name: document.getElementById('first_name').value,
-            first_last_name: document.getElementById('first_last_name').value,
-            second_last_name: document.getElementById('second_last_name').value,
-            nickname: document.getElementById('nickname').value,
+            last_name: document.getElementById('last_name').value,
+            document_number: document.getElementById('document_number').value,
+            ficha: document.getElementById('ficha').value,
+            programa: document.getElementById('programa').value,
             email: document.getElementById('email').value,
             password: document.getElementById('password').value,
             role_slug: document.getElementById('role_slug').value,

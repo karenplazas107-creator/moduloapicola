@@ -553,29 +553,29 @@
         </div>
     </div>
 
-    <!-- 4 Tarjetas de Métricas (Idénticas a la captura) -->
+    <!-- 4 Tarjetas de Métricas -->
     <div class="ap-metrics-grid">
         <div class="ap-metric-card border-green">
             <div class="ap-metric-card-title">COLMENAS REGISTRADAS</div>
-            <div class="ap-metric-card-num" id="colmenaMetricTotal">48</div>
-            <div class="ap-metric-card-sub">En 5 apiarios activos</div>
+            <div class="ap-metric-card-num" id="colmenaMetricTotal">{{ $metrics['total'] ?? 0 }}</div>
+            <div class="ap-metric-card-sub">En apiarios activos</div>
         </div>
 
         <div class="ap-metric-card border-green">
             <div class="ap-metric-card-title">ACTIVAS</div>
-            <div class="ap-metric-card-num" id="colmenaMetricActivas">42</div>
+            <div class="ap-metric-card-num" id="colmenaMetricActivas">{{ $metrics['activas'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">En producción</div>
         </div>
 
         <div class="ap-metric-card border-amber">
             <div class="ap-metric-card-title">EN REVISIÓN</div>
-            <div class="ap-metric-card-num" id="colmenaMetricRevision">4</div>
+            <div class="ap-metric-card-num" id="colmenaMetricRevision">{{ $metrics['en_revision'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">Cría abierta / seguimiento</div>
         </div>
 
         <div class="ap-metric-card border-red">
             <div class="ap-metric-card-title">INACTIVAS</div>
-            <div class="ap-metric-card-num" id="colmenaMetricInactivas">2</div>
+            <div class="ap-metric-card-num" id="colmenaMetricInactivas">{{ $metrics['inactivas'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">No admiten visitas</div>
         </div>
     </div>
@@ -596,11 +596,9 @@
                 </div>
                 <select id="colmenaApiarioFilter" class="ap-filter-select" onchange="filterColmenas()">
                     <option value="all">Apiario: todos</option>
-                    <option value="Apiario La Angostura" selected>Apiario La Angostura</option>
-                    <option value="Apiario Los Pinos">Apiario Los Pinos</option>
-                    <option value="Apiario El Cedro">Apiario El Cedro</option>
-                    <option value="Apiario San José">Apiario San José</option>
-                    <option value="Apiario La Esperanza">Apiario La Esperanza</option>
+                    @foreach($apiarios as $ap)
+                        <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}</option>
+                    @endforeach
                 </select>
                 <select id="colmenaEstadoFilter" class="ap-filter-select" onchange="filterColmenas()">
                     <option value="all">Estado: todos</option>
@@ -659,8 +657,13 @@
     <div class="ap-modal-backdrop" id="modalColmenaBackdrop">
         <div class="ap-modal-window">
             <div class="ap-modal-body">
-                <h2 class="ap-modal-title" id="modalColmenaTitle">Nueva colmena</h2>
-                <p class="ap-modal-sub">Toda colmena pertenece a un apiario activo.</p>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem;">
+                    <div>
+                        <h2 class="ap-modal-title" id="modalColmenaTitle" style="margin-bottom:0;">Nueva colmena</h2>
+                        <p class="ap-modal-sub" style="margin-bottom:0;">Toda colmena pertenece a un apiario activo.</p>
+                    </div>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeColmenaModal()" title="Cerrar">&times;</button>
+                </div>
 
                 <form id="formColmena" onsubmit="saveColmenaForm(event)">
                     <input type="hidden" id="modalColmenaId" value="">
@@ -669,11 +672,11 @@
                     <div class="ap-grid-2col">
                         <div>
                             <label class="ap-field-label" for="modalColmenaCode">CÓDIGO</label>
-                            <input type="text" id="modalColmenaCode" class="ap-field-input" value="COL-049" placeholder="COL-049" required>
+                            <input type="text" id="modalColmenaCode" class="ap-field-input" value="" placeholder="Ej: COL-001" required>
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalColmenaFecha">FECHA DE INSTALACIÓN</label>
-                            <input type="date" id="modalColmenaFecha" class="ap-field-input" value="2026-08-20" required>
+                            <input type="date" id="modalColmenaFecha" class="ap-field-input" value="" required>
                         </div>
                     </div>
 
@@ -681,11 +684,9 @@
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalColmenaApiario">APIARIO</label>
                         <select id="modalColmenaApiario" class="ap-field-input" required>
-                            <option value="Apiario La Angostura" selected>Apiario La Angostura</option>
-                            <option value="Apiario Los Pinos">Apiario Los Pinos</option>
-                            <option value="Apiario El Cedro">Apiario El Cedro</option>
-                            <option value="Apiario San José">Apiario San José</option>
-                            <option value="Apiario La Esperanza">Apiario La Esperanza</option>
+                            @foreach($apiarios as $ap)
+                                <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}</option>
+                            @endforeach
                         </select>
                         <p class="ap-field-hint">Solo se listan apiarios activos.</p>
                     </div>
@@ -694,12 +695,24 @@
                     <div class="ap-grid-2col">
                         <div>
                             <label class="ap-field-label" for="modalColmenaTipoAbeja">TIPO DE ABEJA</label>
-                            <select id="modalColmenaTipoAbeja" class="ap-field-input" required>
-                                <option value="Apis mellifera" selected>Apis mellifera</option>
-                                <option value="Melipona eburnea">Melipona eburnea</option>
-                                <option value="Tetragonisca angustula">Tetragonisca angustula</option>
-                                <option value="Scaptotrigona pectoralis">Scaptotrigona pectoralis</option>
+                            <select id="modalColmenaTipoAbeja" class="ap-field-input" required onchange="handleTipoAbejaChange(this.value)">
+                                @foreach($tiposAbeja as $tipo)
+                                    <option value="{{ $tipo }}" {{ $loop->first ? 'selected' : '' }}>{{ $tipo }}</option>
+                                @endforeach
+                                <option value="__otra__" style="color: #047857; font-weight: 700;">➕ Otra / Registrar nueva...</option>
                             </select>
+
+                            <!-- Contenedor para registrar una nueva especie de abeja -->
+                            <div id="containerOtroTipoAbeja" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                                <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nueva especie:</label>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" id="modalColmenaOtroTipoAbeja" class="ap-field-input" placeholder="Nombre de la nueva abeja..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;">
+                                    <button type="button" onclick="confirmarNuevoTipoAbeja()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                        <i class="fas fa-plus"></i> Agregar
+                                    </button>
+                                </div>
+                                <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Quedará guardada para esta y futuras colmenas.</span>
+                            </div>
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalColmenaEstado">ESTADO</label>
@@ -711,14 +724,21 @@
                         </div>
                     </div>
 
-                    <!-- Fila 4: RESPONSABLE (ancho completo) -->
+                    <!-- Fila 4: RESPONSABLE (ancho completo - INPUT TEXTO CON DATALIST) -->
                     <div class="ap-form-field" style="margin-bottom: 1.5rem;">
                         <label class="ap-field-label" for="modalColmenaResponsable">RESPONSABLE</label>
-                        <select id="modalColmenaResponsable" class="ap-field-input" required>
-                            <option value="Jhon Ramírez Ortiz" selected>Jhon Ramírez Ortiz</option>
-                            <option value="Sergio Barrera">Sergio Barrera</option>
-                            <option value="Aprendiz SENA">Aprendiz SENA</option>
-                        </select>
+                        <input type="text" id="modalColmenaResponsable" list="responsablesSugeridosAprendiz" class="ap-field-input" placeholder="Escribe tu nombre o un usuario..." required>
+                        <datalist id="responsablesSugeridosAprendiz">
+                            @if(auth()->check())
+                                @if(auth()->user()->person)
+                                    <option value="{{ trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) }}"></option>
+                                @endif
+                                @if(auth()->user()->nickname)
+                                    <option value="{{ auth()->user()->nickname }}"></option>
+                                @endif
+                            @endif
+                        </datalist>
+                        <p class="ap-field-hint">Escribe tu nombre o el usuario apicultor a cargo.</p>
                     </div>
 
                     <!-- Footer: Cancelar y Guardar colmena -->
@@ -740,7 +760,7 @@
                         <span class="ap-view-subtitle-tag" style="font-size:0.68rem;">DETALLE DE COLMENA</span>
                         <h2 class="ap-modal-title" id="colmenaDetailCode" style="margin-bottom:0;">COL-001</h2>
                     </div>
-                    <button type="button" class="ap-btn-modal-cancel" onclick="closeColmenaDetailModal()" style="padding:6px 12px;">✕</button>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeColmenaDetailModal()" title="Cerrar">&times;</button>
                 </div>
 
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.2rem; margin-bottom:1.2rem;">
@@ -789,133 +809,69 @@
 
 @section('scripts')
 <script>
-    // ==================== DATOS INICIALES (Exactos a la captura de pantalla: 8 colmenas) ====================
-    let colmenasList = [
-        {
-            id: 1,
-            code: "COL-001",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Jhon Ramírez Ortiz",
-            instalacion: "12/01/2026",
-            ultimaVisita: "15/08/2026",
-            estado: "Activa",
-            notas: "Colmena vigorosa con excelente postura de reina y reservas óptimas de miel y polen."
-        },
-        {
-            id: 2,
-            code: "COL-002",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Sergio Barrera",
-            instalacion: "14/01/2026",
-            ultimaVisita: "18/08/2026",
-            estado: "Activa",
-            notas: "Cámara de cría completa. Sin signos de enfermedades ni ácaros."
-        },
-        {
-            id: 3,
-            code: "COL-003",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Melipona eburnea",
-            responsable: "Jhon Ramírez Ortiz",
-            instalacion: "15/01/2026",
-            ultimaVisita: "19/08/2026",
-            estado: "Activa",
-            notas: "Colonia en expansión rápida; se instaló segunda alza melaria."
-        },
-        {
-            id: 4,
-            code: "COL-004",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Aprendiz SENA",
-            instalacion: "20/01/2026",
-            ultimaVisita: "16/08/2026",
-            estado: "Activa",
-            notas: "Excelente actividad en piquera y recolección activa de néctar."
-        },
-        {
-            id: 14,
-            code: "COL-014",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Jhon Ramírez Ortiz",
-            instalacion: "05/02/2026",
-            ultimaVisita: "17/08/2026",
-            estado: "En revisión",
-            notas: "Se observó baja postura y celda real en desarrollo. Programada revisión de recambio de reina."
-        },
-        {
-            id: 16,
-            code: "COL-016",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Tetragonisca angustula",
-            responsable: "Sergio Barrera",
-            instalacion: "10/02/2026",
-            ultimaVisita: "02/05/2026",
-            estado: "Inactiva",
-            notas: "Colmena colapsada por enjambrazón previa. Material desinfectado y disponible para nuevo núcleo."
-        },
-        {
-            id: 28,
-            code: "COL-028",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Jhon Ramírez Ortiz",
-            instalacion: "22/02/2026",
-            ultimaVisita: "18/08/2026",
-            estado: "En revisión",
-            notas: "Población reducida; se aplicó jarabe 1:1 estimulante."
-        },
-        {
-            id: 42,
-            code: "COL-042",
-            apiario: "Apiario La Angostura",
-            tipoAbeja: "Apis mellifera",
-            responsable: "Sergio Barrera",
-            instalacion: "01/03/2026",
-            ultimaVisita: "10/06/2026",
-            estado: "Inactiva",
-            notas: "Pérdida por pillaje en época de sequía."
-        }
-    ];
+    // ==================== DATOS DE COLMENAS DESDE BD ====================
+    @php
+        $colmenasFormatted = $colmenas->map(function($c) {
+            return [
+                'id' => $c->id,
+                'code' => $c->code,
+                'apiario' => $c->apiario_name,
+                'tipoAbeja' => $c->tipo_abeja ?? 'Apis mellifera',
+                'responsable' => $c->responsable,
+                'instalacion' => $c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('d/m/Y') : '',
+                'instalacionRaw' => $c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('Y-m-d') : '',
+                'ultimaVisita' => $c->last_visit_date ? \Carbon\Carbon::parse($c->last_visit_date)->format('d/m/Y') : ($c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('d/m/Y') : '-'),
+                'ultimaVisitaRaw' => $c->last_visit_date ? \Carbon\Carbon::parse($c->last_visit_date)->format('Y-m-d') : '',
+                'estado' => $c->status,
+                'notas' => $c->notes ?? 'Sin observaciones.',
+            ];
+        });
+    @endphp
 
-    // Base del censo del apiario (para reflejar 48 colmenas registradas como en la captura)
-    let metricsBase = {
-        total: 48,
-        activas: 42,
-        revision: 4,
-        inactivas: 2
-    };
+    let colmenasList = @json($colmenasFormatted);
 
     document.addEventListener('DOMContentLoaded', () => {
         renderColmenasTable();
         updateColmenasMetrics();
     });
 
-    function showToast(msg) {
-        const toast = document.getElementById('colmenaToast');
-        if (!toast) return;
-        toast.textContent = msg;
-        toast.style.display = 'block';
+    function showToast(message) {
+        const toast = document.getElementById('apToast');
+        const toastText = document.getElementById('apToastText');
+        if (toast && toastText) {
+            toastText.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+            return;
+        }
+        let fb = document.getElementById('apFallbackToast');
+        if (!fb) {
+            fb = document.createElement('div');
+            fb.id = 'apFallbackToast';
+            fb.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#064e3b;color:#ffffff;padding:12px 20px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.2);z-index:99999;font-weight:600;font-size:0.9rem;display:flex;align-items:center;gap:10px;transition:all 0.3s ease;';
+            document.body.appendChild(fb);
+        }
+        fb.innerHTML = '<i class="fas fa-check-circle" style="color:#34d399;"></i> ' + message;
+        fb.style.opacity = '1';
+        fb.style.transform = 'translateY(0)';
         setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3200);
+            fb.style.opacity = '0';
+            fb.style.transform = 'translateY(10px)';
+        }, 3500);
     }
 
     function updateColmenasMetrics() {
-        const total = metricsBase.total;
-        const activas = metricsBase.activas;
-        const revision = metricsBase.revision;
-        const inactivas = metricsBase.inactivas;
+        const total = colmenasList.length;
+        const activas = colmenasList.filter(c => c.estado === 'Activa').length;
+        const revision = colmenasList.filter(c => c.estado === 'En revisión').length;
+        const inactivas = colmenasList.filter(c => c.estado === 'Inactiva').length;
 
         document.getElementById('colmenaMetricTotal').textContent = total;
         document.getElementById('colmenaMetricActivas').textContent = activas;
         document.getElementById('colmenaMetricRevision').textContent = revision;
         document.getElementById('colmenaMetricInactivas').textContent = inactivas;
 
-        document.getElementById('colmenasTotalCount').textContent = colmenasList.length;
+        document.getElementById('colmenasTotalCount').textContent = total;
     }
 
     function renderColmenasTable() {
@@ -979,7 +935,10 @@
                         <button type="button" class="ap-action-btn view" onclick="openColmenaDetailModal(${item.id})">Ver detalle</button>
                         <button type="button" class="ap-action-btn edit" onclick="openEditColmenaModal(${item.id})">Editar</button>
                         <a href="{{ url('apicola/aprendiz/colmenas') }}/${item.code}/inspecciones" class="ap-action-btn inspeccion" style="text-decoration: none;">Inspección</a>
-                        <button type="button" class="ap-action-btn ${toggleClass}" onclick="toggleColmenaStatus(${item.id})">${toggleText}</button>
+                        ${item.estado === 'Inactiva'
+                            ? `<button type="button" class="ap-action-btn activate" style="color: #059669; font-weight: 600;" onclick="toggleColmenaStatus(${item.id})">Activar</button>`
+                            : `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444; font-weight: 600;" onclick="desactivarColmena(${item.id}, '${item.code}')">Desactivar</button>`
+                        }
                     </div>
                 </td>
             `;
@@ -991,17 +950,83 @@
         renderColmenasTable();
     }
 
+    // ==================== GESTIÓN DE TIPO DE ABEJA ====================
+    function handleTipoAbejaChange(val) {
+        const container = document.getElementById('containerOtroTipoAbeja');
+        const input = document.getElementById('modalColmenaOtroTipoAbeja');
+        if (val === '__otra__') {
+            container.style.display = 'block';
+            input.focus();
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function confirmarNuevoTipoAbeja() {
+        const input = document.getElementById('modalColmenaOtroTipoAbeja');
+        const select = document.getElementById('modalColmenaTipoAbeja');
+        const container = document.getElementById('containerOtroTipoAbeja');
+        const val = input.value.trim();
+        if (!val) {
+            showToast('Por favor escribe el nombre de la nueva especie.');
+            input.focus();
+            return;
+        }
+
+        let exists = false;
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value.toLowerCase() === val.toLowerCase()) {
+                select.selectedIndex = i;
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val;
+            const otraOption = select.querySelector('option[value="__otra__"]');
+            if (otraOption) {
+                select.insertBefore(opt, otraOption);
+            } else {
+                select.appendChild(opt);
+            }
+            select.value = val;
+        }
+
+        container.style.display = 'none';
+        input.value = '';
+        showToast(`Especie "${val}" agregada.`);
+    }
+
     function openNewColmenaModal() {
         document.getElementById('modalColmenaTitle').textContent = 'Nueva colmena';
         document.getElementById('modalColmenaId').value = '';
         
-        // Sugerir COL-049 como se ve en la captura de pantalla
-        document.getElementById('modalColmenaCode').value = 'COL-049';
-        document.getElementById('modalColmenaFecha').value = '2026-08-20';
-        document.getElementById('modalColmenaApiario').value = 'Apiario La Angostura';
-        document.getElementById('modalColmenaTipoAbeja').value = 'Apis mellifera';
+        const maxNum = colmenasList.reduce((max, c) => {
+            const match = c.code.match(/COL-(\d+)/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                return num > max ? num : max;
+            }
+            return max;
+        }, 0);
+        document.getElementById('modalColmenaCode').value = '';
+        document.getElementById('modalColmenaFecha').value = '';
+
+        const apiarioSelect = document.getElementById('modalColmenaApiario');
+        if (apiarioSelect.options.length > 0) {
+            apiarioSelect.selectedIndex = 0;
+        }
+
+        const tipoSelect = document.getElementById('modalColmenaTipoAbeja');
+        tipoSelect.value = tipoSelect.options[0]?.value || 'Apis mellifera';
+        document.getElementById('containerOtroTipoAbeja').style.display = 'none';
+        document.getElementById('modalColmenaOtroTipoAbeja').value = '';
+
         document.getElementById('modalColmenaEstado').value = 'Activa';
-        document.getElementById('modalColmenaResponsable').value = 'Jhon Ramírez Ortiz';
+        document.getElementById('modalColmenaResponsable').value = '';
 
         document.getElementById('modalColmenaBackdrop').classList.add('is-open');
     }
@@ -1013,19 +1038,57 @@
         document.getElementById('modalColmenaTitle').textContent = 'Editar colmena';
         document.getElementById('modalColmenaId').value = item.id;
         document.getElementById('modalColmenaCode').value = item.code;
-        document.getElementById('modalColmenaApiario').value = item.apiario.includes('Angostura') ? 'Apiario La Angostura' : item.apiario;
-        document.getElementById('modalColmenaTipoAbeja').value = item.tipoAbeja || 'Apis mellifera';
+
+        // Apiario
+        const apiarioSelect = document.getElementById('modalColmenaApiario');
+        let apiarioFound = false;
+        for (let i = 0; i < apiarioSelect.options.length; i++) {
+            if (apiarioSelect.options[i].value === item.apiario) {
+                apiarioSelect.selectedIndex = i;
+                apiarioFound = true;
+                break;
+            }
+        }
+        if (!apiarioFound && item.apiario) {
+            const opt = document.createElement('option');
+            opt.value = item.apiario;
+            opt.textContent = item.apiario;
+            apiarioSelect.appendChild(opt);
+            apiarioSelect.value = item.apiario;
+        }
+
+        // Tipo de abeja
+        const tipoSelect = document.getElementById('modalColmenaTipoAbeja');
+        const abejaVal = item.tipoAbeja || 'Apis mellifera';
+        let tipoFound = false;
+        for (let i = 0; i < tipoSelect.options.length; i++) {
+            if (tipoSelect.options[i].value.toLowerCase() === abejaVal.toLowerCase()) {
+                tipoSelect.selectedIndex = i;
+                tipoFound = true;
+                break;
+            }
+        }
+        if (!tipoFound) {
+            const opt = document.createElement('option');
+            opt.value = abejaVal;
+            opt.textContent = abejaVal;
+            const otraOption = tipoSelect.querySelector('option[value="__otra__"]');
+            if (otraOption) tipoSelect.insertBefore(opt, otraOption);
+            else tipoSelect.appendChild(opt);
+            tipoSelect.value = abejaVal;
+        }
+        document.getElementById('containerOtroTipoAbeja').style.display = 'none';
+        document.getElementById('modalColmenaOtroTipoAbeja').value = '';
+
         document.getElementById('modalColmenaEstado').value = item.estado;
         document.getElementById('modalColmenaResponsable').value = item.responsable;
 
-        // Formato para input type date
-        if (item.instalacion && item.instalacion.includes('/')) {
+        let dateVal = item.instalacionRaw;
+        if (!dateVal && item.instalacion && item.instalacion.includes('/')) {
             const parts = item.instalacion.split('/');
-            const d = parts[0].padStart(2, '0');
-            const m = parts[1].padStart(2, '0');
-            const y = parts[2];
-            document.getElementById('modalColmenaFecha').value = `${y}-${m}-${d}`;
+            dateVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         }
+        document.getElementById('modalColmenaFecha').value = dateVal || '';
 
         document.getElementById('modalColmenaBackdrop').classList.add('is-open');
     }
@@ -1034,107 +1097,136 @@
         document.getElementById('modalColmenaBackdrop').classList.remove('is-open');
     }
 
-    function saveColmenaForm(e) {
+    async function saveColmenaForm(e) {
         e.preventDefault();
 
         const id = document.getElementById('modalColmenaId').value;
         const code = document.getElementById('modalColmenaCode').value.trim();
-        const rawFecha = document.getElementById('modalColmenaFecha').value;
         const apiario = document.getElementById('modalColmenaApiario').value;
-        const tipoAbeja = document.getElementById('modalColmenaTipoAbeja').value;
+        let tipoAbeja = document.getElementById('modalColmenaTipoAbeja').value;
+        const rawFecha = document.getElementById('modalColmenaFecha').value;
+        const responsable = document.getElementById('modalColmenaResponsable').value.trim();
         const estado = document.getElementById('modalColmenaEstado').value;
-        const responsable = document.getElementById('modalColmenaResponsable').value;
 
-        let instalacionFormatted = rawFecha;
-        if (rawFecha && rawFecha.includes('-')) {
-            const parts = rawFecha.split('-');
-            instalacionFormatted = `${parseInt(parts[2], 10)}/${parseInt(parts[1], 10)}/${parts[0]}`;
-        }
-
-        if (id) {
-            // Actualización
-            const item = colmenasList.find(c => c.id === parseInt(id));
-            if (item) {
-                const prevEstado = item.estado;
-                item.code = code;
-                item.apiario = apiario;
-                item.tipoAbeja = tipoAbeja;
-                item.instalacion = instalacionFormatted;
-                item.responsable = responsable;
-                item.estado = estado;
-
-                if (prevEstado !== estado) {
-                    if (prevEstado === 'Activa') metricsBase.activas--;
-                    else if (prevEstado === 'En revisión') metricsBase.revision--;
-                    else if (prevEstado === 'Inactiva') metricsBase.inactivas--;
-
-                    if (estado === 'Activa') metricsBase.activas++;
-                    else if (estado === 'En revisión') metricsBase.revision++;
-                    else if (estado === 'Inactiva') metricsBase.inactivas++;
-                }
-
-                showToast(`Colmena "${code}" actualizada correctamente.`);
-            }
-        } else {
-            // Nueva Colmena
-            const exists = colmenasList.some(c => c.code.toLowerCase() === code.toLowerCase());
-            if (exists) {
-                showToast(`Aviso: El código "${code}" ya se encuentra registrado.`);
+        if (tipoAbeja === '__otra__') {
+            const otroInput = document.getElementById('modalColmenaOtroTipoAbeja');
+            const customVal = otroInput.value.trim();
+            if (!customVal) {
+                showToast('Por favor escribe el nombre de la nueva especie de abeja.');
+                otroInput.focus();
                 return;
             }
+            tipoAbeja = customVal;
+        }
 
-            const newId = colmenasList.length ? Math.max(...colmenasList.map(c => c.id)) + 1 : 1;
-            const today = new Date();
-            const todayFormatted = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+        if (!responsable) {
+            showToast('Por favor escribe el nombre o usuario del responsable.');
+            document.getElementById('modalColmenaResponsable').focus();
+            return;
+        }
 
-            const newColmena = {
-                id: newId,
+        const btnSave = document.getElementById('btnSaveColmena');
+        const prevBtnText = btnSave.innerHTML;
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+        try {
+            const url = id ? `{{ url('apicola/aprendiz/colmenas') }}/${id}` : `{{ route('apicola.aprendiz.colmenas.store') }}`;
+            const method = id ? 'PUT' : 'POST';
+
+            const payload = {
                 code: code,
-                apiario: apiario,
-                tipoAbeja: tipoAbeja,
+                apiario_name: apiario,
+                tipo_abeja: tipoAbeja,
                 responsable: responsable,
-                instalacion: instalacionFormatted,
-                ultimaVisita: todayFormatted,
-                estado: estado,
-                notas: "Colmena registrada con éxito en el Centro La Angostura."
+                installation_date: rawFecha,
+                last_visit_date: rawFecha,
+                status: estado,
+                notes: id ? undefined : 'Colmena registrada por el aprendiz apícola.'
             };
 
-            colmenasList.unshift(newColmena);
-
-            // Actualizar métricas globales
-            metricsBase.total++;
-            if (estado === 'Activa') metricsBase.activas++;
-            else if (estado === 'En revisión') metricsBase.revision++;
-            else if (estado === 'Inactiva') metricsBase.inactivas++;
-
-            showToast(`Colmena "${code}" guardada con éxito.`);
-
-            // Enviar petición asíncrona al backend para persistencia en BD
-            fetch("{{ route('apicola.aprendiz.colmenas.store') }}", {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    code: code,
-                    apiario_name: apiario,
-                    tipo_abeja: tipoAbeja,
-                    responsable: responsable,
-                    installation_date: rawFecha,
-                    last_visit_date: rawFecha,
-                    status: estado,
-                    notes: newColmena.notas
-                })
-            }).catch(err => console.log('Registro local exitoso'));
-        }
+                body: JSON.stringify(payload)
+            });
 
-        closeColmenaModal();
-        renderColmenasTable();
-        updateColmenasMetrics();
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                let errorMsg = result.message || 'Error al guardar la colmena.';
+                if (result.errors) {
+                    errorMsg = Object.values(result.errors).flat().join(' | ');
+                }
+                throw new Error(errorMsg);
+            }
+
+            const savedItem = result.data;
+            let instalacionFormatted = rawFecha;
+            if (rawFecha && rawFecha.includes('-')) {
+                const parts = rawFecha.split('-');
+                instalacionFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            const formattedRow = {
+                id: savedItem.id,
+                code: savedItem.code,
+                apiario: savedItem.apiario_name,
+                tipoAbeja: savedItem.tipo_abeja || tipoAbeja,
+                responsable: savedItem.responsable,
+                instalacion: instalacionFormatted,
+                instalacionRaw: rawFecha,
+                ultimaVisita: instalacionFormatted,
+                ultimaVisitaRaw: rawFecha,
+                estado: savedItem.status,
+                notas: savedItem.notes || ''
+            };
+
+            if (id) {
+                const idx = colmenasList.findIndex(c => c.id === parseInt(id));
+                if (idx !== -1) {
+                    colmenasList[idx] = { ...colmenasList[idx], ...formattedRow };
+                }
+                showToast(result.message || `Colmena "${code}" actualizada correctamente.`);
+            } else {
+                colmenasList.unshift(formattedRow);
+                showToast(result.message || `Colmena "${code}" registrada con éxito.`);
+            }
+
+            // Asegurar que la especie esté en el select
+            const select = document.getElementById('modalColmenaTipoAbeja');
+            let exists = false;
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value.toLowerCase() === tipoAbeja.toLowerCase()) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = tipoAbeja;
+                opt.textContent = tipoAbeja;
+                const otraOption = select.querySelector('option[value="__otra__"]');
+                if (otraOption) select.insertBefore(opt, otraOption);
+                else select.appendChild(opt);
+            }
+
+            closeColmenaModal();
+            renderColmenasTable();
+            updateColmenasMetrics();
+        } catch (err) {
+            showToast(err.message || 'No se pudo guardar la colmena en la base de datos.');
+        } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = prevBtnText;
+        }
     }
 
+    // ==================== DETALLE DE COLMENA ====================
     function openColmenaDetailModal(id) {
         const item = colmenasList.find(c => c.id === id);
         if (!item) return;
@@ -1170,25 +1262,65 @@
         openColmenaDetailModal(id);
     }
 
-    function toggleColmenaStatus(id) {
+    async function toggleColmenaStatus(id) {
         const item = colmenasList.find(c => c.id === id);
         if (!item) return;
 
-        if (item.estado === 'Inactiva') {
-            item.estado = 'Activa';
-            metricsBase.inactivas--;
-            metricsBase.activas++;
-            showToast(`Colmena "${item.code}" reactivada en producción.`);
-        } else {
-            if (item.estado === 'Activa') metricsBase.activas--;
-            else if (item.estado === 'En revisión') metricsBase.revision--;
-            item.estado = 'Inactiva';
-            metricsBase.inactivas++;
-            showToast(`Colmena "${item.code}" marcada como inactiva.`);
+        try {
+            const response = await fetch(`{{ url('apicola/aprendiz/colmenas') }}/${id}/toggle-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'No se pudo cambiar el estado.');
+            }
+
+            item.estado = result.data.status;
+            showToast(result.message || `Colmena "${item.code}" actualizada.`);
+            renderColmenasTable();
+            updateColmenasMetrics();
+        } catch (err) {
+            showToast(err.message || 'Error al cambiar estado en el servidor.');
+        }
+    }
+
+    // ==================== DESACTIVAR COLMENA ====================
+    async function desactivarColmena(id, code) {
+        if (!confirm(`¿Estás seguro de que deseas desactivar la colmena "${code}"?`)) {
+            return;
         }
 
-        renderColmenasTable();
-        updateColmenasMetrics();
+        try {
+            const response = await fetch(`{{ url('apicola/aprendiz/colmenas') }}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'No se pudo desactivar la colmena.');
+            }
+
+            const colmena = colmenasList.find(c => c.id === id);
+            if (colmena) {
+                colmena.estado = 'Inactiva';
+            }
+            showToast(result.message || `Colmena "${code}" desactivada con éxito.`);
+            renderColmenasTable();
+            updateColmenasMetrics();
+        } catch (err) {
+            showToast(err.message || 'Error al desactivar la colmena en el servidor.');
+        }
     }
 </script>
 @endsection

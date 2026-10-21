@@ -25,6 +25,7 @@ class Apiario extends Model
      */
     protected $fillable = [
         'nombre_apiario',
+        'responsable',
         'latitud',
         'longitud',
         'estado',

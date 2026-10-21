@@ -195,6 +195,47 @@
             color: #fbbf24;
         }
 
+        .ap-sub-list {
+            list-style: none;
+            padding: 3px 0 4px 0;
+            margin: 3px 0 4px 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            border-left: 2px solid rgba(245, 158, 11, 0.28);
+            padding-left: 0.75rem;
+        }
+
+        .ap-sub-link {
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 500;
+        }
+
+        .ap-sub-link:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(3px);
+        }
+
+        .ap-sub-link.active-sub {
+            color: #fbbf24;
+            font-weight: 700;
+            background: rgba(245, 158, 11, 0.16);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        }
+
+        .ap-sub-link.active-sub i {
+            color: #fbbf24;
+        }
+
         .ap-sidebar-user {
             padding: 1rem 1.15rem;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -366,6 +407,24 @@
             .ap-main-wrapper {
                 margin-left: 0;
             }
+        .ap-modal-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.35rem;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .ap-modal-close-btn:hover {
+            color: #ef4444;
+            background: #fee2e2;
         }
     </style>
 </head>
@@ -390,18 +449,28 @@
         </div>
 
         <ul class="ap-nav-list">
-            <!-- Módulos del Aprendiz -->
-            <li class="ap-nav-item {{ request()->routeIs('apicola.aprendiz.colmenas.index') || (request()->is('apicola/aprendiz/colmenas') && !request()->is('*inspeccion*')) ? 'active' : '' }}">
+            @php
+                $isInspeccionRoute = request()->routeIs('apicola.aprendiz.inspecciones.*') 
+                    || request()->routeIs('apicola.aprendiz.colmenas.inspecciones')
+                    || request()->is('*inspeccion*');
+                $isColmenaDirect = (request()->routeIs('apicola.aprendiz.colmenas.*') || request()->is('apicola/aprendiz/colmenas*')) && !$isInspeccionRoute;
+            @endphp
+            <!-- Módulo: Colmenas -->
+            <li class="ap-nav-item {{ $isColmenaDirect ? 'active' : '' }}">
                 <a href="{{ route('apicola.aprendiz.colmenas.index') }}" class="ap-nav-link">
                     <span class="ap-nav-icon"><i class="fas fa-boxes-stacked"></i></span>
                     <span>Colmenas</span>
                 </a>
-            </li>
-            <li class="ap-nav-item {{ request()->routeIs('apicola.aprendiz.inspecciones.*') || request()->routeIs('apicola.aprendiz.colmenas.inspecciones') || request()->is('*inspeccion*') ? 'active' : '' }}">
-                <a href="{{ route('apicola.aprendiz.inspecciones.index') }}" class="ap-nav-link">
-                    <span class="ap-nav-icon"><i class="fas fa-clipboard-check"></i></span>
-                    <span>Registro e inspección</span>
-                </a>
+                <!-- Submódulo: Producción e inspección -->
+                <ul class="ap-sub-list">
+                    <li>
+                        <a href="{{ route('apicola.aprendiz.inspecciones.index') }}" 
+                           class="ap-sub-link {{ $isInspeccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-clipboard-check" style="font-size: 0.78rem;"></i>
+                            <span>Producción e inspección</span>
+                        </a>
+                    </li>
+                </ul>
             </li>
         </ul>
 
@@ -458,6 +527,13 @@
 
     <!-- Scripts Base -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        function toggleSidebarSubmenu(id, el) {
+            const parent = el.closest('.ap-nav-item');
+            if (!parent) return;
+            parent.classList.toggle('open');
+        }
+    </script>
     @yield('scripts')
 </body>
 </html>

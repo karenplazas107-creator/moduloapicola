@@ -10,33 +10,31 @@ class Inspeccion extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'apicola_inspecciones';
+    protected $table = 'registro_inspeccion';
+    protected $primaryKey = 'id_registro';
 
     protected $fillable = [
-        'registration_number',
-        'colmena_code',
-        'colmena_id',
-        'date',
-        'responsable',
-        'general_state',
-        'honey_presence',
-        'harvested_honey_kg',
-        'queen_seen',
-        'queen_marked',
-        'queen_color',
-        'diseases',
-        'tasks',
-        'feed_supplied',
-        'notes',
+        'id_aprendiz',
+        'id_colmena',
+        'numero_registro',
+        'fecha',
+        'miel_cosechada',
+        'estado_colmena',
+        'presencia_miel',
+        'reina_vista',
+        'reina_marcada',
+        'color_reina',
+        'alimentacion_suministrada',
+        'observaciones',
+        'estado',
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'harvested_honey_kg' => 'decimal:2',
-        'queen_seen' => 'boolean',
-        'queen_marked' => 'boolean',
-        'diseases' => 'array',
-        'tasks' => 'array',
+        'fecha' => 'date',
+        'miel_cosechada' => 'decimal:2',
+        'presencia_miel' => 'boolean',
+        'reina_vista' => 'boolean',
+        'reina_marcada' => 'boolean',
     ];
 
     /**
@@ -44,6 +42,6 @@ class Inspeccion extends Model
      */
     public function colmena()
     {
-        return $this->belongsTo(Colmena::class, 'colmena_id');
+        return $this->belongsTo(Colmena::class, 'id_colmena', 'id_colmenas');
     }
 }
