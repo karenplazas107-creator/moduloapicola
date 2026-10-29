@@ -1,0 +1,655 @@
+/* Estilos Premium del Submódulo de Registro e Inspección */
+    .ap-view-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .ap-view-subtitle-tag {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #059669;
+        margin-bottom: 0.2rem;
+    }
+
+    .ap-view-main-title {
+        font-size: 1.85rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #0f172a;
+        margin: 0;
+    }
+
+    .ap-user-chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        padding: 6px 14px;
+        border-radius: 30px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .ap-user-chip-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ap-user-chip-name {
+        font-size: 0.86rem;
+        font-weight: 700;
+        color: #0f172a;
+        display: block;
+    }
+
+    .ap-user-chip-role {
+        font-size: 0.72rem;
+        color: #64748b;
+        display: block;
+    }
+
+    /* Grid de Métricas (3 columnas con bordes laterales de colores) */
+    .ap-metrics-grid.cols-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .ap-metric-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .ap-metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.07);
+    }
+
+    .ap-metric-card.border-green { border-left: 4.5px solid #10b981; }
+    .ap-metric-card.border-amber { border-left: 4.5px solid #f59e0b; }
+    .ap-metric-card.border-red   { border-left: 4.5px solid #ef4444; }
+
+    .ap-metric-card-title {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.45rem;
+    }
+
+    .ap-metric-card-num {
+        font-size: 2.25rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: #0f172a;
+        line-height: 1;
+        margin-bottom: 0.4rem;
+    }
+
+    .ap-metric-card-sub {
+        font-size: 0.78rem;
+        color: #94a3b8;
+    }
+
+    /* Sección de Historial */
+    .ap-list-section {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .ap-list-title {
+        font-size: 1.25rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+        margin-bottom: 0.25rem;
+    }
+
+    .ap-list-desc {
+        font-size: 0.84rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    /* Barra de Controles y Filtros */
+    .ap-controls-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1.25rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .ap-controls-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .ap-date-input {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.88rem;
+        font-family: inherit;
+        background: #ffffff;
+        color: #1e293b;
+        outline: none;
+        width: 130px;
+        text-align: center;
+        transition: border-color 0.2s;
+    }
+
+    .ap-date-input:focus {
+        border-color: #059669;
+    }
+
+    .ap-btn-outline-green {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #ffffff;
+        color: #047857;
+        border: 1.5px solid #059669;
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ap-btn-outline-green:hover {
+        background: #ecfdf5;
+    }
+
+    .ap-btn-solid-green {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #047857;
+        color: #ffffff;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+    }
+
+    .ap-btn-solid-green:hover {
+        background: #065f46;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(4, 120, 87, 0.35);
+    }
+
+    .ap-filter-select {
+        padding: 8px 14px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.86rem;
+        font-family: inherit;
+        background: #ffffff;
+        color: #334155;
+        outline: none;
+        cursor: pointer;
+    }
+
+    /* Tabla */
+    .ap-table-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .ap-table-scroll {
+        overflow-x: auto;
+    }
+
+    .ap-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.86rem;
+    }
+
+    .ap-table thead tr {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .ap-table th {
+        padding: 12px 16px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #64748b;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .ap-table th:last-child,
+    .ap-table th.col-actions {
+        text-align: center;
+    }
+
+    .ap-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.15s;
+    }
+
+    .ap-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .ap-table td {
+        padding: 14px 16px;
+        color: #334155;
+        vertical-align: middle;
+    }
+
+    .ap-table td:last-child,
+    .ap-table td.col-actions {
+        text-align: center;
+    }
+
+    /* Badges de Estado y Alertas */
+    .ap-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .ap-status-badge.bueno {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .ap-status-badge.regular {
+        background: #fffbeb;
+        color: #d97706;
+    }
+
+    .ap-status-badge.alerta {
+        background: #fee2e2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+
+    .ap-actions-group {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .ap-action-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        transition: color 0.15s;
+    }
+
+    .ap-action-btn.view { color: #059669; }
+    .ap-action-btn.view:hover { color: #047857; text-decoration: underline; }
+
+    .ap-action-btn.edit { color: #475569; }
+    .ap-action-btn.edit:hover { color: #0f172a; text-decoration: underline; }
+
+    .ap-table-footer-row {
+        padding: 12px 16px;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.82rem;
+        color: #64748b;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Modal Backdrop & Window */
+    .ap-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(4px);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        overflow-y: auto;
+    }
+
+    .ap-modal-backdrop.is-open {
+        display: flex;
+    }
+
+    .ap-modal-window {
+        background: #ffffff;
+        border-radius: 18px;
+        width: 100%;
+        max-width: 540px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        animation: modalFadeIn 0.2s ease-out;
+        overflow: hidden;
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.96); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+
+    .ap-modal-body {
+        padding: 2.2rem 2.2rem 1.6rem;
+        overflow-y: auto;
+    }
+
+    .ap-modal-title {
+        font-size: 1.65rem;
+        font-weight: 900;
+        color: #0f172a;
+        margin: 0 0 1.25rem 0;
+        letter-spacing: -0.02em;
+    }
+
+    .ap-form-field {
+        margin-bottom: 1.25rem;
+    }
+
+    .ap-field-label {
+        display: block;
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .ap-field-input {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.90rem;
+        font-family: inherit;
+        background: #ffffff;
+        color: #0f172a;
+        outline: none;
+        transition: all 0.2s;
+    }
+
+    .ap-field-input:focus {
+        border-color: #047857;
+        box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+    }
+
+    .ap-field-hint {
+        color: #94a3b8;
+        font-size: 0.76rem;
+        margin-top: 5px;
+        margin-bottom: 0;
+    }
+
+    .ap-coords-row.cols-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+    }
+
+    .ap-form-section-title {
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #047857;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 6px;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Píldoras de Estado Bueno / Regular / Malo */
+    .ap-status-pill-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .ap-status-pill-btn {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff;
+        color: #475569;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+    }
+
+    .ap-status-pill-btn:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+    }
+
+    .ap-status-pill-btn.selected-bueno {
+        background: #ecfdf5;
+        border-color: #10b981;
+        color: #047857;
+    }
+
+    .ap-status-pill-btn.selected-regular {
+        background: #fffbeb;
+        border-color: #f59e0b;
+        color: #b45309;
+    }
+
+    .ap-status-pill-btn.selected-malo {
+        background: #fee2e2;
+        border-color: #ef4444;
+        color: #b91c1c;
+    }
+
+    /* Checkbox Cards para Reina, Enfermedades y Labores */
+    .ap-checkbox-card-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .ap-checkbox-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        background: #ffffff;
+        color: #334155;
+        font-size: 0.88rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        user-select: none;
+    }
+
+    .ap-checkbox-card:hover {
+        border-color: #94a3b8;
+    }
+
+    .ap-checkbox-card.is-checked {
+        background: #ecfdf5;
+        border-color: #10b981;
+        color: #047857;
+        font-weight: 700;
+    }
+
+    .ap-checkbox-card input[type="checkbox"] {
+        accent-color: #059669;
+        width: 17px;
+        height: 17px;
+        cursor: pointer;
+    }
+
+    .ap-btn-add-mini {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        background: #059669;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.1s ease;
+        white-space: nowrap;
+    }
+
+    .ap-btn-add-mini:hover {
+        background: #047857;
+        transform: translateY(-1px);
+    }
+
+    .ap-btn-remove-card {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.15rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: color 0.15s, background 0.15s;
+        margin-left: auto;
+    }
+
+    .ap-btn-remove-card:hover {
+        color: #ef4444;
+        background: #fee2e2;
+    }
+
+    .ap-add-item-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .ap-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-top: 1.75rem;
+    }
+
+    .ap-btn-modal-cancel {
+        background: #ffffff;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .ap-btn-modal-cancel:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
+    .ap-btn-modal-save {
+        background: #047857;
+        color: #ffffff;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s;
+        box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+    }
+
+    .ap-btn-modal-save:hover {
+        background: #065f46;
+    }
+
+    /* Toast */
+    .ap-toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #071e18;
+        color: #ffffff;
+        border-left: 4px solid #10b981;
+        padding: 14px 20px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+        z-index: 9999;
+        display: none;
+        animation: toastSlideIn 0.25s ease-out;
+    }
+
+    @keyframes toastSlideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 992px) {
+        .ap-metrics-grid.cols-3 { grid-template-columns: 1fr; }
+        .ap-coords-row.cols-3 { grid-template-columns: 1fr; }
+    }

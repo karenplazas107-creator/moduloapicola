@@ -13,6 +13,7 @@ class InventarioMovimiento extends Model
 
     protected $fillable = [
         'inventario_id',
+        'movimiento_id',
         'tipo',
         'cantidad',
         'stock_anterior',

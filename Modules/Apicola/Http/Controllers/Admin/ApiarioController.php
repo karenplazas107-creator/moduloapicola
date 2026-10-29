@@ -53,52 +53,68 @@ class ApiarioController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'nombre_apiario' => 'required|string|max:100',
-            'responsable' => 'nullable|string|max:150',
-            'latitud' => 'nullable|numeric|between:-90,90',
-            'longitud' => 'nullable|numeric|between:-180,180',
-            'estado' => 'nullable|string|in:Activo,Inactivo',
-            'colmenas' => 'nullable|integer|min:0',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nombre_apiario' => 'required|string|max:100',
+                'responsable' => 'nullable|string|max:150',
+                'latitud' => 'nullable|numeric|between:-90,90',
+                'longitud' => 'nullable|numeric|between:-180,180',
+                'estado' => 'nullable|string|in:Activo,Inactivo',
+                'colmenas' => 'nullable|integer|min:0',
+            ]);
 
-        $currentUserName = auth()->check() && auth()->user()->person
-            ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
-            : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
+            $currentUserName = auth()->check() && auth()->user()->person
+                ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
+                : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
 
-        $apiario = Apiario::create([
-            'nombre_apiario' => trim($validated['nombre_apiario']),
-            'responsable' => !empty($validated['responsable']) ? trim($validated['responsable']) : $currentUserName,
-            'latitud' => $validated['latitud'] ?? 2.6857,
-            'longitud' => $validated['longitud'] ?? -75.3241,
-            'estado' => $validated['estado'] ?? 'Activo',
-        ]);
+            $nombre = trim($validated['nombre_apiario']);
+            $responsable = !empty($validated['responsable']) ? trim($validated['responsable']) : $currentUserName;
 
-        $formatted = [
-            'id' => $apiario->id_apiarios,
-            'nombre' => $apiario->nombre_apiario,
-            'responsable' => $apiario->responsable ?? $currentUserName,
-            'lat' => (float) ($apiario->latitud ?? 2.6857),
-            'lng' => (float) ($apiario->longitud ?? -75.3241),
-            'colmenas' => $apiario->colmenas()->count(),
-            'estado' => $apiario->estado,
-            'isSena' => (bool) (stripos($apiario->nombre_apiario, 'sena') !== false || stripos($apiario->nombre_apiario, 'angostura') !== false),
-            'notas' => 'Apiario registrado en la base de datos MySQL (tabla apiario).'
-        ];
+            $apiario = Apiario::create([
+                'nombre_apiario' => $nombre,
+                'responsable' => $responsable,
+                'latitud' => $validated['latitud'] ?? 2.6857,
+                'longitud' => $validated['longitud'] ?? -75.3241,
+                'estado' => $validated['estado'] ?? 'Activo',
+            ]);
 
-        $metrics = [
-            'total' => Apiario::count(),
-            'activos' => Apiario::activos()->count(),
-            'inactivos' => Apiario::inactivos()->count(),
-            'colmenas' => Colmena::count(),
-        ];
+            $formatted = [
+                'id' => $apiario->id_apiarios,
+                'nombre' => $apiario->nombre_apiario,
+                'responsable' => $apiario->responsable ?? $currentUserName,
+                'lat' => (float) ($apiario->latitud ?? 2.6857),
+                'lng' => (float) ($apiario->longitud ?? -75.3241),
+                'colmenas' => $apiario->colmenas()->count(),
+                'estado' => $apiario->estado,
+                'isSena' => (bool) (stripos($apiario->nombre_apiario, 'sena') !== false || stripos($apiario->nombre_apiario, 'angostura') !== false),
+                'notas' => 'Apiario registrado en la base de datos MySQL (tabla apiario).'
+            ];
 
-        return response()->json([
-            'success' => true,
-            'message' => "¡Apiario \"{$apiario->nombre_apiario}\" guardado exitosamente en la base de datos!",
-            'data' => $formatted,
-            'metrics' => $metrics,
-        ], 201);
+            $metrics = [
+                'total' => Apiario::count(),
+                'activos' => Apiario::activos()->count(),
+                'inactivos' => Apiario::inactivos()->count(),
+                'colmenas' => Colmena::count(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => "¡Apiario \"{$apiario->nombre_apiario}\" guardado exitosamente en la base de datos!",
+                'data' => $formatted,
+                'metrics' => $metrics,
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación: ' . implode(' ', array_map(fn($e) => implode(', ', $e), $ve->errors())),
+                'errors' => $ve->errors()
+            ], 422);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar el apiario: ' . $th->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -106,64 +122,86 @@ class ApiarioController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $apiario = Apiario::findOrFail($id);
-        $oldNombre = $apiario->nombre_apiario;
+        try {
+            $realId = $id ?: $request->input('id');
+            $apiario = Apiario::findOrFail($realId);
+            $oldNombre = $apiario->nombre_apiario;
 
-        $validated = $request->validate([
-            'nombre_apiario' => 'required|string|max:100',
-            'responsable' => 'nullable|string|max:150',
-            'latitud' => 'nullable|numeric|between:-90,90',
-            'longitud' => 'nullable|numeric|between:-180,180',
-            'estado' => 'nullable|string|in:Activo,Inactivo',
-            'colmenas' => 'nullable|integer|min:0',
-        ]);
+            $validated = $request->validate([
+                'nombre_apiario' => 'required|string|max:100',
+                'responsable' => 'nullable|string|max:150',
+                'latitud' => 'nullable|numeric|between:-90,90',
+                'longitud' => 'nullable|numeric|between:-180,180',
+                'estado' => 'nullable|string|in:Activo,Inactivo',
+                'colmenas' => 'nullable|integer|min:0',
+            ]);
 
-        $newNombre = trim($validated['nombre_apiario']);
-        $currentUserName = auth()->check() && auth()->user()->person
-            ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
-            : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
+            $newNombre = trim($validated['nombre_apiario']);
+            $currentUserName = auth()->check() && auth()->user()->person
+                ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
+                : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
 
-        $apiario->update([
-            'nombre_apiario' => $newNombre,
-            'responsable' => !empty($validated['responsable']) ? trim($validated['responsable']) : ($apiario->responsable ?? $currentUserName),
-            'latitud' => $validated['latitud'] ?? $apiario->latitud,
-            'longitud' => $validated['longitud'] ?? $apiario->longitud,
-            'estado' => $validated['estado'] ?? $apiario->estado,
-        ]);
+            $responsable = !empty($validated['responsable']) ? trim($validated['responsable']) : ($apiario->responsable ?? $currentUserName);
 
-        // Si el nombre del apiario cambió, actualizar en cascada el apiario_name en las colmenas
-        if ($oldNombre !== $newNombre) {
-            Colmena::where('apiario_id', $apiario->id_apiarios)
-                ->orWhere('apiario_name', $oldNombre)
-                ->update([
-                    'apiario_name' => $newNombre,
-                    'apiario_id' => $apiario->id_apiarios,
-                ]);
+            $apiario->update([
+                'nombre_apiario' => $newNombre,
+                'responsable' => $responsable,
+                'latitud' => $validated['latitud'] ?? $apiario->latitud,
+                'longitud' => $validated['longitud'] ?? $apiario->longitud,
+                'estado' => $validated['estado'] ?? $apiario->estado,
+            ]);
+
+            // Si el nombre del apiario cambió, actualizar en cascada en las colmenas
+            if ($oldNombre !== $newNombre) {
+                Colmena::where('apiario_id', $apiario->id_apiarios)
+                    ->orWhere('apiario_name', $oldNombre)
+                    ->update([
+                        'apiario_name' => $newNombre,
+                        'apiario_id' => $apiario->id_apiarios,
+                    ]);
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('colmenas')) {
+                    \Illuminate\Support\Facades\DB::table('colmenas')
+                        ->where('id_apiario', $apiario->id_apiarios)
+                        ->update(['id_apiario' => $apiario->id_apiarios]);
+                }
+            }
+
+            $formatted = [
+                'id' => $apiario->id_apiarios,
+                'nombre' => $apiario->nombre_apiario,
+                'responsable' => $apiario->responsable ?? $currentUserName,
+                'lat' => (float) ($apiario->latitud ?? 2.6857),
+                'lng' => (float) ($apiario->longitud ?? -75.3241),
+                'colmenas' => $apiario->colmenas()->count(),
+                'estado' => $apiario->estado,
+                'isSena' => (bool) (stripos($apiario->nombre_apiario, 'sena') !== false || stripos($apiario->nombre_apiario, 'angostura') !== false),
+                'notas' => 'Apiario actualizado en la base de datos MySQL (tabla apiario).'
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => "¡Apiario \"{$apiario->nombre_apiario}\" actualizado correctamente!",
+                'data' => $formatted,
+                'metrics' => [
+                    'total' => Apiario::count(),
+                    'activos' => Apiario::activos()->count(),
+                    'inactivos' => Apiario::inactivos()->count(),
+                    'colmenas' => Colmena::count(),
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación: ' . implode(' ', array_map(fn($e) => implode(', ', $e), $ve->errors())),
+                'errors' => $ve->errors()
+            ], 422);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el apiario: ' . $th->getMessage()
+            ], 500);
         }
-
-        $formatted = [
-            'id' => $apiario->id_apiarios,
-            'nombre' => $apiario->nombre_apiario,
-            'responsable' => $apiario->responsable ?? $currentUserName,
-            'lat' => (float) ($apiario->latitud ?? 2.6857),
-            'lng' => (float) ($apiario->longitud ?? -75.3241),
-            'colmenas' => $apiario->colmenas()->count(),
-            'estado' => $apiario->estado,
-            'isSena' => (bool) (stripos($apiario->nombre_apiario, 'sena') !== false || stripos($apiario->nombre_apiario, 'angostura') !== false),
-            'notas' => 'Apiario actualizado en la base de datos MySQL (tabla apiario).'
-        ];
-
-        return response()->json([
-            'success' => true,
-            'message' => "¡Apiario \"{$apiario->nombre_apiario}\" actualizado correctamente!",
-            'data' => $formatted,
-            'metrics' => [
-                'total' => Apiario::count(),
-                'activos' => Apiario::activos()->count(),
-                'inactivos' => Apiario::inactivos()->count(),
-                'colmenas' => Colmena::count(),
-            ],
-        ]);
     }
 
     /**

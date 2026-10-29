@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+  <!-- Beekeeper Suit -->
+  <!-- Veil/Hood -->
+  <ellipse cx="32" cy="11" rx="8" ry="7" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+  <rect x="27" y="8" width="10" height="6" rx="2" fill="#334155" opacity="0.3"/>
+  <ellipse cx="32" cy="11" rx="4" ry="2.5" fill="#1e293b"/>
+  <!-- Collar/Neck -->
+  <path d="M26 18 Q32 21 38 18" stroke="#475569" stroke-width="1.5" fill="none"/>
+  <!-- Torso & Arms -->
+  <path d="M24 19 L14 31 L18 33 L25 24 L25 43 L31 43 L31 60 L33 60 L33 43 L39 43 L39 24 L46 33 L50 31 L40 19 Z" 
+        fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Center Zipper -->
+  <line x1="32" y1="20" x2="32" y2="43" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="2,1"/>
+  <!-- Pockets -->
+  <rect x="26" y="27" width="4" height="4" rx="0.5" fill="none" stroke="#94a3b8" stroke-width="1"/>
+  <rect x="34" y="27" width="4" height="4" rx="0.5" fill="none" stroke="#94a3b8" stroke-width="1"/>
+  <!-- Cuffs / Boots -->
+  <rect x="13.5" y="30" width="4.5" height="2" rx="1" fill="#475569"/>
+  <rect x="46" y="30" width="4.5" height="2" rx="1" fill="#475569"/>
+  <rect x="29" y="59" width="3" height="3" rx="1" fill="#475569"/>
+  <rect x="32" y="59" width="3" height="3" rx="1" fill="#475569"/>
+</svg>
+

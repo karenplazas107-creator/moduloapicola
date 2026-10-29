@@ -1,0 +1,431 @@
+/* ================= ESTILOS APIGESTIÓN DASHBOARD ================= */
+.ap-dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    animation: apFadeIn 0.4s ease-out;
+}
+
+@keyframes apFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 1. HERO BANNER DE BIENVENIDA */
+.ap-hero-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #e6f6ee 100%);
+    border: 1px solid #d1fae5;
+    border-radius: 20px;
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(5, 150, 105, 0.04);
+    min-height: 180px;
+}
+
+.ap-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    z-index: 2;
+    max-width: 58%;
+}
+
+.ap-hero-mascot-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 2px solid #fbbf24;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ap-hero-mascot-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ap-hero-texts h1 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #064e3b;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.ap-hero-texts h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #047857;
+    margin-bottom: 0.4rem;
+}
+
+.ap-hero-texts p {
+    font-size: 0.88rem;
+    color: #475569;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.ap-hero-right {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 42%;
+    z-index: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.ap-hero-photo-wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    clip-path: polygon(18% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.ap-hero-photo-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ap-hero-card:hover .ap-hero-photo-wrap img {
+    transform: scale(1.04);
+}
+
+.ap-hero-deco-hex {
+    position: absolute;
+    left: 14%;
+    bottom: 15px;
+    width: 32px;
+    height: 32px;
+    z-index: 3;
+    opacity: 0.65;
+}
+
+/* 2. TARJETAS DE MÉTRICAS (KPIs) */
+.ap-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+}
+
+.ap-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.75rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ap-kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    border-color: #cbd5e1;
+}
+
+.ap-kpi-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.ap-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.kpi-icon-green {
+    background: #1e3d2f;
+    color: #34d399;
+}
+
+.kpi-icon-amber {
+    background: #f59e0b;
+    color: #ffffff;
+}
+
+.kpi-icon-gold {
+    background: #eab308;
+    color: #ffffff;
+}
+
+.kpi-icon-emerald {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.ap-kpi-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-kpi-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.ap-kpi-val {
+    font-size: 1.95rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    font-family: var(--ap-font-display);
+}
+
+.ap-kpi-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #64748b;
+    padding-top: 4px;
+    border-top: 1px solid #f8fafc;
+}
+
+.ap-kpi-sub-text {
+    font-weight: 500;
+    color: #64748b;
+}
+
+.ap-kpi-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    font-size: 0.76rem;
+}
+
+.ap-kpi-badge.up {
+    color: #059669;
+}
+
+.ap-kpi-badge.down {
+    color: #ef4444;
+}
+
+/* 3. GRID PRINCIPAL (2 COLUMNAS) */
+.ap-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 1.5rem;
+}
+
+.ap-dash-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-dash-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.ap-dash-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.ap-dash-card-title i {
+    color: #1e3d2f;
+    font-size: 1.1rem;
+}
+
+.ap-dash-header-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s ease;
+}
+
+.ap-dash-header-link:hover {
+    color: #059669;
+}
+
+/* 4. ACCIONES RÁPIDAS */
+.ap-quick-actions-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.ap-quick-action-btn {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.15rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #1e293b;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: center;
+}
+
+.ap-quick-action-btn:hover {
+    background: #f0fdf4;
+    border-color: #34d399;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.08);
+}
+
+.ap-quick-action-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #f1f5f9;
+    color: #1e3d2f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+}
+
+.ap-quick-action-btn:hover .ap-quick-action-icon {
+    background: #059669;
+    color: #ffffff;
+    transform: scale(1.08);
+}
+
+.ap-quick-action-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+/* 5. ACTIVIDAD RECIENTE */
+.ap-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+}
+
+.ap-activity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.ap-activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.ap-activity-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ap-activity-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.ap-activity-texts {
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-activity-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 2px;
+}
+
+.ap-activity-detail {
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.ap-activity-time {
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #94a3b8;
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+    .ap-kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .ap-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .ap-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.25rem;
+    }
+    .ap-hero-left {
+        max-width: 100%;
+    }
+    .ap-hero-right {
+        display: none;
+    }
+    .ap-quick-actions-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

@@ -15,6 +15,7 @@ class Inspeccion extends Model
 
     protected $fillable = [
         'id_aprendiz',
+        'user_id',
         'id_colmena',
         'numero_registro',
         'fecha',
@@ -43,5 +44,13 @@ class Inspeccion extends Model
     public function colmena()
     {
         return $this->belongsTo(Colmena::class, 'id_colmena', 'id_colmenas');
+    }
+
+    /**
+     * Relación con el Usuario creador
+     */
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 }

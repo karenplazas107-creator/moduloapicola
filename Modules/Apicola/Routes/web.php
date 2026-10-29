@@ -54,7 +54,7 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     // Módulo de Apiarios
     Route::get('apiarios', [ApiarioController::class, 'index'])->name('apicola.admin.apiarios.index');
     Route::post('apiarios', [ApiarioController::class, 'store'])->name('apicola.admin.apiarios.store');
-    Route::put('apiarios/{id}', [ApiarioController::class, 'update'])->name('apicola.admin.apiarios.update');
+    Route::match(['put', 'post'], 'apiarios/{id}', [ApiarioController::class, 'update'])->name('apicola.admin.apiarios.update');
     Route::delete('apiarios/{id}', [ApiarioController::class, 'destroy'])->name('apicola.admin.apiarios.destroy');
     Route::post('apiarios/{id}/toggle-status', [ApiarioController::class, 'toggleStatus'])->name('apicola.admin.apiarios.toggle-status');
 
@@ -78,6 +78,11 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
 
     // Módulo de Inventario
     Route::get('inventario', [InventarioController::class, 'index'])->name('apicola.admin.inventario.index');
+    Route::get('movimientos', [InventarioController::class, 'movimientosIndex'])->name('apicola.admin.movimientos.index');
+    Route::get('inventario/movimientos', [InventarioController::class, 'movimientosIndex'])->name('apicola.admin.inventario.movimientos.index');
+    Route::post('inventario/movimientos', [InventarioController::class, 'movimientosStore'])->name('apicola.admin.inventario.movimientos.store');
+    Route::get('inventario/movimientos/{id}', [InventarioController::class, 'movimientosShow'])->name('apicola.admin.inventario.movimientos.show');
+    Route::get('inventario/movimientos/{id}/imprimir', [InventarioController::class, 'movimientosPrint'])->name('apicola.admin.inventario.movimientos.print');
     Route::post('inventario', [InventarioController::class, 'store'])->name('apicola.admin.inventario.store');
     Route::get('inventario/{id}', [InventarioController::class, 'show'])->name('apicola.admin.inventario.show');
     Route::put('inventario/{id}', [InventarioController::class, 'update'])->name('apicola.admin.inventario.update');
@@ -89,7 +94,7 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::get('usuarios', [UserController::class, 'index'])->name('apicola.admin.usuarios.index');
     Route::post('usuarios', [UserController::class, 'store'])->name('apicola.admin.usuarios.store');
     Route::get('usuarios/{id}', [UserController::class, 'show'])->name('apicola.admin.usuarios.show');
-    Route::put('usuarios/{id}', [UserController::class, 'update'])->name('apicola.admin.usuarios.update');
+    Route::match(['put', 'post'], 'usuarios/{id}', [UserController::class, 'update'])->name('apicola.admin.usuarios.update');
     Route::post('usuarios/{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('apicola.admin.usuarios.toggle-status');
     Route::post('usuarios/buscar-persona', [UserController::class, 'searchPerson'])->name('apicola.admin.usuarios.search-person');
 

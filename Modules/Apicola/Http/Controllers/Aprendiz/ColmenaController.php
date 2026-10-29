@@ -65,142 +65,59 @@ class ColmenaController extends Controller
     }
 
     /**
-     * Almacena una nueva colmena registrada por el Aprendiz.
+     * El aprendiz solo tiene permisos de consulta (no puede registrar colmenas).
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:30|unique:apicola_colmenas,code',
-            'apiario_name' => 'required|string|max:150',
-            'responsable' => 'required|string|max:150',
-            'tipo_abeja' => 'nullable|string|max:150',
-            'installation_date' => 'required|date',
-            'last_visit_date' => 'nullable|date',
-            'status' => 'required|in:Activa,En revisión,Inactiva',
-            'notes' => 'nullable|string',
-        ]);
-
-        if (empty($validated['last_visit_date'])) {
-            $validated['last_visit_date'] = $validated['installation_date'];
-        }
-
-        if (empty($validated['tipo_abeja'])) {
-            $validated['tipo_abeja'] = 'Apis mellifera';
-        }
-
-        $apiario = Apiario::where('nombre_apiario', trim($validated['apiario_name']))
-            ->orWhere('id_apiarios', $request->input('apiario_id'))
-            ->first();
-        if ($apiario) {
-            $validated['apiario_id'] = $apiario->id_apiarios;
-            $validated['apiario_name'] = $apiario->nombre_apiario;
-        } else {
-            $defaultAp = Apiario::first();
-            if ($defaultAp) {
-                $validated['apiario_id'] = $defaultAp->id_apiarios;
-                $validated['apiario_name'] = $defaultAp->nombre_apiario;
-            }
-        }
-
-        $colmena = Colmena::create($validated);
-        $this->syncToColmenasTable($colmena);
-
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'success' => true,
-                'message' => "Colmena {$colmena->code} guardada con éxito.",
-                'data' => $colmena
-            ], 201);
+                'success' => false,
+                'message' => 'El rol de aprendiz solo tiene permisos de consulta en colmenas. No puede registrar nuevas colmenas.'
+            ], 403);
         }
 
-        return redirect()->back()->with('success', "Colmena {$colmena->code} guardada.");
+        return redirect()->back()->with('error', 'El rol de aprendiz no tiene permisos para registrar colmenas.');
     }
 
     /**
-     * Actualiza una colmena.
+     * El aprendiz solo tiene permisos de consulta (no puede editar colmenas).
      */
     public function update(Request $request, $id)
     {
-        $colmena = Colmena::findOrFail($id);
-
-        $validated = $request->validate([
-            'code' => 'required|string|max:30|unique:apicola_colmenas,code,' . $colmena->id,
-            'apiario_name' => 'required|string|max:150',
-            'responsable' => 'required|string|max:150',
-            'tipo_abeja' => 'nullable|string|max:150',
-            'installation_date' => 'required|date',
-            'last_visit_date' => 'nullable|date',
-            'status' => 'required|in:Activa,En revisión,Inactiva',
-            'notes' => 'nullable|string',
-        ]);
-
-        if (empty($validated['last_visit_date'])) {
-            $validated['last_visit_date'] = $colmena->last_visit_date ?? $validated['installation_date'];
-        }
-
-        if (empty($validated['tipo_abeja'])) {
-            $validated['tipo_abeja'] = $colmena->tipo_abeja ?? 'Apis mellifera';
-        }
-
-        $apiario = Apiario::where('nombre_apiario', trim($validated['apiario_name']))
-            ->orWhere('id_apiarios', $request->input('apiario_id'))
-            ->first();
-        if ($apiario) {
-            $validated['apiario_id'] = $apiario->id_apiarios;
-            $validated['apiario_name'] = $apiario->nombre_apiario;
-        }
-
-        $colmena->update($validated);
-        $this->syncToColmenasTable($colmena);
-
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'success' => true,
-                'message' => "Colmena {$colmena->code} actualizada correctamente.",
-                'data' => $colmena
-            ]);
+                'success' => false,
+                'message' => 'El rol de aprendiz solo tiene permisos de consulta en colmenas. No puede editar colmenas.'
+            ], 403);
         }
 
-        return redirect()->back()->with('success', "Colmena {$colmena->code} actualizada.");
+        return redirect()->back()->with('error', 'El rol de aprendiz no tiene permisos para editar colmenas.');
     }
 
     /**
-     * Alterna el estado de una colmena.
+     * El aprendiz no tiene permisos para cambiar el estado o desactivar colmenas.
      */
     public function toggleStatus($id)
     {
-        $colmena = Colmena::findOrFail($id);
-        $colmena->status = ($colmena->status === 'Inactiva') ? 'Activa' : 'Inactiva';
-        $colmena->save();
-        $this->syncToColmenasTable($colmena);
-
         return response()->json([
-            'success' => true,
-            'message' => "Estado de la colmena {$colmena->code} cambiado a {$colmena->status}.",
-            'data' => $colmena
-        ]);
+            'success' => false,
+            'message' => 'El rol de aprendiz no tiene permisos para desactivar o modificar el estado de las colmenas.'
+        ], 403);
     }
 
     /**
-     * Desactiva una colmena (marca su estado como Inactiva sin eliminarla).
+     * El aprendiz no tiene permisos para desactivar colmenas.
      */
     public function destroy(Request $request, $id)
     {
-        $colmena = Colmena::findOrFail($id);
-        $code = $colmena->code;
-        $colmena->status = 'Inactiva';
-        $colmena->save();
-        $this->syncToColmenasTable($colmena, false);
-
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'success' => true,
-                'message' => "Colmena {$code} desactivada con éxito.",
-                'data' => $colmena
-            ]);
+                'success' => false,
+                'message' => 'El rol de aprendiz no tiene permisos para desactivar colmenas.'
+            ], 403);
         }
 
-        return redirect()->back()->with('success', "Colmena {$code} desactivada con éxito.");
+        return redirect()->back()->with('error', 'El rol de aprendiz no tiene permisos para desactivar colmenas.');
     }
 
     /**

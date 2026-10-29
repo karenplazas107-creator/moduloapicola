@@ -34,7 +34,8 @@ class InspeccionController extends Controller
     }
 
     /**
-     * Cargar inspecciones desde la tabla física registro_inspeccion y sus enfermedades.
+     * Cargar todas las inspecciones desde la tabla física registro_inspeccion y sus enfermedades.
+     * El Administrador puede ver todo lo registrado en el sistema.
      */
     private function getVisitasFromDb()
     {
@@ -47,7 +48,14 @@ class InspeccionController extends Controller
 
             $enfermedades = DB::table('enfermedades_registro')->get()->groupBy('id_registro');
 
-            return $visitasDb->map(function ($r) use ($enfermedades) {
+            // Mapa de usuarios para mostrar nombres reales de aprendices y administradores
+            $usersMap = DB::table('users')
+                ->leftJoin('people', 'users.person_id', '=', 'people.id')
+                ->select('users.id', 'users.nickname', 'people.first_name', 'people.first_last_name')
+                ->get()
+                ->keyBy('id');
+
+            return $visitasDb->map(function ($r) use ($enfermedades, $usersMap) {
                 $enfs = $enfermedades->has($r->id_registro) 
                     ? $enfermedades[$r->id_registro]->pluck('nombre_enfermedad')->toArray() 
                     : [];
@@ -55,6 +63,9 @@ class InspeccionController extends Controller
                 $responsable = 'Sergio Barrera';
                 if (!empty($r->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $r->observaciones, $m)) {
                     $responsable = trim($m[1]);
+                } elseif (!empty($r->user_id) && isset($usersMap[$r->user_id])) {
+                    $u = $usersMap[$r->user_id];
+                    $responsable = trim(($u->first_name ?? '') . ' ' . ($u->first_last_name ?? '')) ?: $u->nickname;
                 }
 
                 return [
@@ -103,6 +114,8 @@ class InspeccionController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $user = auth()->user();
+
         // 1. Obtener id_colmena de la tabla colmenas
         $colmenaDb = DB::table('colmenas')->where('codigo', $request->input('colmena_code'))->first();
         if (!$colmenaDb) {
@@ -115,8 +128,9 @@ class InspeccionController extends Controller
         $responsableText = $request->input('responsable');
         $observacionesFinal = $responsableText ? "Responsable: {$responsableText}" . ($notas ? " | {$notas}" : "") : $notas;
 
-        // 2. Insertar en registro_inspeccion
+        // 2. Insertar en registro_inspeccion vinculando el usuario administrador
         $idRegistro = DB::table('registro_inspeccion')->insertGetId([
+            'user_id' => $user?->id,
             'id_colmena' => $idColmena,
             'numero_registro' => $request->input('registration_number'),
             'fecha' => $request->input('date'),

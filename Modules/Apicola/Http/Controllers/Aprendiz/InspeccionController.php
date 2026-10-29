@@ -35,24 +35,62 @@ class InspeccionController extends Controller
 
     /**
      * Cargar inspecciones desde la tabla física registro_inspeccion y sus enfermedades.
+     * Solo retorna las inspecciones registradas por el aprendiz autenticado.
      */
     private function getVisitasFromDb()
     {
         try {
-            $visitasDb = DB::table('registro_inspeccion')
+            $user = auth()->user();
+            if (!$user) {
+                return collect();
+            }
+
+            $userId = $user->id;
+            $apprenticeId = $user->person?->apprentices?->first()?->id;
+            $person = $user->person;
+            $fullName = $person ? trim($person->first_name . ' ' . $person->first_last_name) : trim($user->name ?? $user->nickname);
+            $nickname = trim($user->nickname ?? '');
+
+            $query = DB::table('registro_inspeccion')
                 ->leftJoin('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
-                ->select('registro_inspeccion.*', 'colmenas.codigo as colmena_codigo')
-                ->orderBy('registro_inspeccion.fecha', 'desc')
-                ->get();
+                ->select('registro_inspeccion.*', 'colmenas.codigo as colmena_codigo');
+
+            // Filtro estricto: el aprendiz solo puede ver lo que él mismo registró
+            $query->where(function ($q) use ($userId, $apprenticeId, $fullName, $nickname) {
+                $hasCondition = false;
+
+                if ($userId) {
+                    $q->where('registro_inspeccion.user_id', $userId);
+                    $hasCondition = true;
+                }
+
+                if ($apprenticeId) {
+                    if ($hasCondition) {
+                        $q->orWhere('registro_inspeccion.id_aprendiz', $apprenticeId);
+                    } else {
+                        $q->where('registro_inspeccion.id_aprendiz', $apprenticeId);
+                        $hasCondition = true;
+                    }
+                }
+
+                if ($fullName) {
+                    $q->orWhere('registro_inspeccion.observaciones', 'like', "%Responsable: {$fullName}%");
+                }
+                if ($nickname) {
+                    $q->orWhere('registro_inspeccion.observaciones', 'like', "%Responsable: {$nickname}%");
+                }
+            });
+
+            $visitasDb = $query->orderBy('registro_inspeccion.fecha', 'desc')->get();
 
             $enfermedades = DB::table('enfermedades_registro')->get()->groupBy('id_registro');
 
-            return $visitasDb->map(function ($r) use ($enfermedades) {
+            return $visitasDb->map(function ($r) use ($enfermedades, $fullName, $nickname) {
                 $enfs = $enfermedades->has($r->id_registro) 
                     ? $enfermedades[$r->id_registro]->pluck('nombre_enfermedad')->toArray() 
                     : [];
 
-                $responsable = 'Sergio Barrera';
+                $responsable = $fullName ?: $nickname;
                 if (!empty($r->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $r->observaciones, $m)) {
                     $responsable = trim($m[1]);
                 }
@@ -90,7 +128,7 @@ class InspeccionController extends Controller
             'registration_number' => 'required|string|max:50',
             'colmena_code' => 'required|string|max:50',
             'date' => 'required|date',
-            'responsable' => 'required|string|max:150',
+            'responsable' => 'nullable|string|max:150',
             'general_state' => 'required|in:Bueno,Regular,Malo',
             'honey_presence' => 'required|in:Bueno,Regular,Malo',
             'harvested_honey_kg' => 'nullable|numeric|min:0',
@@ -103,6 +141,9 @@ class InspeccionController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $user = auth()->user();
+        $apprenticeId = $user?->person?->apprentices?->first()?->id;
+
         // 1. Obtener id_colmena de la tabla colmenas
         $colmenaDb = DB::table('colmenas')->where('codigo', $request->input('colmena_code'))->first();
         if (!$colmenaDb) {
@@ -110,13 +151,18 @@ class InspeccionController extends Controller
         }
         $idColmena = $colmenaDb ? $colmenaDb->id_colmenas : 1;
 
-        // Formatear notas con el responsable si no hay columna responsable
+        // Formatear notas con el responsable identificado
         $notas = $request->input('notes');
         $responsableText = $request->input('responsable');
+        if (empty($responsableText) && $user) {
+            $responsableText = $user->person ? trim($user->person->first_name . ' ' . $user->person->first_last_name) : ($user->nickname ?? 'Aprendiz');
+        }
         $observacionesFinal = $responsableText ? "Responsable: {$responsableText}" . ($notas ? " | {$notas}" : "") : $notas;
 
-        // 2. Insertar en registro_inspeccion
+        // 2. Insertar en registro_inspeccion vinculado estrictamente al usuario y aprendiz autenticado
         $idRegistro = DB::table('registro_inspeccion')->insertGetId([
+            'user_id' => $user?->id,
+            'id_aprendiz' => $apprenticeId,
             'id_colmena' => $idColmena,
             'numero_registro' => $request->input('registration_number'),
             'fecha' => $request->input('date'),
@@ -160,72 +206,28 @@ class InspeccionController extends Controller
     }
 
     /**
-     * Alterna el estado de una inspección / visita para Aprendiz (Activa / Inactiva).
+     * El aprendiz no tiene permisos para cambiar el estado o desactivar inspecciones.
      */
     public function toggleStatus(Request $request, $id)
     {
-        try {
-            $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
-            if (!$registro) {
-                return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
-            }
-
-            $currentEstado = $registro->estado ?? ($registro->deleted_at ? 'Inactiva' : 'Activa');
-            $nuevoEstado = ($currentEstado === 'Inactiva') ? 'Activa' : 'Inactiva';
-            $deletedAt = ($nuevoEstado === 'Inactiva') ? now() : null;
-
-            DB::table('registro_inspeccion')->where('id_registro', $id)->update([
-                'estado' => $nuevoEstado,
-                'deleted_at' => $deletedAt,
-                'updated_at' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'nuevo_estado' => $nuevoEstado,
-                'message' => "Visita \"{$registro->numero_registro}\" marcada como {$nuevoEstado}.",
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cambiar estado de la inspección: ' . $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'El rol de aprendiz no tiene permisos para desactivar o modificar el estado de las inspecciones.',
+        ], 403);
     }
 
     /**
-     * Desactiva una inspección / visita sin eliminarla de la base de datos (Aprendiz).
+     * El aprendiz no tiene permisos para desactivar inspecciones.
      */
     public function destroy(Request $request, $id)
     {
-        try {
-            $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
-            if (!$registro) {
-                return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
-            }
-
-            DB::table('registro_inspeccion')->where('id_registro', $id)->update([
-                'estado' => 'Inactiva',
-                'deleted_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $numero = $registro->numero_registro ?: 'REG-' . $id;
-
-            if ($request->wantsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'nuevo_estado' => 'Inactiva',
-                    'message' => "Visita \"{$numero}\" desactivada con éxito.",
-                ]);
-            }
-
-            return redirect()->back()->with('success', "Visita \"{$numero}\" desactivada con éxito.");
-        } catch (\Exception $e) {
+        if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al desactivar la inspección: ' . $e->getMessage()
-            ], 500);
+                'message' => 'El rol de aprendiz no tiene permisos para desactivar inspecciones.',
+            ], 403);
         }
+
+        return redirect()->back()->with('error', 'El rol de aprendiz no tiene permisos para desactivar inspecciones.');
     }
 }

@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Apicola\Entities\Inventario;
 use Modules\Apicola\Entities\InventarioMovimiento;
+use Modules\Apicola\Entities\Movimiento;
+use Modules\Apicola\Entities\MovimientoDetalle;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class InventarioController extends Controller
 {
@@ -69,6 +72,13 @@ class InventarioController extends Controller
             ->distinct()
             ->pluck('categoria');
 
+        // Bodegas únicas registradas
+        $bodegasUnicas = Inventario::select('bodega')
+            ->distinct()
+            ->pluck('bodega')
+            ->filter()
+            ->values();
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
@@ -76,10 +86,11 @@ class InventarioController extends Controller
                 'metrics' => $metrics,
                 'categorias' => $categorias,
                 'elementos' => $elementosUnicos,
+                'bodegas' => $bodegasUnicas,
             ]);
         }
 
-        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos'));
+        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos', 'bodegasUnicas'));
     }
 
     /**
@@ -88,12 +99,17 @@ class InventarioController extends Controller
     public function store(Request $request)
     {
         $tipo = $request->input('tipo', 'Herramienta');
-        $bodegaRaw = $request->input('bodega', 'Bodega central');
         
-        // Normalizar nombre de bodega
-        $bodega = 'Bodega central';
-        if (str_contains($bodegaRaw, 'apiario') || str_contains($bodegaRaw, 'Apiario')) {
-            $bodega = 'Bodega del apiario';
+        // Determinar nombre de bodega (soporte para seleccionar existente o registrar una nueva)
+        $bodegaRaw = trim($request->input('bodega', 'Bodega central'));
+        if ($bodegaRaw === '__nueva__' || $request->filled('nombre_nueva_bodega')) {
+            $bodega = trim($request->input('nombre_nueva_bodega', ''));
+        } else {
+            $bodega = $bodegaRaw;
+        }
+
+        if (empty($bodega)) {
+            $bodega = 'Bodega central';
         }
 
         // Determinar nombre y unidad de medida
@@ -196,11 +212,17 @@ class InventarioController extends Controller
             'nombre' => 'required|string|max:150',
             'categoria' => 'required|string|max:100',
             'bodega' => 'nullable|string|max:150',
+            'nombre_nueva_bodega' => 'nullable|string|max:150',
             'unidad_medida' => 'nullable|string|max:50',
+            'cantidad' => 'nullable|integer|min:0',
             'stock_minimo' => 'required|integer|min:0',
             'estado' => 'nullable|in:Activo,Inactivo',
             'notas' => 'nullable|string',
         ]);
+
+        if (($request->input('bodega') === '__nueva__' || $request->filled('nombre_nueva_bodega')) && $request->filled('nombre_nueva_bodega')) {
+            $validated['bodega'] = trim($request->input('nombre_nueva_bodega'));
+        }
 
         $item->update($validated);
 
@@ -310,5 +332,245 @@ class InventarioController extends Controller
         }
 
         return redirect()->back()->with('success', "Elemento {$codigo} desactivado con éxito.");
+    }
+
+    /**
+     * Vista principal de Movimientos de Inventario (Entradas / Salidas multiproducto con comprobante).
+     */
+    public function movimientosIndex(Request $request)
+    {
+        // 1. Obtener bodegas únicas disponibles
+        $bodegas = Inventario::select('bodega')
+            ->distinct()
+            ->pluck('bodega')
+            ->filter()
+            ->values();
+
+        if ($bodegas->isEmpty()) {
+            $bodegas = collect(['Bodega Central', 'Bodega del Apiario']);
+        }
+
+        // 2. Obtener productos activos organizados con su bodega y stock
+        $productos = Inventario::where('estado', 'Activo')
+            ->orderBy('nombre', 'asc')
+            ->get(['id', 'nombre', 'codigo', 'categoria', 'bodega', 'unidad_medida', 'cantidad', 'stock_minimo']);
+
+        // 3. Comprobante a mostrar (el último registrado o el solicitado por id)
+        $comprobanteId = $request->get('comprobante_id');
+        $comprobanteActual = null;
+        if ($comprobanteId) {
+            $comprobanteActual = Movimiento::with('detalles')->find($comprobanteId);
+        }
+        if (!$comprobanteActual) {
+            $comprobanteActual = Movimiento::with('detalles')->orderBy('id', 'desc')->first();
+        }
+
+        // 4. Listado histórico de comprobantes con soporte de filtrado
+        $query = Movimiento::with('detalles')->orderBy('id', 'desc');
+
+        if ($request->filled('tipo') && in_array($request->tipo, ['Entrada', 'Salida'])) {
+            $query->where('tipo', $request->tipo);
+        }
+
+        if ($request->filled('bodega') && $request->bodega !== 'all') {
+            $query->where('bodega', $request->bodega);
+        }
+
+        $historialComprobantes = $query->take(50)->get();
+
+        // 5. Responsable por defecto
+        $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Karen Michelle Plazas Rojas';
+
+        // 6. Siguiente número de comprobante sugerido
+        $siguienteNumero = Movimiento::generarSiguienteNumero();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'comprobante' => $comprobanteActual,
+                'historial' => $historialComprobantes,
+                'productos' => $productos,
+                'siguiente_numero' => $siguienteNumero,
+            ]);
+        }
+
+        return view('apicola::Admin.Inventario.movimientos', compact(
+            'bodegas',
+            'productos',
+            'comprobanteActual',
+            'historialComprobantes',
+            'responsable',
+            'siguienteNumero'
+        ));
+    }
+
+    /**
+     * Registra un nuevo comprobante con múltiples productos (Entrada o Salida)
+     */
+    public function movimientosStore(Request $request)
+    {
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'bodega' => 'required|string|max:150',
+            'tipo' => 'required|in:Entrada,Salida',
+            'productos' => 'required|array|min:1',
+            'productos.*.nombre' => 'required|string|max:150',
+            'productos.*.cantidad' => 'required|integer|min:1',
+            'productos.*.inventario_id' => 'nullable|integer',
+            'productos.*.observaciones' => 'nullable|string|max:255',
+            'observaciones' => 'nullable|string|max:500',
+        ]);
+
+        $tipo = $validated['tipo'];
+        $bodega = $validated['bodega'];
+        $fecha = Carbon::parse($validated['fecha']);
+        $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Karen Michelle Plazas Rojas';
+
+        // Validar existencias si es Salida
+        if ($tipo === 'Salida') {
+            foreach ($validated['productos'] as $prod) {
+                $nombre = trim($prod['nombre']);
+                $cant = (int)$prod['cantidad'];
+                
+                $item = null;
+                if (!empty($prod['inventario_id'])) {
+                    $item = Inventario::find($prod['inventario_id']);
+                }
+                if (!$item) {
+                    $item = Inventario::where('nombre', $nombre)->where('bodega', $bodega)->first();
+                }
+
+                if (!$item) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El producto '{$nombre}' no existe en {$bodega}.",
+                    ], 422);
+                }
+
+                if ($item->cantidad < $cant) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Stock insuficiente para '{$nombre}' en {$bodega}. Stock disponible: {$item->cantidad} {$item->unidad_medida}, solicitados: {$cant}.",
+                    ], 422);
+                }
+            }
+        }
+
+        DB::beginTransaction();
+        try {
+            $numeroComprobante = Movimiento::generarSiguienteNumero($fecha->year);
+            $totalUnidades = array_sum(array_column($validated['productos'], 'cantidad'));
+
+            $movimiento = Movimiento::create([
+                'numero_comprobante' => $numeroComprobante,
+                'tipo' => $tipo,
+                'bodega' => $bodega,
+                'fecha' => $fecha,
+                'total_productos' => count($validated['productos']),
+                'total_unidades' => $totalUnidades,
+                'responsable' => $responsable,
+                'user_id' => Auth::id(),
+                'observaciones' => $validated['observaciones'] ?? ($tipo . ' de bodega'),
+            ]);
+
+            foreach ($validated['productos'] as $prod) {
+                $nombre = trim($prod['nombre']);
+                $cantidad = (int)$prod['cantidad'];
+                $obs = !empty($prod['observaciones']) ? trim($prod['observaciones']) : ($tipo . ' de bodega');
+
+                $item = null;
+                if (!empty($prod['inventario_id'])) {
+                    $item = Inventario::find($prod['inventario_id']);
+                }
+                if (!$item) {
+                    $item = Inventario::where('nombre', $nombre)->where('bodega', $bodega)->first();
+                }
+
+                if (!$item) {
+                    $codigo = sprintf('INV-%03d', Inventario::withTrashed()->count() + 1);
+                    $item = Inventario::create([
+                        'nombre' => $nombre,
+                        'codigo' => $codigo,
+                        'categoria' => 'Herramienta',
+                        'bodega' => $bodega,
+                        'unidad_medida' => 'unidad',
+                        'cantidad' => 0,
+                        'stock_minimo' => 5,
+                        'estado' => 'Activo',
+                        'responsable' => $responsable,
+                        'notas' => "Creado automáticamente desde movimiento {$numeroComprobante}",
+                    ]);
+                }
+
+                $stockAnterior = $item->cantidad;
+                $stockNuevo = ($tipo === 'Entrada') ? ($stockAnterior + $cantidad) : max(0, $stockAnterior - $cantidad);
+
+                $item->cantidad = $stockNuevo;
+                $item->save();
+
+                MovimientoDetalle::create([
+                    'movimiento_id' => $movimiento->id,
+                    'inventario_id' => $item->id,
+                    'producto_nombre' => $item->nombre,
+                    'producto_codigo' => $item->codigo,
+                    'cantidad' => $cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_nuevo' => $stockNuevo,
+                    'observaciones' => $obs,
+                ]);
+
+                // Registrar en apicola_inventario_movimientos para trazabilidad individual
+                InventarioMovimiento::create([
+                    'inventario_id' => $item->id,
+                    'movimiento_id' => $movimiento->id,
+                    'tipo' => $tipo,
+                    'cantidad' => $cantidad,
+                    'stock_anterior' => $stockAnterior,
+                    'stock_nuevo' => $stockNuevo,
+                    'motivo' => "Comprobante {$numeroComprobante} - " . $obs,
+                    'responsable' => $responsable,
+                    'fecha' => $fecha,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Movimiento {$movimiento->numero_comprobante} registrado con éxito.",
+                'movimiento' => $movimiento->load('detalles'),
+                'siguiente_numero' => Movimiento::generarSiguienteNumero(),
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al registrar el movimiento: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Consulta los datos de un comprobante específico vía AJAX.
+     */
+    public function movimientosShow($id)
+    {
+        $movimiento = Movimiento::with('detalles')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'comprobante' => $movimiento,
+        ]);
+    }
+
+    /**
+     * Vista de impresión oficial del comprobante para imprimir o guardar como PDF.
+     */
+    public function movimientosPrint($id)
+    {
+        $movimiento = Movimiento::with('detalles')->findOrFail($id);
+
+        return view('apicola::Admin.Inventario.print_comprobante', compact('movimiento'));
     }
 }

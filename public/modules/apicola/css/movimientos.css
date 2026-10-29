@@ -1,0 +1,1082 @@
+/* ==========================================================================
+   MÓDULO DE MOVIMIENTO DE INVENTARIO - SENA APÍCOLA
+   Diseño de 2 Columnas con Formulario, Resumen, Historial y Factura
+   ========================================================================== */
+
+:root {
+    --mov-primary: #286043;
+    --mov-primary-dark: #1b4731;
+    --mov-primary-light: #e8f3ec;
+    --mov-primary-border: #a7f3d0;
+    --mov-border: #e2e8f0;
+    --mov-border-input: #d1d5db;
+    --mov-text-dark: #111827;
+    --mov-text-muted: #4b5563;
+    --mov-text-light: #64748b;
+    --mov-bg-page: #f8fafc;
+}
+
+/* Cabecera superior con marca SENA y Eslogan */
+.mov-top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0 20px 0;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.mov-top-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mov-top-logo {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mov-top-logo img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.mov-top-brand-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.2;
+}
+
+.mov-top-brand-sub {
+    font-size: 0.82rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Píldora de eslogan */
+.mov-slogan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    color: #065f46;
+    border-radius: 50px;
+    padding: 6px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mov-slogan-pill img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+}
+
+/* ==========================================================================
+   LAYOUT PRINCIPAL EN 2 COLUMNAS
+   ========================================================================== */
+.mov-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.18fr;
+    gap: 22px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .mov-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mov-col-left,
+.mov-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Tarjeta contenedora con barra verde superior */
+.mov-card-box {
+    background: #ffffff;
+    border: 1px solid var(--mov-border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+}
+
+.mov-card-banner {
+    background: var(--mov-primary);
+    color: #ffffff;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mov-card-banner-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+}
+
+.mov-card-body {
+    padding: 20px;
+}
+
+/* Botones conmutadores Entrada / Salida */
+.mov-toggle-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+}
+
+.mov-btn-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border: 1.5px solid var(--mov-border-input);
+    background: #ffffff;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.mov-btn-toggle:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+
+.mov-btn-toggle.active {
+    background: var(--mov-primary);
+    color: #ffffff;
+    border-color: var(--mov-primary);
+    box-shadow: 0 3px 10px rgba(40, 96, 67, 0.25);
+}
+
+.mov-btn-toggle.active i {
+    color: #ffffff !important;
+}
+
+/* Campos de Formulario */
+.mov-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+    .mov-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mov-form-group {
+    margin-bottom: 1rem;
+}
+
+.mov-form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.mov-input-ctrl {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1.5px solid var(--mov-border-input);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #111827;
+    background-color: #ffffff;
+    outline: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.mov-input-ctrl:focus {
+    border-color: var(--mov-primary);
+    box-shadow: 0 0 0 3px rgba(40, 96, 67, 0.15);
+}
+
+textarea.mov-input-ctrl {
+    resize: vertical;
+    min-height: 70px;
+}
+
+/* Botones de acción del formulario */
+.mov-form-actions-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 1.25rem;
+}
+
+.mov-btn-clean {
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--mov-border-input);
+    background: #ffffff;
+    color: #374151;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mov-btn-clean:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.mov-btn-submit-main {
+    padding: 0.65rem 1.45rem;
+    border-radius: 8px;
+    border: none;
+    background: var(--mov-primary);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(40, 96, 67, 0.25);
+    transition: all 0.2s ease;
+}
+
+.mov-btn-submit-main:hover {
+    background: var(--mov-primary-dark);
+    transform: translateY(-1px);
+}
+
+.mov-btn-submit-main:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ==========================================================================
+   TARJETA 2: RESUMEN DE MOVIMIENTO Y PRODUCTOS A REGISTRAR
+   ========================================================================== */
+.mov-summary-card {
+    background: #ffffff;
+    border: 1px solid var(--mov-border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+}
+
+.mov-summary-heading {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 14px 0;
+}
+
+/* Grid de los 3 badges de resumen (Tipo, Fecha, Bodega) */
+.mov-summary-badges-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 600px) {
+    .mov-summary-badges-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mov-summary-mini-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.mov-summary-mini-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.mov-summary-mini-val {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #111827;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mov-summary-pill-tipo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--mov-primary);
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+/* Tabla interna de productos a registrar */
+.mov-draft-table-wrap {
+    border: 1px solid var(--mov-border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.mov-draft-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mov-draft-table thead tr {
+    background: var(--mov-primary-light);
+}
+
+.mov-draft-table th {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #111827;
+    text-align: left;
+    border-bottom: 1px solid #d4e3d7;
+}
+
+.mov-draft-table td {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1f2937;
+    vertical-align: middle;
+}
+
+.mov-draft-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.mov-btn-trash-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--mov-border-input);
+    background: #ffffff;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mov-btn-trash-sm:hover {
+    border-color: #fca5a5;
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.mov-btn-add-draft {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.55rem 1.15rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--mov-border-input);
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mov-btn-add-draft:hover {
+    border-color: var(--mov-primary);
+    color: var(--mov-primary);
+    background: #f8fafc;
+}
+
+/* ==========================================================================
+   COLUMNA DERECHA: HISTORIAL DE MOVIMIENTOS
+   ========================================================================== */
+.mov-select-filter-hist {
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #111827;
+    background: #ffffff;
+    outline: none;
+    cursor: pointer;
+}
+
+.mov-hist-table-wrap {
+    overflow-x: auto;
+}
+
+.mov-hist-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mov-hist-table th {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.mov-hist-table td {
+    padding: 12px 14px;
+    font-size: 0.86rem;
+    color: #111827;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.mov-hist-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.mov-hist-row:hover {
+    background-color: #f0fdf4;
+}
+
+.mov-hist-row.selected {
+    background-color: #ecfdf5;
+    font-weight: 600;
+}
+
+/* Badges de Tipo en Historial */
+.mov-badge-tipo {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 50px;
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.mov-badge-tipo.salida {
+    background: #fee2e2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.mov-badge-tipo.entrada {
+    background: #dcfce7;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.mov-chevron-icon {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+}
+
+.mov-hist-row:hover .mov-chevron-icon {
+    color: var(--mov-primary);
+    transform: translateX(3px);
+}
+
+/* ==========================================================================
+   COLUMNA DERECHA INFERIOR: FACTURA / COMPROBANTE DE MOVIMIENTO
+   ========================================================================= */
+.mov-invoice-card {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Borde decorativo tipo ticket en la parte superior */
+.mov-invoice-card::before {
+    content: "";
+    display: block;
+    height: 6px;
+    background: repeating-linear-gradient(90deg, #286043 0, #286043 8px, #ffffff 8px, #ffffff 14px);
+}
+
+.mov-invoice-inner {
+    padding: 24px;
+}
+
+.mov-invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 16px;
+    border-bottom: 1.5px solid #f1f5f9;
+    margin-bottom: 16px;
+}
+
+.mov-invoice-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mov-invoice-bee {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mov-invoice-bee img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.mov-invoice-brand-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.mov-invoice-brand-sub {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.mov-invoice-title-block {
+    text-align: right;
+}
+
+.mov-invoice-main-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.mov-invoice-number {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 2px;
+}
+
+/* Metadatos de la factura */
+.mov-invoice-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 24px;
+    font-size: 0.88rem;
+    color: #4b5563;
+    margin-bottom: 16px;
+    background: #fafafa;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+
+.mov-invoice-meta-item strong {
+    color: #111827;
+}
+
+/* Tabla interna de la factura */
+.mov-invoice-table-wrap {
+    border: 1px solid #d4e3d7;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.mov-invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mov-invoice-table thead tr {
+    background: var(--mov-primary-light);
+}
+
+.mov-invoice-table th {
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #111827;
+    text-align: left;
+    border-bottom: 1px solid #d4e3d7;
+}
+
+.mov-invoice-table td {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: #1f2937;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.mov-invoice-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Total de productos */
+.mov-invoice-total-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+}
+
+.mov-invoice-total-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.mov-invoice-total-num {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: #111827;
+    line-height: 1.2;
+}
+
+/* Pie: Nota y Firma */
+.mov-invoice-footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.mov-invoice-note {
+    font-size: 0.82rem;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 320px;
+}
+
+.mov-invoice-signature {
+    text-align: center;
+    min-width: 200px;
+}
+
+.mov-invoice-sig-line {
+    border-top: 1.5px solid #475569;
+    margin-bottom: 4px;
+}
+
+.mov-invoice-sig-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.mov-invoice-sig-role {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.mov-invoice-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.mov-btn-invoice-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid var(--mov-border-input);
+    color: #374151;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mov-btn-invoice-print:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+/* ==========================================================================
+   MODAL FLOTANTE Y TIRILLA TIPO POS (80mm)
+   ========================================================================== */
+.pos-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 3000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    overflow-y: auto;
+    animation: posFadeIn 0.2s ease-out;
+}
+
+.pos-modal-backdrop.is-open {
+    display: flex;
+}
+
+@keyframes posFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.pos-modal-card {
+    background: #ffffff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 94vh;
+    animation: posSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes posSlideUp {
+    from { transform: translateY(18px) scale(0.96); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.pos-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.pos-modal-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #059669;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.pos-modal-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+}
+
+.pos-modal-sub {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.pos-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.pos-modal-close:hover {
+    color: #0f172a;
+    background: #e2e8f0;
+}
+
+.pos-modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    background: #f1f5f9;
+    display: flex;
+    justify-content: center;
+}
+
+/* Tirilla POS simulada (80mm) */
+.pos-ticket-paper {
+    background: #ffffff;
+    width: 100%;
+    max-width: 350px;
+    padding: 22px 18px 26px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    border-top: 4px solid #286043;
+    font-family: 'Courier New', Courier, monospace, 'Plus Jakarta Sans', sans-serif;
+    color: #000000;
+    font-size: 11.5px;
+    line-height: 1.4;
+    position: relative;
+}
+
+.pos-ticket-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.pos-ticket-logo img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    margin-bottom: 6px;
+}
+
+.pos-ticket-org {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #111827;
+}
+
+.pos-ticket-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: #286043;
+    margin: 2px 0;
+}
+
+.pos-ticket-center {
+    font-size: 9.5px;
+    color: #4b5563;
+}
+
+.pos-ticket-slogan {
+    font-size: 9px;
+    font-style: italic;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.pos-ticket-divider-double {
+    border-top: 2px dashed #111827;
+    margin: 8px 0;
+}
+
+.pos-ticket-divider-solid {
+    border-top: 1px solid #111827;
+    margin: 8px 0;
+}
+
+.pos-ticket-divider-dash {
+    border-top: 1px dashed #6b7280;
+    margin: 8px 0;
+}
+
+.pos-ticket-meta {
+    font-size: 10.5px;
+    margin: 6px 0;
+}
+
+.pos-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.pos-meta-lbl {
+    font-weight: 700;
+    color: #374151;
+}
+
+.pos-meta-val {
+    font-weight: 800;
+    color: #000000;
+    text-align: right;
+}
+
+.pos-meta-badge {
+    font-weight: 900;
+    background: #000000;
+    color: #ffffff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+}
+
+.pos-meta-badge.entrada {
+    background: #059669;
+}
+
+.pos-meta-badge.salida {
+    background: #dc2626;
+}
+
+table.pos-ticket-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0;
+    font-size: 10.5px;
+}
+
+table.pos-ticket-table th {
+    border-bottom: 1.5px dashed #000000;
+    padding: 4px 0;
+    font-weight: 800;
+    color: #000000;
+}
+
+table.pos-ticket-table td {
+    padding: 4px 0;
+    vertical-align: top;
+    color: #000000;
+}
+
+.pos-ticket-totals {
+    font-size: 11px;
+    margin: 6px 0;
+}
+
+.pos-total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.pos-total-row.major {
+    font-size: 12.5px;
+    font-weight: 900;
+    color: #000000;
+    margin-top: 2px;
+}
+
+.pos-ticket-signature {
+    text-align: center;
+    margin-top: 18px;
+    padding-top: 6px;
+}
+
+.pos-sig-line {
+    width: 75%;
+    margin: 0 auto 5px;
+    border-top: 1px solid #000000;
+}
+
+.pos-sig-name {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #000000;
+}
+
+.pos-sig-title {
+    font-size: 9px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.pos-sig-entity {
+    font-size: 8px;
+    color: #6b7280;
+}
+
+.pos-ticket-footer {
+    text-align: center;
+    font-size: 8.5px;
+    margin-top: 12px;
+    line-height: 1.35;
+    border-top: 1px dashed #6b7280;
+    padding-top: 8px;
+    color: #4b5563;
+}
+
+.pos-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    padding: 0.9rem 1.25rem;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.pos-btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pos-btn-cancel:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.pos-btn-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: #286043;
+    color: #ffffff;
+    border: 1px solid #1b4731;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(40, 96, 67, 0.25);
+    transition: all 0.2s;
+}
+
+.pos-btn-print:hover {
+    background: #1e4a33;
+    box-shadow: 0 4px 10px rgba(40, 96, 67, 0.35);
+}
