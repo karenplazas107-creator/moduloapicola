@@ -32,9 +32,9 @@
 
         <div class="mov-slogan-pill">
             <span>Cuidamos nuestras abejas, cuidamos el futuro</span>
-            <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}" 
+            <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}?v={{ time() }}" 
                  alt="Abeja SENA" 
-                 onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}';">
+                 onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}';">
         </div>
     </div>
 
@@ -88,7 +88,8 @@
                                     <option value="__nueva__">+ Registrar nueva bodega...</option>
                                 </select>
                                 <div id="seccionNuevaBodegaWrap" style="display: none; margin-top: 6px;">
-                                    <input type="text" id="inputNombreNuevaBodega" class="mov-input-ctrl" placeholder="Nombre de la nueva bodega...">
+                                    <input type="text" id="inputNombreNuevaBodega" class="mov-input-ctrl" placeholder="Nombre de la nueva bodega..." oninput="validarTextoSinNumerosMov(this, 'errorMovBodega')">
+                                    <span id="errorMovBodega" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Bodega inválida: no se permiten números, solo letras.</span>
                                 </div>
                             </div>
                         </div>
@@ -105,7 +106,8 @@
                                 @endforeach
                             </select>
                             <div id="seccionNuevoProductoTexto" style="display: none; margin-top: 6px;">
-                                <input type="text" id="inputNombreProductoManual" class="mov-input-ctrl" placeholder="Escribe el nombre del nuevo producto...">
+                                <input type="text" id="inputNombreProductoManual" class="mov-input-ctrl" placeholder="Escribe el nombre del nuevo producto..." oninput="validarTextoSinNumerosMov(this, 'errorMovProducto')">
+                                <span id="errorMovProducto" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Nombre inválido: no se permiten números, solo letras.</span>
                             </div>
                         </div>
 
@@ -404,7 +406,7 @@
                     <!-- Encabezado del ticket -->
                     <div class="pos-ticket-header">
                         <div class="pos-ticket-logo">
-                            <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}" alt="SENA Apícola" onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}';">
+                            <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}?v={{ time() }}" alt="SENA Apícola" onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}';">
                         </div>
                         <div class="pos-ticket-org">SENA - EMPRESA CEFA</div>
                         <div class="pos-ticket-title">UNIDAD APÍCOLA</div>

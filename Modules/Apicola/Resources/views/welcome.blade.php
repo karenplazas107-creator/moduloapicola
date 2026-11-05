@@ -10,20 +10,20 @@
     <meta name="description" content="Formación, investigación y desarrollo para una apicultura sostenible. Unidad Apícola del SENA - Centro de Formación Agroindustrial La Angostura.">
     <meta name="keywords" content="apicultura, SENA, abejas, miel, formación, apiarios, sostenibilidad">
     <meta name="author" content="SENA - Unidad Apícola">
-    <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}">
 
-    {{-- Google Fonts --}}
+    {{-- Google Fonts: Tipografía oficial ERP SENA Empresa --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
 
     {{-- Font Awesome --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     {{-- Custom CSS --}}
-    <link rel="stylesheet" href="{{ asset('apicola-assets/assets/css/welcome.css') }}">
+    <link rel="stylesheet" href="{{ asset('apicola-assets/assets/css/welcome.css') }}?v={{ time() }}">
 
-    <link rel="stylesheet" href="{{ asset('modules/apicola/css/welcome-interactive.css') }}">
+    <link rel="stylesheet" href="{{ asset('modules/apicola/css/welcome-interactive.css') }}?v={{ time() }}">
 </head>
 <body class="apicola-landing">
 
@@ -42,14 +42,6 @@
                 <span class="brand-icon">🐝</span>
             </span>
         </a>
-
-        <ul class="ap-nav-links" id="apNavLinks">
-            <li><a href="#" class="active">Inicio</a></li>
-            <li><a href="#">Nosotros</a></li>
-            <li><a href="#">Formación</a></li>
-            <li><a href="#apFeatures">Apiario</a></li>
-            <li><a href="#">Seguimiento de Miel</a></li>
-        </ul>
 
         <div class="ap-nav-actions">
             @auth
@@ -74,12 +66,6 @@
                 <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
             </div>
         </div>
-
-        <button class="ap-menu-toggle" id="apMenuToggle" aria-label="Abrir menú">
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
     </nav>
 
     {{-- ==================== HERO SECTION ==================== --}}
@@ -266,7 +252,7 @@
 
                 <!-- Contenido Principal en 2 Columnas -->
                 <div class="ap-detail-grid">
-                    <!-- Columna Izquierda: Introducción e Importancia -->
+                    <!-- Columna Izquierda: Introducción, Fotografía, Especies e Importancia -->
                     <div class="ap-detail-col-left">
                         <div class="ap-detail-header-flex">
                             <div class="ap-detail-big-icon" id="apDetailIconBox">
@@ -278,11 +264,32 @@
                             </div>
                         </div>
 
+                        <!-- Fotografía Temática de Alta Calidad -->
+                        <div class="ap-detail-photo-card" id="apDetailPhotoCard">
+                            <img src="{{ asset('modules/apicola/img/bee_hero.jpg') }}" id="apDetailPhoto" alt="Fotografía Temática Apícola">
+                            <div class="ap-photo-overlay">
+                                <span class="ap-photo-tag" id="apDetailPhotoTag">
+                                    <i class="fas fa-camera"></i> <span id="apDetailPhotoTagText">Flora Melífera • Huila</span>
+                                </span>
+                                <span class="ap-photo-caption" id="apDetailPhotoDesc">Sincronización del pecoreo con las curvas de floración</span>
+                            </div>
+                        </div>
+
                         <p class="ap-detail-lead" id="apDetailLead">
                             Un apiario (o colmenar) es el espacio geográfico debidamente seleccionado y acondicionado donde se ubica el conjunto de colmenas para la cría, manejo y producción de abejas melíferas (<em>Apis mellifera</em>). En el Centro La Angostura disponemos de <strong>1 único apiario centralizado con más de 20 colmenas tecnificadas</strong>.
                         </p>
 
-                        <!-- Tarjeta Destacada: ¿Por qué es importante? -->
+                        <!-- Especies / Elementos Visuales Destacados -->
+                        <div class="ap-detail-gallery-wrap" id="apDetailGalleryWrap">
+                            <div class="ap-gallery-heading">
+                                <i class="fas fa-seedling"></i> <span id="apGalleryHeadingText">Especies Botánicas Melíferas Clave:</span>
+                            </div>
+                            <div class="ap-gallery-grid" id="apDetailGalleryGrid">
+                                <!-- Inyectado dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta Destacada: ¿Por qué es fundamental? -->
                         <div class="ap-detail-importance-card">
                             <div class="ap-importance-tit">
                                 <i class="fas fa-star" style="color: #f59e0b;"></i>
@@ -321,6 +328,6 @@
     </section>
 
     {{-- ==================== SCRIPTS ==================== --}}
-    <script src="{{ asset('modules/apicola/js/welcome.js') }}"></script>
+    <script src="{{ asset('modules/apicola/js/welcome.js') }}?v={{ time() }}"></script>
 </body>
 </html>

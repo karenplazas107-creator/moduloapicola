@@ -73,7 +73,7 @@ class ReporteController extends Controller
     }
 
     /**
-     * Exportar reporte a formato Excel (.csv limpio y estructurado con UTF-8 BOM).
+     * Exportar reporte a formato Excel (.xls con formato oficial institucional SENA, colores, bordes y resumen).
      */
     public function exportExcel(Request $request)
     {
@@ -84,75 +84,45 @@ class ReporteController extends Controller
         $estado = $request->get('estado', 'all');
 
         $data = $this->getReportData($tipo, $apiario, $desde, $hasta, $estado);
-        $fileName = 'Reporte_' . ucfirst($tipo) . '_' . date('Ymd_His') . '.csv';
+        $fileName = 'Reporte_' . ucfirst($tipo) . '_' . date('Ymd_His') . '.xls';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        // Métricas para totales y resumen oficial
+        $totalVisitas = array_sum(array_column($data, 'visitas'));
+        $totalMiel = (float)array_sum(array_column($data, 'miel_kg'));
+        $totalColmenas = count($data);
+        $colmenasActivas = count(array_filter($data, fn($r) => strcasecmp($r['estado'] ?? '', 'Activa') === 0));
+        $colmenasInactivas = count(array_filter($data, fn($r) => strcasecmp($r['estado'] ?? '', 'Inactiva') === 0));
+        $promedioMiel = $totalColmenas > 0 ? ($totalMiel / $totalColmenas) : 0;
+
+        $autor = Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'SERGIO BARRERA');
+        $fechaEmision = Carbon::now()->format('d/m/Y H:i:s');
+
+        $html = view('apicola::Admin.Reportes.excel', compact(
+            'tipo',
+            'apiario',
+            'desde',
+            'hasta',
+            'estado',
+            'data',
+            'totalVisitas',
+            'totalMiel',
+            'totalColmenas',
+            'colmenasActivas',
+            'colmenasInactivas',
+            'promedioMiel',
+            'autor',
+            'fechaEmision'
+        ))->render();
+
+        $content = "\xEF\xBB\xBF" . $html;
+
+        return response($content, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
             'Pragma' => 'no-cache',
             'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
             'Expires' => '0',
-        ];
-
-        $callback = function () use ($tipo, $data, $desde, $hasta) {
-            $file = fopen('php://output', 'w');
-            // BOM UTF-8 para compatibilidad absoluta con Microsoft Excel
-            fputs($file, "\xEF\xBB\xBF");
-
-            fputcsv($file, ['SENA - CENTRO DE FORMACIÓN AGROINDUSTRIAL LA ANGOSTURA']);
-            fputcsv($file, ['SENA APÍCOLA - REPORTE OFICIAL DE ' . strtoupper($tipo)]);
-            fputcsv($file, ['Período:', "{$desde} al {$hasta}"]);
-            fputcsv($file, ['Generado por:', Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador')]);
-            fputcsv($file, ['Fecha de emisión:', Carbon::now()->format('d/m/Y H:i:s')]);
-            fputcsv($file, []);
-
-            if ($tipo === 'miel') {
-                fputcsv($file, ['Apiario', 'Colmena', 'Última Visita', 'Total Visitas', 'Miel Cosechada (kg)', 'Responsable', 'Estado']);
-                foreach ($data as $row) {
-                    fputcsv($file, [
-                        $row['apiario'] ?? '',
-                        $row['colmena'] ?? '',
-                        $row['ultima_visita'] ?? '',
-                        $row['visitas'] ?? 1,
-                        number_format((float)($row['miel_kg'] ?? 0), 2, ',', '.'),
-                        $row['responsable'] ?? '',
-                        $row['estado'] ?? ''
-                    ]);
-                }
-            } elseif ($tipo === 'colmenas') {
-                fputcsv($file, ['Código', 'Apiario', 'Especie / Abeja', 'Fecha Instalación', 'Última Visita', 'Estado', 'Responsable']);
-                foreach ($data as $row) {
-                    fputcsv($file, [
-                        $row['codigo'] ?? '',
-                        $row['apiario'] ?? '',
-                        $row['tipo_abeja'] ?? '',
-                        $row['instalacion'] ?? '',
-                        $row['ultima_visita'] ?? '',
-                        $row['estado'] ?? '',
-                        $row['responsable'] ?? ''
-                    ]);
-                }
-            } else { // Inventario
-                fputcsv($file, ['Código', 'Elemento', 'Categoría', 'Bodega', 'Stock Actual', 'Stock Mínimo', 'Unidad', 'Estado', 'Responsable']);
-                foreach ($data as $row) {
-                    fputcsv($file, [
-                        $row['codigo'] ?? '',
-                        $row['nombre'] ?? '',
-                        $row['categoria'] ?? '',
-                        $row['bodega'] ?? '',
-                        $row['cantidad'] ?? 0,
-                        $row['stock_minimo'] ?? 0,
-                        $row['unidad'] ?? '',
-                        $row['estado'] ?? '',
-                        $row['responsable'] ?? ''
-                    ]);
-                }
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        ]);
     }
 
     /**

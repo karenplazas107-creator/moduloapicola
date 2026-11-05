@@ -1,13 +1,32 @@
 let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
+    const MAPBOX_ACCESS_TOKEN = window.ApiariosConfig?.mapboxToken || 'pk.eyJ1Ijoia2FyZW5wbGF6YXMxMDciLCJhIjoiY213MHJxdG5jMDJmMzMwcHp6OTVjMjJ3dCJ9.WTvascS5RNXOfr2xgemF2A';
+    if (typeof mapboxgl !== 'undefined') {
+        mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+    }
+
     let modalMap = null;
     let modalMarker = null;
     let generalMap = null;
-    let generalMarkersLayer = null;
+    let generalMarkers = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         renderApiariosTable();
         updateMetricCards();
+
+        // Sincronizar inputs manuales de lat/lng con el mapa modal
+        const latInput = document.getElementById('modalApiarioLat');
+        const lngInput = document.getElementById('modalApiarioLng');
+        const onCoordManualChange = () => {
+            const lat = parseFloat(latInput.value);
+            const lng = parseFloat(lngInput.value);
+            if (!isNaN(lat) && !isNaN(lng) && modalMap && modalMarker) {
+                modalMarker.setLngLat([lng, lat]);
+                modalMap.flyTo({ center: [lng, lat], zoom: 14, speed: 1.2 });
+            }
+        };
+        if (latInput) latInput.addEventListener('change', onCoordManualChange);
+        if (lngInput) lngInput.addEventListener('change', onCoordManualChange);
     });
 
     function updateMetricCards() {
@@ -84,9 +103,10 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                         <button type="button" class="ap-action-btn view" onclick="openDetailModal(${item.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
                         <button type="button" class="ap-action-btn edit" onclick="openEditApiarioModal(${item.id})" title="Editar apiario"><i class="fas fa-pen-to-square"></i></button>
                         ${isActivo 
-                            ? `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444;" onclick="desactivarApiario(${item.id}, '${item.nombre}')" title="Desactivar apiario"><i class="fas fa-ban"></i></button>`
+                            ? `<button type="button" class="ap-action-btn deactivate" style="color: #f59e0b;" onclick="toggleApiarioStatus(${item.id})" title="Desactivar apiario"><i class="fas fa-ban"></i></button>`
                             : `<button type="button" class="ap-action-btn activate" style="color: #059669;" onclick="toggleApiarioStatus(${item.id})" title="Activar apiario"><i class="fas fa-circle-check"></i></button>`
                         }
+                        <button type="button" class="ap-action-btn delete" style="color: #ef4444;" onclick="eliminarApiario(${item.id}, '${item.nombre}')" title="Eliminar apiario"><i class="fas fa-trash-can"></i></button>
                     </div>
                 </td>
             `;
@@ -137,17 +157,65 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         const btnSave = document.getElementById('btnSaveApiario');
         if (btnSave) btnSave.textContent = 'Guardar apiario';
         document.getElementById('modalApiarioId').value = '';
-        document.getElementById('modalApiarioNombre').value = '';
-        document.getElementById('modalApiarioResp').value = '';
+        
+        const inputNombre = document.getElementById('modalApiarioNombre');
+        if (inputNombre) {
+            inputNombre.value = '';
+            inputNombre.style.borderColor = '#cbd5e1';
+        }
+        const errorNombre = document.getElementById('errorNumeroNombre');
+        if (errorNombre) errorNombre.style.display = 'none';
+
+        // Reset selector de responsable: solo SERGIO BARRERA y Añadir a otro
+        const selectResp = document.getElementById('modalApiarioRespSelect');
+        const hiddenResp = document.getElementById('modalApiarioResp');
+        const containerOtro = document.getElementById('containerOtroRespApiario');
+        const inputOtro = document.getElementById('modalApiarioOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroResp');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        if (selectResp) {
+            selectResp.innerHTML = `
+                <option value="" disabled selected>Selecciona un responsable...</option>
+                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+            `;
+            selectResp.value = '';
+        }
+        if (hiddenResp) hiddenResp.value = '';
+
         document.getElementById('modalApiarioColmenas').value = '0';
-        document.getElementById('modalApiarioLat').value = '';
-        document.getElementById('modalApiarioLng').value = '';
+
+        // Coordenadas iniciales por defecto (La Angostura, Campoalegre)
+        const defaultLat = 2.6857;
+        const defaultLng = -75.3241;
+        const inputLat = document.getElementById('modalApiarioLat');
+        const inputLng = document.getElementById('modalApiarioLng');
+        if (inputLat) {
+            inputLat.value = defaultLat.toFixed(6);
+            inputLat.style.borderColor = '#cbd5e1';
+        }
+        if (inputLng) {
+            inputLng.value = defaultLng.toFixed(6);
+            inputLng.style.borderColor = '#cbd5e1';
+        }
+        const errLat = document.getElementById('errorLatCoords');
+        const errLng = document.getElementById('errorLngCoords');
+        if (errLat) errLat.style.display = 'none';
+        if (errLng) errLng.style.display = 'none';
+
         setApiarioEstado('Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
 
         setTimeout(() => {
-            initModalMap(2.6857, -75.3241);
+            initModalMap(defaultLat, defaultLng);
         }, 200);
     }
 
@@ -163,11 +231,65 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         if (btnSave) btnSave.textContent = 'Actualizar apiario';
 
         document.getElementById('modalApiarioId').value = item.id;
-        document.getElementById('modalApiarioNombre').value = item.nombre || '';
-        document.getElementById('modalApiarioResp').value = item.responsable || '';
+        const inputNombre = document.getElementById('modalApiarioNombre');
+        if (inputNombre) {
+            inputNombre.value = item.nombre || '';
+            inputNombre.style.borderColor = '#cbd5e1';
+        }
+        const errorNombre = document.getElementById('errorNumeroNombre');
+        if (errorNombre) errorNombre.style.display = 'none';
+
+        // Asignar responsable en el selector o registrarlo si no existe
+        const selectResp = document.getElementById('modalApiarioRespSelect');
+        const hiddenResp = document.getElementById('modalApiarioResp');
+        const containerOtro = document.getElementById('containerOtroRespApiario');
+        const inputOtro = document.getElementById('modalApiarioOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroResp');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        const respVal = item.responsable || '';
+        if (hiddenResp) hiddenResp.value = respVal;
+
+        if (selectResp) {
+            selectResp.innerHTML = `
+                <option value="" disabled>Selecciona un responsable...</option>
+                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+            `;
+            if (respVal && respVal.toLowerCase() !== 'sergio barrera') {
+                const opt = new Option(respVal, respVal, true, true);
+                const otroOpt = Array.from(selectResp.options).find(o => o.value === '__otro__');
+                if (otroOpt) selectResp.insertBefore(opt, otroOpt);
+                else selectResp.appendChild(opt);
+            }
+            selectResp.value = respVal;
+        }
+
         document.getElementById('modalApiarioColmenas').value = item.colmenas || 0;
-        document.getElementById('modalApiarioLat').value = item.lat || 2.6857;
-        document.getElementById('modalApiarioLng').value = item.lng || -75.3241;
+        
+        const latVal = item.lat || 2.6857;
+        const lngVal = item.lng || -75.3241;
+        const editLatInput = document.getElementById('modalApiarioLat');
+        const editLngInput = document.getElementById('modalApiarioLng');
+        if (editLatInput) {
+            editLatInput.value = parseFloat(latVal).toFixed(6);
+            editLatInput.style.borderColor = '#cbd5e1';
+        }
+        if (editLngInput) {
+            editLngInput.value = parseFloat(lngVal).toFixed(6);
+            editLngInput.style.borderColor = '#cbd5e1';
+        }
+        const errEditLat = document.getElementById('errorLatCoords');
+        const errEditLng = document.getElementById('errorLngCoords');
+        if (errEditLat) errEditLat.style.display = 'none';
+        if (errEditLng) errEditLng.style.display = 'none';
+
         setApiarioEstado(item.estado || 'Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
@@ -175,6 +297,153 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         setTimeout(() => {
             initModalMap(item.lat || 2.6857, item.lng || -75.3241);
         }, 200);
+    }
+
+    function validarTextoSinNumeros(input, errorSpanId) {
+        const errorSpan = document.getElementById(errorSpanId);
+        if (/\d/.test(input.value)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            input.style.borderColor = '#dc2626';
+        } else {
+            if (errorSpan) errorSpan.style.display = 'none';
+            input.style.borderColor = '#cbd5e1';
+        }
+    }
+
+    function validarCoordenada(input, errorSpanId, min, max) {
+        const errorSpan = document.getElementById(errorSpanId);
+        const val = input.value.trim();
+
+        if (val === '') {
+            if (errorSpan) errorSpan.style.display = 'none';
+            input.style.borderColor = '#cbd5e1';
+            return false;
+        }
+
+        // Si contiene letras o caracteres prohibidos (solo números, signo - y .)
+        if (/[a-zA-Z]/.test(val) || !/^-?\d*(\.\d*)?$/.test(val)) {
+            if (errorSpan) {
+                errorSpan.innerHTML = '<i class="fas fa-circle-exclamation"></i> Coordenada inválida: no se permiten letras ni texto, solo números reales.';
+                errorSpan.style.display = 'block';
+            }
+            input.style.borderColor = '#dc2626';
+            return false;
+        }
+
+        if (val === '-' || val === '.') {
+            return false;
+        }
+
+        const num = parseFloat(val);
+        if (isNaN(num) || num < min || num > max) {
+            if (errorSpan) {
+                errorSpan.innerHTML = `<i class="fas fa-circle-exclamation"></i> Coordenada fuera de rango (${min} a ${max}).`;
+                errorSpan.style.display = 'block';
+            }
+            input.style.borderColor = '#dc2626';
+            return false;
+        }
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        input.style.borderColor = '#10b981';
+
+        // Sincronizar marcador en el mapa
+        const otherId = input.id === 'modalApiarioLat' ? 'modalApiarioLng' : 'modalApiarioLat';
+        const otherVal = parseFloat(document.getElementById(otherId)?.value);
+        if (!isNaN(otherVal) && modalMap && modalMarker) {
+            const targetLat = input.id === 'modalApiarioLat' ? num : otherVal;
+            const targetLng = input.id === 'modalApiarioLng' ? num : otherVal;
+            modalMarker.setLngLat([targetLng, targetLat]);
+            modalMap.flyTo({ center: [targetLng, targetLat], speed: 1.2 });
+        }
+
+        return true;
+    }
+
+    function handleApiarioRespSelect(val) {
+        const container = document.getElementById('containerOtroRespApiario');
+        const inputOtro = document.getElementById('modalApiarioOtroRespInput');
+        const hidden = document.getElementById('modalApiarioResp');
+        const errorSpan = document.getElementById('errorNumeroResp');
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (inputOtro) inputOtro.style.borderColor = '#cbd5e1';
+
+        if (val === '__otro__') {
+            if (container) container.style.display = 'block';
+            if (inputOtro) {
+                inputOtro.value = '';
+                inputOtro.focus();
+            }
+            if (hidden) hidden.value = '';
+        } else {
+            if (container) container.style.display = 'none';
+            if (hidden) hidden.value = val;
+        }
+    }
+
+    function confirmarOtroResponsableApiario() {
+        const inputOtro = document.getElementById('modalApiarioOtroRespInput');
+        const select = document.getElementById('modalApiarioRespSelect');
+        const hidden = document.getElementById('modalApiarioResp');
+        const container = document.getElementById('containerOtroRespApiario');
+        const errorSpan = document.getElementById('errorNumeroResp');
+
+        const nuevo = (inputOtro?.value || '').trim();
+        if (!nuevo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nombre requerido',
+                text: 'Por favor escribe el nombre del responsable para poder guardarlo.',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro?.focus();
+            return false;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE
+        if (/\d/.test(nuevo)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            Swal.fire({
+                icon: 'error',
+                title: 'Nombre inválido',
+                text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro.focus();
+            return false;
+        }
+
+        const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/;
+        if (!regexSoloLetras.test(nuevo) || nuevo.length < 3) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            Swal.fire({
+                icon: 'error',
+                title: 'Nombre inválido',
+                text: 'Por favor ingresa un nombre real de persona válido (solo letras).',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro.focus();
+            return false;
+        }
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        inputOtro.style.borderColor = '#10b981';
+
+        let existingOpt = Array.from(select.options).find(o => o.value.toLowerCase() === nuevo.toLowerCase());
+        if (!existingOpt) {
+            const opt = new Option(nuevo, nuevo, true, true);
+            const otroOpt = Array.from(select.options).find(o => o.value === '__otro__');
+            if (otroOpt) select.insertBefore(opt, otroOpt);
+            else select.appendChild(opt);
+        }
+
+        select.value = nuevo;
+        if (hidden) hidden.value = nuevo;
+        if (container) container.style.display = 'none';
+        return true;
     }
 
     function closeNewApiarioModal() {
@@ -185,32 +454,98 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         const container = document.getElementById('modalMapContainer');
         if (!container) return;
 
+        lat = parseFloat(lat) || 2.6857;
+        lng = parseFloat(lng) || -75.3241;
+
+        if (typeof mapboxgl === 'undefined') {
+            console.warn('Mapbox GL JS no está cargado todavía.');
+            return;
+        }
+
         if (!modalMap) {
-            modalMap = L.map('modalMapContainer', {
-                attributionControl: false
-            }).setView([lat, lng], 14);
+            modalMap = new mapboxgl.Map({
+                accessToken: MAPBOX_ACCESS_TOKEN,
+                container: 'modalMapContainer',
+                style: 'mapbox://styles/mapbox/standard',
+                center: [lng, lat],
+                zoom: 14
+            });
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(modalMap);
+            // Controles de navegación
+            modalMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
 
-            modalMarker = L.marker([lat, lng], { draggable: true }).addTo(modalMap);
+            // Marcador arrastrable en el mapa
+            modalMarker = new mapboxgl.Marker({
+                draggable: true,
+                color: '#059669'
+            })
+            .setLngLat([lng, lat])
+            .addTo(modalMap);
 
-            modalMarker.on('dragend', function (e) {
-                const pos = e.target.getLatLng();
-                document.getElementById('modalApiarioLat').value = pos.lat.toFixed(6);
-                document.getElementById('modalApiarioLng').value = pos.lng.toFixed(6);
+            function syncCoordinatesToInputs(pointLngLat) {
+                const inputL = document.getElementById('modalApiarioLat');
+                const inputG = document.getElementById('modalApiarioLng');
+                if (inputL) {
+                    inputL.value = pointLngLat.lat.toFixed(6);
+                    inputL.style.borderColor = '#10b981';
+                    const eL = document.getElementById('errorLatCoords');
+                    if (eL) eL.style.display = 'none';
+                }
+                if (inputG) {
+                    inputG.value = pointLngLat.lng.toFixed(6);
+                    inputG.style.borderColor = '#10b981';
+                    const eG = document.getElementById('errorLngCoords');
+                    if (eG) eG.style.display = 'none';
+                }
+            }
+
+            modalMarker.on('dragend', function () {
+                const lngLat = modalMarker.getLngLat();
+                syncCoordinatesToInputs(lngLat);
             });
 
             modalMap.on('click', function (e) {
-                modalMarker.setLatLng(e.latlng);
-                document.getElementById('modalApiarioLat').value = e.latlng.lat.toFixed(6);
-                document.getElementById('modalApiarioLng').value = e.latlng.lng.toFixed(6);
+                if (!modalMarker) {
+                    modalMarker = new mapboxgl.Marker({ draggable: true, color: '#059669' }).addTo(modalMap);
+                }
+                modalMarker.setLngLat(e.lngLat);
+                syncCoordinatesToInputs(e.lngLat);
+            });
+
+            modalMap.on('style.load', () => {
+                try {
+                    if (!modalMap.getSource('urban-areas')) {
+                        modalMap.addSource('urban-areas', {
+                            'type': 'geojson',
+                            'data': 'https://docs.mapbox.com/mapbox-gl-js/assets/ne_50m_urban_areas.geojson'
+                        });
+
+                        modalMap.addLayer({
+                            'id': 'urban-areas-fill',
+                            'type': 'fill',
+                            'slot': 'middle',
+                            'source': 'urban-areas',
+                            'layout': {},
+                            'paint': {
+                                'fill-color': '#f08',
+                                'fill-opacity': 0.4
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.warn('Error al cargar capa urban-areas:', err);
+                }
+            });
+
+            modalMap.on('load', () => {
+                modalMap.resize();
             });
         } else {
-            modalMap.invalidateSize();
-            modalMap.setView([lat, lng], 14);
-            modalMarker.setLatLng([lat, lng]);
+            modalMap.setCenter([lng, lat]);
+            modalMarker.setLngLat([lng, lat]);
+            setTimeout(() => {
+                modalMap.resize();
+            }, 100);
         }
     }
 
@@ -218,23 +553,210 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         e.preventDefault();
 
         const id = document.getElementById('modalApiarioId').value;
-        const nombre = document.getElementById('modalApiarioNombre').value.trim();
-        const responsable = document.getElementById('modalApiarioResp').value.trim();
-        const estado = document.getElementById('modalApiarioEstado').value;
-        const colmenas = parseInt(document.getElementById('modalApiarioColmenas').value) || 0;
-        const latVal = document.getElementById('modalApiarioLat').value.trim();
-        const lngVal = document.getElementById('modalApiarioLng').value.trim();
-        const lat = latVal !== '' ? parseFloat(latVal) : 2.6857;
-        const lng = lngVal !== '' ? parseFloat(lngVal) : -75.3241;
+        const inputNombre = document.getElementById('modalApiarioNombre');
+        const nombre = (inputNombre ? inputNombre.value : '').trim();
+        const errorNombre = document.getElementById('errorNumeroNombre');
 
+        // Validación estricta de Nombre
         if (!nombre) {
-            alert('Por favor ingrese el nombre del apiario.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nombre requerido',
+                text: 'Por favor ingresa el nombre del apiario.',
+                confirmButtonColor: '#286043'
+            });
+            if (inputNombre) inputNombre.focus();
             return;
         }
 
-        if (!responsable) {
-            alert('Por favor ingrese el nombre del responsable.');
-            document.getElementById('modalApiarioResp').focus();
+        if (/\d/.test(nombre)) {
+            if (errorNombre) errorNombre.style.display = 'block';
+            if (inputNombre) {
+                inputNombre.style.borderColor = '#dc2626';
+                inputNombre.focus();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Nombre inválido',
+                text: 'El nombre del apiario no puede contener números, solo letras o texto descriptivo.',
+                confirmButtonColor: '#286043'
+            });
+            return;
+        }
+
+        if (nombre.length < 3) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nombre muy corto',
+                text: 'El nombre del apiario debe tener al menos 3 caracteres.',
+                confirmButtonColor: '#286043'
+            });
+            if (inputNombre) inputNombre.focus();
+            return;
+        }
+
+        const selectResp = document.getElementById('modalApiarioRespSelect');
+        const inputOtro = document.getElementById('modalApiarioOtroRespInput');
+        const hiddenResp = document.getElementById('modalApiarioResp');
+        const errorResp = document.getElementById('errorNumeroResp');
+
+        if (!selectResp || !selectResp.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Responsable requerido',
+                text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar el apiario.',
+                confirmButtonColor: '#286043'
+            });
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        if (selectResp.value === '__otro__') {
+            const nuevo = (inputOtro?.value || '').trim();
+            if (!nuevo) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre requerido',
+                    text: 'Debes escribir el nombre del nuevo responsable para poder guardar el apiario.',
+                    confirmButtonColor: '#286043'
+                });
+                if (inputOtro) inputOtro.focus();
+                return;
+            }
+            const confirmOk = confirmarOtroResponsableApiario();
+            if (!confirmOk) {
+                return;
+            }
+        }
+
+        let responsable = (hiddenResp && hiddenResp.value ? hiddenResp.value : (selectResp && selectResp.value !== '__otro__' ? selectResp.value : '')).trim();
+
+        if (!responsable || responsable === '__otro__') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Responsable requerido',
+                text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar el apiario.',
+                confirmButtonColor: '#286043'
+            });
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE, SOLO NOMBRES REALES DE PERSONAS
+        if (/\d/.test(responsable)) {
+            if (errorResp) errorResp.style.display = 'block';
+            Swal.fire({
+                icon: 'error',
+                title: 'Responsable inválido',
+                text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                confirmButtonColor: '#286043'
+            });
+            if (inputOtro) {
+                inputOtro.style.borderColor = '#dc2626';
+                inputOtro.focus();
+            }
+            return;
+        }
+
+        const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/;
+        if (!regexSoloLetras.test(responsable) || responsable.length < 3) {
+            if (errorResp) errorResp.style.display = 'block';
+            Swal.fire({
+                icon: 'error',
+                title: 'Responsable inválido',
+                text: 'El responsable debe ser un nombre real de persona válido (solo letras, mínimo 3 caracteres).',
+                confirmButtonColor: '#286043'
+            });
+            if (inputOtro) {
+                inputOtro.style.borderColor = '#dc2626';
+                inputOtro.focus();
+            }
+            return;
+        }
+
+        const estado = document.getElementById('modalApiarioEstado').value;
+        const colmenas = parseInt(document.getElementById('modalApiarioColmenas').value) || 0;
+
+        const inputLat = document.getElementById('modalApiarioLat');
+        const inputLng = document.getElementById('modalApiarioLng');
+        const latVal = (inputLat ? inputLat.value : '').trim();
+        const lngVal = (inputLng ? inputLng.value : '').trim();
+
+        if (!latVal || !lngVal) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Coordenadas requeridas',
+                text: 'Haz clic en el mapa para marcar la ubicación geográfica del apiario.',
+                confirmButtonColor: '#286043'
+            });
+            return;
+        }
+
+        // Validación: NO LETRAS EN LATITUD NI LONGITUD
+        if (/[a-zA-Z]/.test(latVal)) {
+            const errLat = document.getElementById('errorLatCoords');
+            if (errLat) errLat.style.display = 'block';
+            if (inputLat) {
+                inputLat.style.borderColor = '#dc2626';
+                inputLat.focus();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Latitud inválida',
+                text: 'La latitud no puede contener letras ni texto, solo números reales (Ej: 2.685700).',
+                confirmButtonColor: '#286043'
+            });
+            return;
+        }
+
+        if (/[a-zA-Z]/.test(lngVal)) {
+            const errLng = document.getElementById('errorLngCoords');
+            if (errLng) errLng.style.display = 'block';
+            if (inputLng) {
+                inputLng.style.borderColor = '#dc2626';
+                inputLng.focus();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Longitud inválida',
+                text: 'La longitud no puede contener letras ni texto, solo números reales (Ej: -75.324100).',
+                confirmButtonColor: '#286043'
+            });
+            return;
+        }
+
+        const lat = parseFloat(latVal);
+        const lng = parseFloat(lngVal);
+
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+            const errLat = document.getElementById('errorLatCoords');
+            if (errLat) errLat.style.display = 'block';
+            if (inputLat) {
+                inputLat.style.borderColor = '#dc2626';
+                inputLat.focus();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Latitud fuera de rango',
+                text: 'La latitud debe ser un número real válido entre -90 y 90.',
+                confirmButtonColor: '#286043'
+            });
+            return;
+        }
+
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+            const errLng = document.getElementById('errorLngCoords');
+            if (errLng) errLng.style.display = 'block';
+            if (inputLng) {
+                inputLng.style.borderColor = '#dc2626';
+                inputLng.focus();
+            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Longitud fuera de rango',
+                text: 'La longitud debe ser un número real válido entre -180 y 180.',
+                confirmButtonColor: '#286043'
+            });
             return;
         }
 
@@ -339,10 +861,19 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         }
     }
 
-    async function desactivarApiario(id, nombre) {
-        if (!confirm(`¿Estás seguro de que deseas desactivar el apiario "${nombre}"?`)) {
-            return;
-        }
+    async function eliminarApiario(id, nombre) {
+        const result = await Swal.fire({
+            title: '¿Eliminar apiario?',
+            text: `¿Estás seguro de que deseas eliminar permanentemente el apiario "${nombre}"? Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!result.isConfirmed) return;
 
         const csrfToken = getCsrfToken();
         try {
@@ -357,21 +888,44 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                 body: JSON.stringify({ _token: csrfToken, _method: 'DELETE' })
             });
 
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(result.message || 'Error al desactivar el apiario.');
+            const resData = await response.json();
+            if (!response.ok || !resData.success) {
+                throw new Error(resData.message || 'Error al eliminar el apiario.');
             }
 
-            const item = apiariosList.find(a => a.id == id);
-            if (item) {
-                item.estado = 'Inactivo';
+            // Remover de la lista en memoria
+            const idx = apiariosList.findIndex(a => a.id == id);
+            if (idx !== -1) {
+                apiariosList.splice(idx, 1);
             }
-            showToast(result.message || `Apiario "${nombre}" desactivado con éxito.`);
+
+            if (resData.metrics) {
+                document.getElementById('metricTotalApiarios').textContent = resData.metrics.total ?? apiariosList.length;
+                document.getElementById('metricActivos').textContent = resData.metrics.activos ?? apiariosList.filter(a => a.estado === 'Activo').length;
+                document.getElementById('metricInactivos').textContent = resData.metrics.inactivos ?? apiariosList.filter(a => a.estado === 'Inactivo').length;
+                document.getElementById('metricColmenas').textContent = resData.metrics.colmenas ?? 0;
+                document.getElementById('apTotalCount').textContent = resData.metrics.total ?? apiariosList.length;
+            } else {
+                updateMetricCards();
+            }
+
             renderApiariosTable();
-            updateMetricCards();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Apiario eliminado',
+                text: resData.message || `El apiario "${nombre}" fue eliminado exitosamente.`,
+                confirmButtonColor: '#286043',
+                timer: 2000
+            });
         } catch (error) {
-            console.error('Error al desactivar apiario:', error);
-            alert('Error al desactivar el apiario: ' + error.message);
+            console.error('Error al eliminar apiario:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'No se pudo eliminar',
+                text: error.message,
+                confirmButtonColor: '#286043'
+            });
         }
     }
 
@@ -379,47 +933,113 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         document.getElementById('modalGeneralMapBackdrop').classList.add('is-open');
 
         setTimeout(() => {
-            if (!generalMap) {
-                generalMap = L.map('generalMapContainer', {
-                    attributionControl: false
-                }).setView([2.6857, -75.3241], 13);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19
-                }).addTo(generalMap);
-
-                generalMarkersLayer = L.layerGroup().addTo(generalMap);
-            } else {
-                generalMap.invalidateSize();
+            if (typeof mapboxgl === 'undefined') {
+                console.warn('Mapbox GL JS no está cargado.');
+                return;
             }
 
-            generalMarkersLayer.clearLayers();
+            const mapTarget = document.getElementById('map') || document.getElementById('generalMapContainer');
+            if (!mapTarget) return;
 
-            apiariosList.forEach(a => {
-                const isActivo = a.estado === 'Activo';
-                const markerColor = isActivo ? '#059669' : '#ef4444';
+            if (!generalMap) {
+                generalMap = new mapboxgl.Map({
+                    accessToken: MAPBOX_ACCESS_TOKEN,
+                    container: mapTarget,
+                    style: 'mapbox://styles/mapbox/standard',
+                    center: [-75.3241, 2.6857],
+                    zoom: 13
+                });
 
-                const popupContent = `
-                    <div style="font-family:Inter,sans-serif; min-width:180px;">
-                        <strong style="font-size:0.95rem; color:#0f172a; display:block; margin-bottom:4px;">${a.nombre}</strong>
-                        <div style="font-size:0.8rem; color:#475569; margin-bottom:4px;"><i class="fas fa-user"></i> ${a.responsable}</div>
-                        <div style="font-size:0.8rem; color:#475569; margin-bottom:6px;"><i class="fas fa-boxes-stacked"></i> <strong>${a.colmenas}</strong> colmenas</div>
-                        <span style="display:inline-block; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:12px; background:${isActivo ? '#ecfdf5' : '#fee2e2'}; color:${isActivo ? '#059669' : '#dc2626'};">
-                            ${a.estado}
-                        </span>
-                    </div>
-                `;
+                generalMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
+                generalMap.addControl(new mapboxgl.FullscreenControl(), 'top-left');
 
-                L.circleMarker([a.lat, a.lng], {
-                    radius: 9,
-                    fillColor: markerColor,
-                    color: '#ffffff',
-                    weight: 2.5,
-                    opacity: 1,
-                    fillOpacity: 0.95
-                }).bindPopup(popupContent).addTo(generalMarkersLayer);
-            });
-        }, 200);
+                generalMap.on('style.load', () => {
+                    // Capa estándar slot middle (tal cual el código oficial de Mapbox)
+                    try {
+                        if (!generalMap.getSource('urban-areas')) {
+                            generalMap.addSource('urban-areas', {
+                                'type': 'geojson',
+                                'data': 'https://docs.mapbox.com/mapbox-gl-js/assets/ne_50m_urban_areas.geojson'
+                            });
+                            generalMap.addLayer({
+                                'id': 'urban-areas-fill',
+                                'type': 'fill',
+                                'slot': 'middle',
+                                'source': 'urban-areas',
+                                'layout': {},
+                                'paint': {
+                                    'fill-color': '#f08',
+                                    'fill-opacity': 0.4
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Layer urban-areas info:', e);
+                    }
+
+                    renderGeneralMapMarkers();
+                });
+
+                generalMap.on('load', () => {
+                    generalMap.resize();
+                });
+            } else {
+                generalMap.resize();
+                renderGeneralMapMarkers();
+            }
+        }, 250);
+    }
+
+    function renderGeneralMapMarkers() {
+        if (generalMarkers && generalMarkers.length > 0) {
+            generalMarkers.forEach(m => m.remove());
+            generalMarkers = [];
+        }
+
+        if (!generalMap || !apiariosList || apiariosList.length === 0) return;
+
+        const bounds = new mapboxgl.LngLatBounds();
+        let validCoords = 0;
+
+        apiariosList.forEach(a => {
+            const lat = parseFloat(a.lat);
+            const lng = parseFloat(a.lng);
+            if (isNaN(lat) || isNaN(lng)) return;
+
+            validCoords++;
+            bounds.extend([lng, lat]);
+
+            const isActivo = a.estado === 'Activo';
+            const markerColor = isActivo ? '#059669' : '#ef4444';
+
+            const popupContent = `
+                <div style="font-family:'Nunito','Open Sans',sans-serif; min-width:180px; padding:4px;">
+                    <strong style="font-size:0.95rem; color:#0f172a; display:block; margin-bottom:4px; font-weight:800;">${a.nombre}</strong>
+                    <div style="font-size:0.80rem; color:#475569; margin-bottom:3px;"><i class="fas fa-user" style="color:#059669; margin-right:4px;"></i> ${a.responsable}</div>
+                    <div style="font-size:0.80rem; color:#475569; margin-bottom:6px;"><i class="fas fa-boxes-stacked" style="color:#059669; margin-right:4px;"></i> <strong>${a.colmenas}</strong> colmenas</div>
+                    <span style="display:inline-block; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:12px; background:${isActivo ? '#ecfdf5' : '#fee2e2'}; color:${isActivo ? '#059669' : '#dc2626'};">
+                        ${a.estado}
+                    </span>
+                </div>
+            `;
+
+            const popup = new mapboxgl.Popup({ offset: 25, closeButton: true }).setHTML(popupContent);
+
+            const marker = new mapboxgl.Marker({ color: markerColor })
+                .setLngLat([lng, lat])
+                .setPopup(popup)
+                .addTo(generalMap);
+
+            generalMarkers.push(marker);
+        });
+
+        if (validCoords > 1) {
+            generalMap.fitBounds(bounds, { padding: 60, maxZoom: 15 });
+        } else if (validCoords === 1) {
+            const first = apiariosList[0];
+            generalMap.setCenter([parseFloat(first.lng), parseFloat(first.lat)]);
+            generalMap.setZoom(14);
+        }
     }
 
     function closeGeneralMapModal() {
@@ -460,9 +1080,13 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     window.setApiarioEstado = setApiarioEstado;
     window.filterApiarios = filterApiarios;
     window.toggleApiarioStatus = toggleApiarioStatus;
-    window.desactivarApiario = desactivarApiario;
+    window.eliminarApiario = eliminarApiario;
     window.openGeneralMapModal = openGeneralMapModal;
     window.closeGeneralMapModal = closeGeneralMapModal;
     window.openDetailModal = openDetailModal;
     window.closeDetailModal = closeDetailModal;
+    window.handleApiarioRespSelect = handleApiarioRespSelect;
+    window.confirmarOtroResponsableApiario = confirmarOtroResponsableApiario;
+    window.validarTextoSinNumeros = validarTextoSinNumeros;
+    window.validarCoordenada = validarCoordenada;
 

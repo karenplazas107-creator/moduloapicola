@@ -18,7 +18,7 @@
     <div class="ap-hero-card">
         <div class="ap-hero-left">
             <div class="ap-hero-mascot-box">
-                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}" alt="Mascota Apícola">
+                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}?v={{ time() }}" alt="Mascota Apícola">
             </div>
             <div class="ap-hero-texts">
                 <h1>¡Hola, {{ Auth::user()?->person?->first_name ?? (Auth::user()?->name ?? 'Karen Michelle') }}!</h1>

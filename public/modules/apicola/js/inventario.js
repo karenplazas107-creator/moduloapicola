@@ -116,9 +116,39 @@
         document.getElementById('cardAlertaStock').textContent = alertaStock;
     }
 
+    // ==================== VALIDACIONES SIN NÚMEROS ====================
+    function validarTextoSinNumerosInventario(input, errorSpanId, customMsg) {
+        if (!input) return true;
+        const errorSpan = errorSpanId ? document.getElementById(errorSpanId) : null;
+        const val = input.value || '';
+        const tieneNumeros = /\d/.test(val);
+
+        if (tieneNumeros) {
+            input.style.borderColor = '#dc2626';
+            input.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
+            if (errorSpan) {
+                errorSpan.style.display = 'block';
+                if (customMsg) {
+                    errorSpan.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${customMsg}`;
+                }
+            }
+            return false;
+        } else {
+            input.style.borderColor = '';
+            input.style.boxShadow = '';
+            if (errorSpan) {
+                errorSpan.style.display = 'none';
+            }
+            return true;
+        }
+    }
+    window.validarTextoSinNumerosInventario = validarTextoSinNumerosInventario;
+
     // ==================== MODAL: AGREGAR AL INVENTARIO ====================
     function abrirModalAgregar() {
         document.getElementById('formAgregarInventario').reset();
+        validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevo'), 'errorNombreElemento');
+        validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevaBodega'), 'errorNombreNuevaBodega');
         seleccionarTipo('Herramienta');
         document.getElementById('selectElemento').value = 'Traje apícola';
         toggleRegistrarNuevo('Traje apícola');
@@ -192,10 +222,32 @@
         const isNuevaBodega = (bodegaSelect === '__nueva__');
         const nombreNuevaBodega = document.getElementById('inputNombreNuevaBodega') ? document.getElementById('inputNombreNuevaBodega').value.trim() : '';
         
-        if (isNuevaBodega && !nombreNuevaBodega) {
-            alert('Por favor ingrese el nombre de la nueva bodega.');
-            document.getElementById('inputNombreNuevaBodega').focus();
-            return;
+        if (isNuevo) {
+            if (!nombreNuevo) {
+                alert('Por favor ingrese el nombre del nuevo elemento.');
+                document.getElementById('inputNombreNuevo').focus();
+                return;
+            }
+            if (/\d/.test(nombreNuevo)) {
+                validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevo'), 'errorNombreElemento');
+                alert('Error: El nombre del elemento no puede contener números, solo letras.');
+                document.getElementById('inputNombreNuevo').focus();
+                return;
+            }
+        }
+
+        if (isNuevaBodega) {
+            if (!nombreNuevaBodega) {
+                alert('Por favor ingrese el nombre de la nueva bodega.');
+                document.getElementById('inputNombreNuevaBodega').focus();
+                return;
+            }
+            if (/\d/.test(nombreNuevaBodega)) {
+                validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevaBodega'), 'errorNombreNuevaBodega');
+                alert('Error: El nombre de la bodega no puede contener números, solo letras.');
+                document.getElementById('inputNombreNuevaBodega').focus();
+                return;
+            }
         }
 
         const bodega = isNuevaBodega ? nombreNuevaBodega : bodegaSelect;
@@ -290,6 +342,9 @@
         const item = inventarioData.find(i => i.id === id);
         if (!item) return;
 
+        validarTextoSinNumerosInventario(document.getElementById('editNombre'), 'errorEditNombre');
+        validarTextoSinNumerosInventario(document.getElementById('editNombreNuevaBodega'), 'errorEditNombreBodega');
+
         document.getElementById('editItemId').value = item.id;
         document.getElementById('editCodigoBadge').textContent = item.codigo || 'INV-000';
         document.getElementById('editNombre').value = item.nombre || '';
@@ -358,10 +413,31 @@
         const isNuevaBodega = (selectBodega === '__nueva__');
         const nombreNuevaBodega = document.getElementById('editNombreNuevaBodega') ? document.getElementById('editNombreNuevaBodega').value.trim() : '';
 
-        if (isNuevaBodega && !nombreNuevaBodega) {
-            alert('Por favor ingrese el nombre de la nueva bodega.');
-            document.getElementById('editNombreNuevaBodega').focus();
+        if (!nombre) {
+            alert('Por favor ingrese el nombre del elemento.');
+            document.getElementById('editNombre').focus();
             return;
+        }
+
+        if (/\d/.test(nombre)) {
+            validarTextoSinNumerosInventario(document.getElementById('editNombre'), 'errorEditNombre');
+            alert('Error: El nombre del elemento no puede contener números, solo letras.');
+            document.getElementById('editNombre').focus();
+            return;
+        }
+
+        if (isNuevaBodega) {
+            if (!nombreNuevaBodega) {
+                alert('Por favor ingrese el nombre de la nueva bodega.');
+                document.getElementById('editNombreNuevaBodega').focus();
+                return;
+            }
+            if (/\d/.test(nombreNuevaBodega)) {
+                validarTextoSinNumerosInventario(document.getElementById('editNombreNuevaBodega'), 'errorEditNombreBodega');
+                alert('Error: El nombre de la bodega no puede contener números, solo letras.');
+                document.getElementById('editNombreNuevaBodega').focus();
+                return;
+            }
         }
 
         const bodega = isNuevaBodega ? nombreNuevaBodega : selectBodega;

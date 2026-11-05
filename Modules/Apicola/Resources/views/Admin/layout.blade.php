@@ -5,17 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Panel de Administración • SENA APÍCOLA')</title>
-    <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}">
 
-    <!-- Google Fonts: Caveat (Slogan artesanal) + Outfit + Plus Jakarta Sans + Inter -->
+    <!-- Google Fonts: Nunito + Open Sans (Tipografía oficial ERP SENA Empresa) + Caveat -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <!-- Leaflet CSS (Mapas interactivos de apiarios) -->
+    <!-- Mapbox GL CSS & JS (Mapas satelitales e interactivos de apiarios) -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.33.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.33.0/mapbox-gl.js"></script>
+
+    <!-- Leaflet CSS (Compatibilidad) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <link rel="stylesheet" href="{{ asset('modules/apicola/css/layout.css') }}">
@@ -30,10 +34,10 @@
         <!-- Encabezado del Logo SENA APÍCOLA -->
         <div class="ap-sidebar-header" style="gap: 14px; padding: 1.35rem 1.25rem;">
             <div class="ap-logo-hex" style="border-radius: 14px; border: 2px solid #fbbf24; background: #ffffff;">
-                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}" 
+                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}?v={{ time() }}" 
                      alt="SENA Apícola" 
                      class="ap-logo-img"
-                     onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}';">
+                     onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}';">
             </div>
             <div class="ap-brand-info">
                 <div class="ap-brand-title" style="font-size: 1.18rem; font-weight: 800; letter-spacing: -0.3px;">
@@ -158,26 +162,6 @@
                 <i class="fas fa-feather-pointed"></i>
             </div>
         </div>
-
-        <!-- Pie de Usuario (Conectado al fondo) -->
-        <div class="ap-sidebar-user">
-            <div class="ap-user-left">
-                <div class="ap-avatar-circle">
-                    {{ Auth::user()?->initials ?? strtoupper(substr(Auth::user()?->nickname ?? 'A', 0, 2)) }}
-                </div>
-                <div class="ap-user-details">
-                    <div class="ap-user-title" title="{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador') }}">
-                        {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Karen Michelle Plazas') }}
-                    </div>
-                    <div class="ap-user-sub">
-                        <i class="fas fa-shield-alt" style="color: #34d399;"></i> {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}
-                    </div>
-                </div>
-            </div>
-            <a href="{{ route('logout', ['redirect' => route('apicola.welcome')]) }}" class="ap-btn-exit" title="Cerrar sesión">
-                <i class="fas fa-arrow-right-from-bracket"></i>
-            </a>
-        </div>
     </aside>
 
     <!-- ================= CONTENIDO PRINCIPAL ================= -->
@@ -186,21 +170,41 @@
         <!-- Barra Superior ApiGestión -->
         <header class="ap-top-nav" style="justify-content: flex-end;">
 
-            <div class="ap-top-right" style="gap: 1.15rem;">
-                <!-- Perfil del Administrador -->
-                <div class="ap-nav-profile-pill" title="Cuenta activa">
-                    <div class="ap-nav-profile-avatar">
-                        <i class="fas fa-user-tie"></i>
+            <div class="ap-top-right">
+                <!-- Perfil del Administrador con Dropdown -->
+                <div class="ap-profile-dropdown-wrapper">
+                    <div class="ap-nav-profile-pill" id="apProfileToggle" onclick="toggleProfileDropdown(event)" title="Cuenta de usuario" role="button" tabindex="0">
+                        <div class="ap-nav-profile-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="ap-nav-profile-meta">
+                            <span class="ap-nav-profile-name">
+                                {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}
+                            </span>
+                            <span class="ap-nav-profile-role">
+                                {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}
+                            </span>
+                        </div>
+                        <i class="fas fa-chevron-down ap-profile-chevron" id="apProfileChevron"></i>
                     </div>
-                    <div class="ap-nav-profile-meta">
-                        <span class="ap-nav-profile-name">
-                            {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Karen Michelle Plazas') }}
-                        </span>
-                        <span class="ap-nav-profile-role">
-                            {{ Auth::user()?->primary_role ?? 'Administrador' }}
-                        </span>
+
+                    <!-- Menú Desplegable de Usuario -->
+                    <div class="ap-profile-dropdown-menu" id="apProfileMenu">
+                        <div class="ap-dropdown-header">
+                            <div class="ap-dropdown-avatar">
+                                {{ Auth::user()?->initials ?? strtoupper(substr(Auth::user()?->nickname ?? 'SB', 0, 2)) }}
+                            </div>
+                            <div class="ap-dropdown-user-info">
+                                <div class="ap-dropdown-user-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}</div>
+                                <div class="ap-dropdown-user-role"><i class="fas fa-shield-alt" style="color: #10b981;"></i> {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}</div>
+                            </div>
+                        </div>
+                        <div class="ap-dropdown-divider"></div>
+                        <a href="{{ route('logout', ['redirect' => route('apicola.welcome')]) }}" class="ap-dropdown-item logout-action">
+                            <i class="fas fa-arrow-right-from-bracket"></i>
+                            <span>Cerrar sesión</span>
+                        </a>
                     </div>
-                    <i class="fas fa-chevron-down" style="font-size: 0.72rem; color: #94a3b8; margin-left: 2px;"></i>
                 </div>
             </div>
         </header>

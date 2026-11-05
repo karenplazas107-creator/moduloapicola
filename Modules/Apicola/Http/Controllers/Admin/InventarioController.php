@@ -112,11 +112,24 @@ class InventarioController extends Controller
             $bodega = 'Bodega central';
         }
 
+        if (($bodegaRaw === '__nueva__' || $request->filled('nombre_nueva_bodega')) && preg_match('/\d/', $bodega)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bodega inválida: no se permiten números, solo letras.',
+            ], 422);
+        }
+
         // Determinar nombre y unidad de medida
         $isNuevo = $request->input('elemento') === '__nuevo__' || $request->filled('nombre_nuevo');
         if ($isNuevo) {
             $nombre = trim($request->input('nombre_nuevo'));
             $unidadMedida = trim($request->input('unidad_medida', 'unidad'));
+            if (preg_match('/\d/', $nombre)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nombre inválido: no se permiten números, solo letras.',
+                ], 422);
+            }
         } else {
             $nombre = trim($request->input('elemento'));
             // Intentar buscar la unidad de medida si ya existe un elemento con el mismo nombre
@@ -209,15 +222,18 @@ class InventarioController extends Controller
         $item = Inventario::findOrFail($id);
 
         $validated = $request->validate([
-            'nombre' => 'required|string|max:150',
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[^\d]+$/'],
             'categoria' => 'required|string|max:100',
             'bodega' => 'nullable|string|max:150',
-            'nombre_nueva_bodega' => 'nullable|string|max:150',
+            'nombre_nueva_bodega' => ['nullable', 'string', 'max:150', 'regex:/^[^\d]*$/'],
             'unidad_medida' => 'nullable|string|max:50',
             'cantidad' => 'nullable|integer|min:0',
             'stock_minimo' => 'required|integer|min:0',
             'estado' => 'nullable|in:Activo,Inactivo',
             'notas' => 'nullable|string',
+        ], [
+            'nombre.regex' => 'Nombre inválido: no se permiten números, solo letras.',
+            'nombre_nueva_bodega.regex' => 'Bodega inválida: no se permiten números, solo letras.',
         ]);
 
         if (($request->input('bodega') === '__nueva__' || $request->filled('nombre_nueva_bodega')) && $request->filled('nombre_nueva_bodega')) {
@@ -425,6 +441,22 @@ class InventarioController extends Controller
         $bodega = $validated['bodega'];
         $fecha = Carbon::parse($validated['fecha']);
         $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Karen Michelle Plazas Rojas';
+
+        if (preg_match('/\d/', $bodega)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bodega inválida: no se permiten números, solo letras.',
+            ], 422);
+        }
+
+        foreach ($validated['productos'] as $prod) {
+            if (empty($prod['inventario_id']) && preg_match('/\d/', $prod['nombre'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Nombre inválido para el nuevo producto '{$prod['nombre']}': no se permiten números, solo letras.",
+                ], 422);
+            }
+        }
 
         // Validar existencias si es Salida
         if ($tipo === 'Salida') {

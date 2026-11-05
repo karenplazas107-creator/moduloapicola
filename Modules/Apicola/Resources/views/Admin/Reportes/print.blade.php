@@ -37,10 +37,10 @@
         <!-- 1. Encabezado Oficial -->
         <header class="rep-header">
             <div class="rep-header-left">
-                <img src="{{ asset('modules/apicola/img/logo.png') }}" 
+                <img src="{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}" 
                      alt="SENA Logo" 
                      class="rep-logo"
-                     onerror="this.onerror=null; this.src='{{ asset('apicola-assets/assets/img/logo-apicola-bee-original.png') }}';">
+                     onerror="this.onerror=null; this.src='{{ asset('apicola-assets/assets/img/logo-apicola-bee-original.png') }}?v={{ time() }}';">
                 <div>
                     <div class="rep-inst-sena">Servicio Nacional de Aprendizaje • SENA</div>
                     <div class="rep-inst-cefa">Centro de Formación Agroindustrial La Angostura</div>

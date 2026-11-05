@@ -19,7 +19,12 @@ class InspeccionController extends Controller
         $firstCode = $colmenas->first() ? ($colmenas->first()->code ?? $colmenas->first()->codigo ?? '') : '';
         $selectedColmena = $request->get('colmena', $firstCode);
         $visitasInit = $this->getVisitasFromDb();
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit'));
+
+        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
+        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
+        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles'));
     }
 
     /**
@@ -30,7 +35,12 @@ class InspeccionController extends Controller
         $colmenas = Colmena::orderBy('code', 'asc')->get();
         $selectedColmena = $code;
         $visitasInit = $this->getVisitasFromDb();
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit'));
+
+        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
+        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
+        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles'));
     }
 
     /**
@@ -101,7 +111,7 @@ class InspeccionController extends Controller
             'registration_number' => 'required|string|max:50',
             'colmena_code' => 'required|string|max:50',
             'date' => 'required|date',
-            'responsable' => 'required|string|max:150',
+            'responsable' => ['required', 'string', 'max:150', 'regex:/^[^\d]+$/'],
             'general_state' => 'required|in:Bueno,Regular,Malo',
             'honey_presence' => 'required|in:Bueno,Regular,Malo',
             'harvested_honey_kg' => 'nullable|numeric|min:0',
@@ -110,8 +120,11 @@ class InspeccionController extends Controller
             'queen_color' => 'nullable|string|max:50',
             'diseases' => 'nullable|array',
             'tasks' => 'nullable|array',
-            'feed_supplied' => 'nullable|string|max:150',
+            'feed_supplied' => ['nullable', 'string', 'max:150', 'regex:/^[^\d]*$/'],
             'notes' => 'nullable|string',
+        ], [
+            'responsable.regex' => 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+            'feed_supplied.regex' => 'No se permiten números en la alimentación suministrada. Solo se permiten letras.',
         ]);
 
         $user = auth()->user();

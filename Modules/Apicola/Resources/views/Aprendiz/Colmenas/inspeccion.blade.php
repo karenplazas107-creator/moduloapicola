@@ -84,8 +84,8 @@
         <!-- Fila de Controles: Filtro de fechas y Botón + Registrar visita -->
         <div class="ap-controls-bar" style="margin-top: 1rem;">
             <div class="ap-controls-left">
-                <input type="text" id="filterFechaInicio" class="ap-date-input" value="" placeholder="DD/MM/AAAA">
-                <input type="text" id="filterFechaFin" class="ap-date-input" value="" placeholder="DD/MM/AAAA">
+                <input type="date" id="filterFechaInicio" class="ap-date-input" value="" title="Fecha inicial" onclick="try{this.showPicker()}catch(e){}" style="cursor: pointer;">
+                <input type="date" id="filterFechaFin" class="ap-date-input" value="" title="Fecha final" onclick="try{this.showPicker()}catch(e){}" style="cursor: pointer;">
                 <button type="button" class="ap-btn-outline-green" onclick="filterVisitas()">
                     Filtrar
                 </button>
@@ -152,7 +152,7 @@
                     <div class="ap-coords-row cols-3" style="margin-bottom: 1.25rem;">
                         <div>
                             <label class="ap-field-label" for="modalVisitaFecha">FECHA</label>
-                            <input type="text" id="modalVisitaFecha" class="ap-field-input" placeholder="DD/MM/AAAA" value="" required>
+                            <input type="date" id="modalVisitaFecha" class="ap-field-input" value="" required onclick="try{this.showPicker()}catch(e){}" style="cursor: pointer;">
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalVisitaColmena">COLMENA</label>
@@ -160,7 +160,7 @@
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalVisitaResponsable">RESPONSABLE</label>
-                            <input type="text" id="modalVisitaResponsable" class="ap-field-input" placeholder="Escribe el nombre del responsable..." value="{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz') }}" required>
+                            <input type="text" id="modalVisitaResponsable" class="ap-field-input" value="{{ $aprendizNombre ?? (Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz')) }}" readonly style="background-color: #f8fafc; cursor: not-allowed; font-weight: 700; color: #047857;" title="Asignado automáticamente al aprendiz que realiza el registro" required>
                         </div>
                     </div>
 
@@ -221,62 +221,73 @@
                         <div id="wrapperColorMarcaOtro" style="display: none; margin-top: 0.6rem;">
                             <label class="ap-field-label" style="font-size: 0.78rem; color: #047857; margin-bottom: 4px;">ESPECIFICAR OTRO COLOR DE LA REINA</label>
                             <div style="display: flex; gap: 8px;">
-                                <input type="text" id="modalVisitaColorMarcaOtro" class="ap-field-input" placeholder="Ej: Naranja, Plateado, Rosado..." maxlength="50" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarColorMarcaCustom();}">
+                                <input type="text" id="modalVisitaColorMarcaOtro" class="ap-field-input" placeholder="Ej: Naranja, Plateado, Rosado..." maxlength="50" oninput="validarTextoSinNumerosVisita(this, 'errorColorMarcaOtroAprendiz')" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarColorMarcaCustom();}">
                                 <button type="button" class="ap-btn-add-mini" onclick="agregarColorMarcaCustom()" title="Agregar color">
                                     <i class="fas fa-plus"></i> Agregar
                                 </button>
                             </div>
+                            <span id="errorColorMarcaOtroAprendiz" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                <i class="fas fa-circle-exclamation"></i> Color inválido: no se permiten números, solo letras.
+                            </span>
                         </div>
                     </div>
 
                     <!-- Sección: Enfermedades Detectadas -->
-                    <div class="ap-form-section-title">ENFERMEDADES DETECTADAS</div>
+                    <div class="ap-form-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>ENFERMEDADES DETECTADAS</span>
+                        <span style="font-size: 0.72rem; color: #64748b; font-weight: normal; text-transform: none;">Marque las detectadas o registre otra</span>
+                    </div>
+
                     <div class="ap-checkbox-card-group" id="containerEnfermedades" style="margin-bottom: 0.5rem;">
-                        <label class="ap-checkbox-card" id="lblEnfVarroa">
-                            <input type="checkbox" name="enfermedades" value="Varroa" onchange="toggleCheckboxCard(this, 'lblEnfVarroa')">
-                            <span>Varroa</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfLoqueAm">
-                            <input type="checkbox" name="enfermedades" value="Loque americana" onchange="toggleCheckboxCard(this, 'lblEnfLoqueAm')">
-                            <span>Loque americana</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfLoqueEu">
-                            <input type="checkbox" name="enfermedades" value="Loque europea" onchange="toggleCheckboxCard(this, 'lblEnfLoqueEu')">
-                            <span>Loque europea</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfAbejasNegras">
-                            <input type="checkbox" name="enfermedades" value="Abejas negras" onchange="toggleCheckboxCard(this, 'lblEnfAbejasNegras')">
-                            <span>Abejas negras</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfEnvenenadas">
-                            <input type="checkbox" name="enfermedades" value="Envenenadas" onchange="toggleCheckboxCard(this, 'lblEnfEnvenenadas')">
-                            <span>Envenenadas</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfHormiga">
-                            <input type="checkbox" name="enfermedades" value="Hormiga" onchange="toggleCheckboxCard(this, 'lblEnfHormiga')">
-                            <span>Hormiga</span>
-                        </label>
-                        <label class="ap-checkbox-card" id="lblEnfOtra">
-                            <input type="checkbox" id="chkEnfOtra" onchange="toggleEnfermedadOtra(this)">
-                            <span>Otra</span>
+                        @php
+                            $enfermedadesList = isset($enfermedadesDisponibles) && count($enfermedadesDisponibles) > 0 
+                                ? $enfermedadesDisponibles 
+                                : ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
+                        @endphp
+
+                        @foreach($enfermedadesList as $enf)
+                            @php
+                                $enfId = 'lblEnf_' . \Illuminate\Support\Str::slug($enf, '_');
+                            @endphp
+                            <label class="ap-checkbox-card" id="{{ $enfId }}">
+                                <input type="checkbox" name="enfermedades" value="{{ $enf }}" onchange="toggleCheckboxCard(this, '{{ $enfId }}')">
+                                <span>{{ $enf }}</span>
+                            </label>
+                        @endforeach
+
+                        <!-- Botón para registrar otra enfermedad -->
+                        <label class="ap-checkbox-card" id="lblEnfOtra" onclick="toggleSeccionNuevaEnfermedad(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
+                            <span>➕ Otra / Registrar...</span>
                         </label>
                     </div>
 
-                    <div id="wrapperEnfOtraInput" style="display: none; margin-top: 0.5rem; margin-bottom: 0.6rem;">
-                        <label class="ap-field-label" style="font-size: 0.78rem; color: #047857; margin-bottom: 4px;">ESPECIFICAR OTRA ENFERMEDAD</label>
-                        <input type="text" id="modalVisitaEnfOtraTexto" class="ap-field-input" placeholder="Nombre de la enfermedad detectada..." maxlength="100">
+                    <!-- Contenedor desplegable para registrar una nueva enfermedad (Estilo Color / Tipo de abeja) -->
+                    <div id="containerNuevaEnfermedad" style="display: none; margin-top: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 12px; border-radius: 12px; border: 1.5px solid #bbf7d0;">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #166534; margin-bottom: 5px; text-transform: uppercase;">
+                            <i class="fas fa-virus"></i> Nombre de la nueva enfermedad:
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="inputNuevaEnfermedadTexto" class="ap-field-input" placeholder="Ej: Nosema, Polilla de la cera, Micosis..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.88rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosVisita(this, 'errorNuevaEnfermedadAprendiz')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaEnfermedad();}">
+                            <button type="button" onclick="confirmarNuevaEnfermedad()" style="background: #047857; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.84rem; font-weight: 800; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-plus"></i> Agregar
+                            </button>
+                        </div>
+                        <span id="errorNuevaEnfermedadAprendiz" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                            <i class="fas fa-circle-exclamation"></i> Enfermedad inválida: no se permiten números, solo letras.
+                        </span>
+                        <span style="display: block; font-size: 0.72rem; color: #15803d; margin-top: 5px;">
+                            Quedará marcada en esta visita y guardada para futuras inspecciones.
+                        </span>
                     </div>
 
-                    <div class="ap-add-item-row" style="display: flex; gap: 8px; margin-top: 0.5rem; margin-bottom: 0.4rem;">
-                        <input type="text" id="txtNuevaEnfermedad" class="ap-field-input" placeholder="Agregar otra enfermedad..." style="padding: 7px 12px; font-size: 0.85rem;" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarNuevaEnfermedad();}">
-                        <button type="button" class="ap-btn-add-mini" onclick="agregarNuevaEnfermedad()">
-                            <i class="fas fa-plus"></i> Agregar
-                        </button>
-                    </div>
-                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó algo. Puede dejarlo vacío o agregar otra enfermedad.</p>
+                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó algo. Puede dejarlo vacío o registrar otra enfermedad.</p>
 
                     <!-- Sección: Labores Realizadas -->
-                    <div class="ap-form-section-title">LABORES REALIZADAS</div>
+                    <div class="ap-form-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span>LABORES REALIZADAS</span>
+                        <span style="font-size: 0.72rem; color: #64748b; font-weight: normal; text-transform: none;">Marque las realizadas o registre otra</span>
+                    </div>
+
                     <div class="ap-checkbox-card-group" id="containerLabores" style="margin-bottom: 0.5rem;">
                         <label class="ap-checkbox-card" id="lblLabCera">
                             <input type="checkbox" name="labores" value="Aplicación de cera" onchange="toggleCheckboxCard(this, 'lblLabCera')">
@@ -298,27 +309,40 @@
                             <input type="checkbox" name="labores" value="Limpieza" onchange="toggleCheckboxCard(this, 'lblLabLimpieza')">
                             <span>Limpieza</span>
                         </label>
-                        <label class="ap-checkbox-card" id="lblLabOtra">
-                            <input type="checkbox" id="chkLabOtra" onchange="toggleLaborOtra(this)">
-                            <span>Otra</span>
+
+                        <!-- Botón para registrar otra labor (Idéntico a Enfermedades) -->
+                        <label class="ap-checkbox-card" id="lblLabOtra" onclick="toggleSeccionNuevaLabor(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
+                            <span>➕ Otra / Registrar...</span>
                         </label>
                     </div>
 
-                    <div id="wrapperLabOtraInput" style="display: none; margin-top: 0.5rem; margin-bottom: 0.6rem;">
-                        <label class="ap-field-label" style="font-size: 0.78rem; color: #047857; margin-bottom: 4px;">ESPECIFICAR OTRA LABOR</label>
-                        <input type="text" id="modalVisitaLabOtraTexto" class="ap-field-input" placeholder="Nombre de la labor realizada..." maxlength="100">
+                    <!-- Contenedor desplegable para registrar una nueva labor (Estilo idéntico a Nueva Enfermedad) -->
+                    <div id="containerNuevaLabor" style="display: none; margin-top: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 12px; border-radius: 12px; border: 1.5px solid #bbf7d0;">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #166534; margin-bottom: 5px; text-transform: uppercase;">
+                            <i class="fas fa-tools"></i> Nombre de la nueva labor:
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="inputNuevaLaborTexto" class="ap-field-input" placeholder="Ej: Cosecha, Ahumado, Mantenimiento..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.88rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosVisita(this, 'errorNuevaLaborAprendiz')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaLabor();}">
+                            <button type="button" onclick="confirmarNuevaLabor()" style="background: #047857; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.84rem; font-weight: 800; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-plus"></i> Agregar
+                            </button>
+                        </div>
+                        <span id="errorNuevaLaborAprendiz" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                            <i class="fas fa-circle-exclamation"></i> Labor inválida: no se permiten números, solo letras.
+                        </span>
+                        <span style="display: block; font-size: 0.72rem; color: #15803d; margin-top: 5px;">
+                            Quedará marcada en esta visita y guardada para futuras inspecciones.
+                        </span>
                     </div>
 
-                    <div class="ap-add-item-row" style="display: flex; gap: 8px; margin-top: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="txtNuevaLabor" class="ap-field-input" placeholder="Agregar otra labor..." style="padding: 7px 12px; font-size: 0.85rem;" onkeydown="if(event.key==='Enter'){event.preventDefault(); agregarNuevaLabor();}">
-                        <button type="button" class="ap-btn-add-mini" onclick="agregarNuevaLabor()">
-                            <i class="fas fa-plus"></i> Agregar
-                        </button>
-                    </div>
+                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque las labores ejecutadas o registre una nueva si fue diferente.</p>
 
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalVisitaAlimentacion">ALIMENTACIÓN SUMINISTRADA</label>
-                        <input type="text" id="modalVisitaAlimentacion" class="ap-field-input" value="" placeholder="Jarabe, torta proteica, etc.">
+                        <input type="text" id="modalVisitaAlimentacion" class="ap-field-input" value="" placeholder="Jarabe, torta proteica, etc." oninput="validarTextoSinNumerosVisita(this, 'errorAlimentacionAprendiz')">
+                        <span id="errorAlimentacionAprendiz" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                            <i class="fas fa-circle-exclamation"></i> Alimentación inválida: no se permiten números, solo letras.
+                        </span>
                     </div>
 
                     <!-- Sección: Observaciones -->
@@ -417,8 +441,8 @@
         storeUrl: "{{ route('apicola.aprendiz.inspecciones.store') }}",
         baseUrl: "{{ url('apicola/aprendiz/inspecciones') }}",
         csrfToken: "{{ csrf_token() }}",
-        currentUserName: "{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz') }}"
+        currentUserName: "{{ $aprendizNombre ?? (Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz')) }}"
     };
 </script>
-<script src="{{ asset('modules/apicola/js/aprendiz-inspeccion.js') }}"></script>
+<script src="{{ asset('modules/apicola/js/aprendiz-inspeccion.js') }}?v={{ time() }}"></script>
 @endsection

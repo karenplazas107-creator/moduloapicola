@@ -26,7 +26,7 @@
     --ap-radius-lg: 20px;
     --ap-radius-xl: 28px;
     --ap-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --ap-font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --ap-font: 'Nunito', 'Open Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 /* ---------- Reset & Base ---------- */

@@ -740,7 +740,7 @@
     }
 
     .rep-modal-topbar-title {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Nunito', 'Open Sans', sans-serif;
         font-size: 1.02rem;
         font-weight: 800;
         color: #f8fafc;
@@ -830,7 +830,7 @@
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         color: #0f172a;
-        font-family: 'Inter', sans-serif;
+        font-family: 'Nunito', 'Open Sans', sans-serif;
         font-size: 11px;
         line-height: 1.35;
         box-sizing: border-box;
@@ -877,7 +877,7 @@
     }
 
     .rep-app-brand {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Nunito', 'Open Sans', sans-serif;
         font-size: 1.15rem;
         font-weight: 800;
         color: #0f172a;
@@ -915,7 +915,7 @@
     }
 
     .rep-title-text {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Nunito', 'Open Sans', sans-serif;
         font-size: 0.92rem;
         font-weight: 800;
         color: #0f172a;
@@ -964,7 +964,7 @@
     }
 
     .kpi-mini-value {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: 'Nunito', 'Open Sans', sans-serif;
         font-size: 1.05rem;
         font-weight: 800;
         color: #0f172a;

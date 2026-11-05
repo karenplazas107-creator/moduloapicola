@@ -61,6 +61,36 @@
         }
     }
 
+    // =========================================================================
+    // VALIDACIONES SIN NÚMEROS
+    // =========================================================================
+    function validarTextoSinNumerosMov(input, errorSpanId, customMsg) {
+        if (!input) return true;
+        const errorSpan = errorSpanId ? document.getElementById(errorSpanId) : null;
+        const val = input.value || '';
+        const tieneNumeros = /\d/.test(val);
+
+        if (tieneNumeros) {
+            input.style.borderColor = '#dc2626';
+            input.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.2)';
+            if (errorSpan) {
+                errorSpan.style.display = 'block';
+                if (customMsg) {
+                    errorSpan.innerHTML = `<i class="fas fa-circle-exclamation"></i> ${customMsg}`;
+                }
+            }
+            return false;
+        } else {
+            input.style.borderColor = '';
+            input.style.boxShadow = '';
+            if (errorSpan) {
+                errorSpan.style.display = 'none';
+            }
+            return true;
+        }
+    }
+    window.validarTextoSinNumerosMov = validarTextoSinNumerosMov;
+
     function getBodegaActual() {
         const sel = document.getElementById('selectBodega');
         if (!sel) return 'Bodega Central';
@@ -171,6 +201,17 @@
 
         if (selProducto.value === '__manual__') {
             nombre = inputManual ? inputManual.value.trim() : '';
+            if (/\d/.test(nombre)) {
+                validarTextoSinNumerosMov(inputManual, 'errorMovProducto');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre inválido',
+                    text: 'El nombre del producto no puede contener números, solo letras.',
+                    confirmButtonColor: '#286043'
+                });
+                if (inputManual) inputManual.focus();
+                return;
+            }
         } else if (selProducto.value) {
             prodId = selProducto.value;
             const opt = selProducto.options[selProducto.selectedIndex];
@@ -303,6 +344,32 @@
                 confirmButtonColor: '#286043'
             });
             return;
+        }
+
+        if (document.getElementById('selectBodega')?.value === '__nueva__') {
+            const inputNueva = document.getElementById('inputNombreNuevaBodega');
+            const valNueva = inputNueva ? inputNueva.value.trim() : '';
+            if (!valNueva) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Bodega requerida',
+                    text: 'Por favor ingrese el nombre de la nueva bodega.',
+                    confirmButtonColor: '#286043'
+                });
+                inputNueva?.focus();
+                return;
+            }
+            if (/\d/.test(valNueva)) {
+                validarTextoSinNumerosMov(inputNueva, 'errorMovBodega');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Bodega inválida',
+                    text: 'El nombre de la bodega no puede contener números, solo letras.',
+                    confirmButtonColor: '#286043'
+                });
+                inputNueva?.focus();
+                return;
+            }
         }
 
         const fecha = document.getElementById('inputFecha').value;

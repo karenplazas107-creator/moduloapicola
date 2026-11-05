@@ -39,7 +39,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Nunito', 'Open Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--ap-bg);
             color: var(--ap-text-main);
             min-height: 100vh;
@@ -370,6 +370,30 @@
         .ap-btn-public-portal:hover {
             background: #f8fafc;
             border-color: #cbd5e1;
+        }
+
+        .ap-btn-logout-aprendiz {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            background: #ffffff;
+            color: #dc2626;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 700;
+            box-shadow: 0 1px 3px rgba(220, 38, 38, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .ap-btn-logout-aprendiz:hover {
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+            transform: translateY(-1px);
         }
 
         .ap-content-container {

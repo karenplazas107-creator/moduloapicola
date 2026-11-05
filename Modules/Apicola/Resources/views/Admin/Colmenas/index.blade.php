@@ -176,11 +176,14 @@
                             <div id="containerOtroTipoAbeja" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
                                 <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nueva especie:</label>
                                 <div style="display: flex; gap: 6px;">
-                                    <input type="text" id="modalColmenaOtroTipoAbeja" class="ap-field-input" placeholder="Nombre de la nueva abeja..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;">
+                                    <input type="text" id="modalColmenaOtroTipoAbeja" class="ap-field-input" placeholder="Nombre de la nueva abeja..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosColmena(this, 'errorTipoAbeja')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevoTipoAbeja();}">
                                     <button type="button" onclick="confirmarNuevoTipoAbeja()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
                                         <i class="fas fa-plus"></i> Agregar
                                     </button>
                                 </div>
+                                <span id="errorTipoAbeja" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                    <i class="fas fa-circle-exclamation"></i> Especie inválida: no se permiten números, solo letras.
+                                </span>
                                 <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Quedará guardada para esta y futuras colmenas.</span>
                             </div>
                         </div>
@@ -194,21 +197,32 @@
                         </div>
                     </div>
 
-                    <!-- Fila 4: RESPONSABLE (ancho completo - INPUT TEXTO CON DATALIST) -->
+                    <!-- Fila 4: RESPONSABLE -->
                     <div class="ap-form-field" style="margin-bottom: 1.5rem;">
-                        <label class="ap-field-label" for="modalColmenaResponsable" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">RESPONSABLE</label>
-                        <input type="text" id="modalColmenaResponsable" list="responsablesSugeridosAdmin" class="ap-field-input" placeholder="Escribe tu nombre o un usuario..." required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
-                        <datalist id="responsablesSugeridosAdmin">
-                            @if(auth()->check())
-                                @if(auth()->user()->person)
-                                    <option value="{{ trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) }}"></option>
-                                @endif
-                                @if(auth()->user()->nickname)
-                                    <option value="{{ auth()->user()->nickname }}"></option>
-                                @endif
-                            @endif
-                        </datalist>
-                        <p class="ap-field-hint" style="color: #94a3b8; font-size: 0.76rem; margin-top: 5px; margin-bottom: 0;">Escribe tu nombre o usuario libremente.</p>
+                        <label class="ap-field-label" for="modalColmenaRespSelect" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">RESPONSABLE</label>
+                        <select id="modalColmenaRespSelect" class="ap-field-input" onchange="handleColmenaRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            <option value="" disabled selected>Selecciona un responsable...</option>
+                            <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                            <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+                        </select>
+
+                        <!-- Contenedor para añadir a otro responsable -->
+                        <div id="containerOtroRespColmena" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nombre del nuevo responsable:</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="modalColmenaOtroRespInput" class="ap-field-input" placeholder="Escribe el nombre del nuevo responsable..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosColmena(this, 'errorNumeroRespColmena')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarOtroResponsableColmena();}">
+                                <button type="button" onclick="confirmarOtroResponsableColmena()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                    <i class="fas fa-plus"></i> Usar este
+                                </button>
+                            </div>
+                            <span id="errorNumeroRespColmena" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                <i class="fas fa-circle-exclamation"></i> Responsable inválido: no se permiten números, solo nombres reales de personas.
+                            </span>
+                            <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Debes ingresar solo nombres reales de personas (sin números).</span>
+                        </div>
+
+                        <!-- Input oculto para enviar al backend -->
+                        <input type="hidden" id="modalColmenaResponsable" value="" required>
                     </div>
 
                     <!-- Botones footer (idénticos a la captura) -->
@@ -308,5 +322,5 @@
         csrfToken: "{{ csrf_token() }}"
     };
 </script>
-<script src="{{ asset('modules/apicola/js/colmenas.js') }}"></script>
+<script src="{{ asset('modules/apicola/js/colmenas.js') }}?v={{ time() }}"></script>
 @endsection

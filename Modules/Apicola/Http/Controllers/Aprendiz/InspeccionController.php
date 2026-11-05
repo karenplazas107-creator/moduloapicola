@@ -15,11 +15,20 @@ class InspeccionController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $person = $user?->person;
+        $aprendizNombre = $person ? trim($person->first_name . ' ' . $person->first_last_name) : trim($user?->name ?? $user?->nickname ?? 'Aprendiz');
+
         $colmenas = Colmena::orderBy('code', 'asc')->get();
         $firstCode = $colmenas->first() ? ($colmenas->first()->code ?? $colmenas->first()->codigo ?? '') : '';
         $selectedColmena = $request->get('colmena', $firstCode);
         $visitasInit = $this->getVisitasFromDb();
-        return view('apicola::Aprendiz.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit'));
+
+        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
+        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
+        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+
+        return view('apicola::Aprendiz.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'aprendizNombre'));
     }
 
     /**
@@ -27,10 +36,19 @@ class InspeccionController extends Controller
      */
     public function byColmena($code)
     {
+        $user = auth()->user();
+        $person = $user?->person;
+        $aprendizNombre = $person ? trim($person->first_name . ' ' . $person->first_last_name) : trim($user?->name ?? $user?->nickname ?? 'Aprendiz');
+
         $selectedColmena = $code;
         $colmenas = Colmena::orderBy('code', 'asc')->get();
         $visitasInit = $this->getVisitasFromDb();
-        return view('apicola::Aprendiz.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit'));
+
+        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
+        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
+        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+
+        return view('apicola::Aprendiz.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'aprendizNombre'));
     }
 
     /**
@@ -137,8 +155,10 @@ class InspeccionController extends Controller
             'queen_color' => 'nullable|string|max:50',
             'diseases' => 'nullable|array',
             'tasks' => 'nullable|array',
-            'feed_supplied' => 'nullable|string|max:150',
+            'feed_supplied' => ['nullable', 'string', 'max:150', 'regex:/^[^\d]*$/'],
             'notes' => 'nullable|string',
+        ], [
+            'feed_supplied.regex' => 'No se permiten números en la alimentación suministrada. Solo se permiten letras.',
         ]);
 
         $user = auth()->user();

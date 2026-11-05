@@ -1,7 +1,7 @@
 :root {
-            /* Tipografía de Lujo y Elegancia */
-            --ap-font-main: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --ap-font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+            /* Tipografía oficial unificada con el ERP SENA Empresa */
+            --ap-font-main: 'Nunito', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --ap-font-display: 'Nunito', 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
             /* Paleta Premium Apícola & SENA */
             --ap-primary-dark: #071e18;       /* Medianoche bosque profundo */
@@ -508,11 +508,16 @@
             border-radius: 50%;
         }
 
+        /* Wrapper del Dropdown */
+        .ap-profile-dropdown-wrapper {
+            position: relative;
+        }
+
         .ap-nav-profile-pill {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 4px 12px 4px 6px;
+            padding: 4px 14px 4px 6px;
             border-radius: 30px;
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -521,11 +526,13 @@
             transition: all 0.2s ease;
             text-decoration: none;
             color: inherit;
+            user-select: none;
         }
 
         .ap-nav-profile-pill:hover {
             border-color: #cbd5e1;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+            background: #f8fafc;
         }
 
         .ap-nav-profile-avatar {
@@ -558,6 +565,145 @@
         .ap-nav-profile-role {
             font-size: 0.72rem;
             color: #64748b;
+        }
+
+        .ap-profile-chevron {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-left: 2px;
+            transition: transform 0.2s ease;
+        }
+
+        /* Menú Desplegable Flotante */
+        .ap-profile-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 250px;
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+            display: none;
+            flex-direction: column;
+            z-index: 1050;
+            overflow: hidden;
+            animation: apDropdownSlide 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes apDropdownSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .ap-profile-dropdown-menu.is-open {
+            display: flex;
+        }
+
+        .ap-dropdown-header {
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+        }
+
+        .ap-dropdown-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ap-dropdown-user-info {
+            overflow: hidden;
+        }
+
+        .ap-dropdown-user-name {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ap-dropdown-user-role {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .ap-dropdown-divider {
+            height: 1px;
+            background: #e2e8f0;
+            width: 100%;
+        }
+
+        .ap-dropdown-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .ap-dropdown-item:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .ap-dropdown-item.logout-action {
+            color: #dc2626;
+        }
+
+        .ap-dropdown-item.logout-action:hover {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Botón Directo Cerrar Sesión en Barra Superior */
+        .ap-nav-logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 16px;
+            border-radius: 24px;
+            background: #ffffff;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 1px 3px rgba(220, 38, 38, 0.06);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .ap-nav-logout-btn:hover {
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
+            box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+            transform: translateY(-1px);
         }
 
         /* Slogan de apicultura sostenible en el pie del sidebar */
@@ -644,14 +790,7 @@
         }
 
         .ap-user-chip {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #ffffff;
-            padding: 6px 16px 6px 8px;
-            border-radius: 50px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+            display: none !important;
         }
 
         .ap-user-chip-avatar {

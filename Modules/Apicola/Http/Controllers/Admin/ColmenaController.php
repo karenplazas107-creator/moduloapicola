@@ -60,7 +60,27 @@ class ColmenaController extends Controller
         $tiposAbejaDb = Colmena::whereNotNull('tipo_abeja')->where('tipo_abeja', '!=', '')->distinct()->pluck('tipo_abeja')->toArray();
         $tiposAbeja = array_values(array_unique(array_filter(array_merge($tiposAbejaBase, $tiposAbejaDb))));
 
-        return view('apicola::Admin.Colmenas.index', compact('colmenas', 'metrics', 'apiarios', 'tiposAbeja'));
+        // Personas y usuarios registrados en el sistema ERP para sugerencias de responsables
+        $usuariosDb = \Illuminate\Support\Facades\DB::table('users')
+            ->leftJoin('people', 'users.person_id', '=', 'people.id')
+            ->select('users.nickname', 'people.first_name', 'people.first_last_name')
+            ->get()
+            ->map(function ($u) {
+                $nombreCompleto = trim(($u->first_name ?? '') . ' ' . ($u->first_last_name ?? ''));
+                return $nombreCompleto ?: $u->nickname;
+            })
+            ->filter();
+
+        $responsablesColmenas = Colmena::whereNotNull('responsable')->where('responsable', '!=', '')->distinct()->pluck('responsable');
+        $responsablesApiarios = Apiario::whereNotNull('responsable')->where('responsable', '!=', '')->distinct()->pluck('responsable');
+
+        $currentUser = auth()->check() && auth()->user()->person
+            ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
+            : (auth()->check() ? auth()->user()->nickname : '');
+
+        $responsablesSugeridos = collect(['SERGIO BARRERA']);
+
+        return view('apicola::Admin.Colmenas.index', compact('colmenas', 'metrics', 'apiarios', 'tiposAbeja', 'responsablesSugeridos'));
     }
 
     /**
@@ -71,12 +91,14 @@ class ColmenaController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:30|unique:apicola_colmenas,code',
             'apiario_name' => 'required|string|max:150',
-            'responsable' => 'required|string|max:150',
+            'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
             'tipo_abeja' => 'nullable|string|max:150',
             'installation_date' => 'required|date',
             'last_visit_date' => 'nullable|date',
             'status' => 'required|in:Activa,En revisión,Inactiva',
             'notes' => 'nullable|string',
+        ], [
+            'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
         ]);
 
         if (empty($validated['last_visit_date'])) {
@@ -148,12 +170,14 @@ class ColmenaController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:30|unique:apicola_colmenas,code,' . $colmena->id,
             'apiario_name' => 'required|string|max:150',
-            'responsable' => 'required|string|max:150',
+            'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
             'tipo_abeja' => 'nullable|string|max:150',
             'installation_date' => 'required|date',
             'last_visit_date' => 'nullable|date',
             'status' => 'required|in:Activa,En revisión,Inactiva',
             'notes' => 'nullable|string',
+        ], [
+            'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
         ]);
 
         if (empty($validated['last_visit_date'])) {

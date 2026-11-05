@@ -37,15 +37,19 @@ class ApiarioController extends Controller
             'colmenas' => Colmena::count(),
         ];
 
+        // Solo SERGIO BARRERA y opción de añadir a otro
+        $responsablesSugeridos = ['SERGIO BARRERA'];
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'data' => $apiariosFormatted,
                 'metrics' => $metrics,
+                'responsables' => $responsablesSugeridos,
             ]);
         }
 
-        return view('apicola::Admin.Apiario.index', compact('apiarios', 'apiariosFormatted', 'metrics'));
+        return view('apicola::Admin.Apiario.index', compact('apiarios', 'apiariosFormatted', 'metrics', 'responsablesSugeridos'));
     }
 
     /**
@@ -55,12 +59,19 @@ class ApiarioController extends Controller
     {
         try {
             $validated = $request->validate([
-                'nombre_apiario' => 'required|string|max:100',
-                'responsable' => 'nullable|string|max:150',
-                'latitud' => 'nullable|numeric|between:-90,90',
-                'longitud' => 'nullable|numeric|between:-180,180',
-                'estado' => 'nullable|string|in:Activo,Inactivo',
-                'colmenas' => 'nullable|integer|min:0',
+                'nombre_apiario' => ['required', 'string', 'max:100', 'regex:/^[^0-9]+$/u'],
+                'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
+                'latitud' => 'required|numeric|between:-90,90',
+                'longitud' => 'required|numeric|between:-180,180',
+                'estado' => 'required|string|in:Activo,Inactivo',
+                'colmenas' => 'required|integer|min:0',
+            ], [
+                'nombre_apiario.regex' => 'El nombre del apiario es inválido: no puede contener números, solo texto.',
+                'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+                'latitud.numeric' => 'La latitud es inválida: no puede contener letras, solo números reales.',
+                'latitud.between' => 'La latitud debe estar en un rango geográfico real entre -90 y 90.',
+                'longitud.numeric' => 'La longitud es inválida: no puede contener letras, solo números reales.',
+                'longitud.between' => 'La longitud debe estar en un rango geográfico real entre -180 y 180.',
             ]);
 
             $currentUserName = auth()->check() && auth()->user()->person
@@ -128,12 +139,19 @@ class ApiarioController extends Controller
             $oldNombre = $apiario->nombre_apiario;
 
             $validated = $request->validate([
-                'nombre_apiario' => 'required|string|max:100',
-                'responsable' => 'nullable|string|max:150',
+                'nombre_apiario' => ['required', 'string', 'max:100', 'regex:/^[^0-9]+$/u'],
+                'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
                 'latitud' => 'nullable|numeric|between:-90,90',
                 'longitud' => 'nullable|numeric|between:-180,180',
                 'estado' => 'nullable|string|in:Activo,Inactivo',
                 'colmenas' => 'nullable|integer|min:0',
+            ], [
+                'nombre_apiario.regex' => 'El nombre del apiario es inválido: no puede contener números, solo texto.',
+                'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+                'latitud.numeric' => 'La latitud es inválida: no puede contener letras, solo números reales.',
+                'latitud.between' => 'La latitud debe estar en un rango geográfico real entre -90 y 90.',
+                'longitud.numeric' => 'La longitud es inválida: no puede contener letras, solo números reales.',
+                'longitud.between' => 'La longitud debe estar en un rango geográfico real entre -180 y 180.',
             ]);
 
             $newNombre = trim($validated['nombre_apiario']);
@@ -227,31 +245,45 @@ class ApiarioController extends Controller
     }
 
     /**
-     * Desactiva un apiario en la base de datos MySQL (cambia su estado a Inactivo).
+     * Elimina un apiario de la base de datos MySQL de forma permanente.
      */
     public function destroy(Request $request, $id)
     {
-        $apiario = Apiario::findOrFail($id);
-        $nombre = $apiario->nombre_apiario;
-        $apiario->estado = 'Inactivo';
-        $apiario->save();
+        try {
+            $apiario = Apiario::findOrFail($id);
+            $nombre = $apiario->nombre_apiario;
 
-        $metrics = [
-            'total' => Apiario::count(),
-            'activos' => Apiario::activos()->count(),
-            'inactivos' => Apiario::inactivos()->count(),
-            'colmenas' => Colmena::count(),
-        ];
+            $colmenasCount = $apiario->colmenas()->count();
+            if ($colmenasCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "No se puede eliminar el apiario \"{$nombre}\" porque tiene {$colmenasCount} colmena(s) asociadas. Primero debes reubicar o eliminar sus colmenas."
+                ], 422);
+            }
 
-        if ($request->wantsJson() || $request->ajax()) {
+            $apiario->delete();
+
+            $metrics = [
+                'total' => Apiario::count(),
+                'activos' => Apiario::activos()->count(),
+                'inactivos' => Apiario::inactivos()->count(),
+                'colmenas' => Colmena::count(),
+            ];
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Apiario \"{$nombre}\" eliminado con éxito de la base de datos.",
+                    'metrics' => $metrics,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Apiario \"{$nombre}\" eliminado con éxito.");
+        } catch (\Throwable $th) {
             return response()->json([
-                'success' => true,
-                'nuevo_estado' => 'Inactivo',
-                'message' => "Apiario \"{$nombre}\" desactivado con éxito.",
-                'metrics' => $metrics,
-            ]);
+                'success' => false,
+                'message' => 'Error al eliminar el apiario: ' . $th->getMessage()
+            ], 500);
         }
-
-        return redirect()->back()->with('success', "Apiario \"{$nombre}\" desactivado con éxito.");
     }
 }

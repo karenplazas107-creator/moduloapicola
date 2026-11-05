@@ -112,12 +112,33 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         const input = document.getElementById('modalColmenaOtroTipoAbeja');
         const select = document.getElementById('modalColmenaTipoAbeja');
         const container = document.getElementById('containerOtroTipoAbeja');
+        const errorSpan = document.getElementById('errorTipoAbeja');
         const val = input.value.trim();
         if (!val) {
             showToast('Por favor escribe el nombre de la nueva especie.');
             input.focus();
             return;
         }
+
+        // Validación: no números
+        if (/\d/.test(val)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            input.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Especie inválida',
+                    text: 'No se permiten números en la especie de abeja. Solo se aceptan letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en la especie de abeja. Solo se aceptan letras.');
+            }
+            input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        input.style.borderColor = '#cbd5e1';
 
         let exists = false;
         for (let i = 0; i < select.options.length; i++) {
@@ -146,14 +167,135 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         showToast(`Especie "${val}" agregada.`);
     }
 
+    // ==================== GESTIÓN DE RESPONSABLE (SOLO SERGIO O NUEVO) ====================
+    function validarTextoSinNumerosColmena(input, errorSpanId) {
+        const errorSpan = document.getElementById(errorSpanId);
+        if (/\d/.test(input.value)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            input.style.borderColor = '#dc2626';
+        } else {
+            if (errorSpan) errorSpan.style.display = 'none';
+            input.style.borderColor = '#cbd5e1';
+        }
+    }
+
+    function handleColmenaRespSelect(val) {
+        const container = document.getElementById('containerOtroRespColmena');
+        const inputOtro = document.getElementById('modalColmenaOtroRespInput');
+        const hidden = document.getElementById('modalColmenaResponsable');
+        const errorSpan = document.getElementById('errorNumeroRespColmena');
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (inputOtro) inputOtro.style.borderColor = '#cbd5e1';
+
+        if (val === '__otro__') {
+            if (container) container.style.display = 'block';
+            if (inputOtro) {
+                inputOtro.value = '';
+                inputOtro.focus();
+            }
+            if (hidden) hidden.value = '';
+        } else {
+            if (container) container.style.display = 'none';
+            if (hidden) hidden.value = val;
+        }
+    }
+
+    function confirmarOtroResponsableColmena() {
+        const inputOtro = document.getElementById('modalColmenaOtroRespInput');
+        const select = document.getElementById('modalColmenaRespSelect');
+        const hidden = document.getElementById('modalColmenaResponsable');
+        const container = document.getElementById('containerOtroRespColmena');
+        const errorSpan = document.getElementById('errorNumeroRespColmena');
+
+        const nuevo = (inputOtro?.value || '').trim();
+        if (!nuevo) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nombre requerido',
+                text: 'Por favor escribe el nombre del responsable para poder guardarlo.',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro?.focus();
+            return false;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE
+        if (/\d/.test(nuevo)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            Swal.fire({
+                icon: 'error',
+                title: 'Nombre inválido',
+                text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro.focus();
+            return false;
+        }
+
+        const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/;
+        if (!regexSoloLetras.test(nuevo) || nuevo.length < 3) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            Swal.fire({
+                icon: 'error',
+                title: 'Nombre inválido',
+                text: 'Por favor ingresa un nombre real de persona válido (solo letras, mínimo 3 caracteres).',
+                confirmButtonColor: '#286043'
+            });
+            inputOtro.focus();
+            return false;
+        }
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        inputOtro.style.borderColor = '#10b981';
+
+        let existingOpt = Array.from(select.options).find(o => o.value.toLowerCase() === nuevo.toLowerCase());
+        if (!existingOpt) {
+            const opt = new Option(nuevo, nuevo, true, true);
+            const otroOpt = Array.from(select.options).find(o => o.value === '__otro__');
+            if (otroOpt) select.insertBefore(opt, otroOpt);
+            else select.appendChild(opt);
+        }
+
+        select.value = nuevo;
+        if (hidden) hidden.value = nuevo;
+        if (container) container.style.display = 'none';
+        return true;
+    }
+
     // ==================== MODAL DE NUEVA / EDITAR COLMENA ====================
     function openNewColmenaModal() {
         document.getElementById('modalColmenaTitle').textContent = 'Nueva colmena';
         document.getElementById('modalColmenaId').value = '';
         document.getElementById('modalColmenaCode').value = '';
         document.getElementById('modalColmenaFecha').value = '';
-        document.getElementById('modalColmenaResponsable').value = '';
         document.getElementById('modalColmenaEstado').value = 'Activa';
+
+        // Reset responsable
+        const selectResp = document.getElementById('modalColmenaRespSelect');
+        const hiddenResp = document.getElementById('modalColmenaResponsable');
+        const containerOtro = document.getElementById('containerOtroRespColmena');
+        const inputOtro = document.getElementById('modalColmenaOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroRespColmena');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        if (selectResp) {
+            selectResp.innerHTML = `
+                <option value="" disabled selected>Selecciona un responsable...</option>
+                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+            `;
+            selectResp.value = '';
+        }
+        if (hiddenResp) hiddenResp.value = '';
 
         const apiarioSelect = document.getElementById('modalColmenaApiario');
         if (apiarioSelect && apiarioSelect.options.length > 0) {
@@ -220,7 +362,38 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         document.getElementById('modalColmenaOtroTipoAbeja').value = '';
 
         document.getElementById('modalColmenaEstado').value = item.estado;
-        document.getElementById('modalColmenaResponsable').value = item.responsable;
+
+        // Asignar responsable
+        const selectResp = document.getElementById('modalColmenaRespSelect');
+        const hiddenResp = document.getElementById('modalColmenaResponsable');
+        const containerOtro = document.getElementById('containerOtroRespColmena');
+        const inputOtro = document.getElementById('modalColmenaOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroRespColmena');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        const respVal = item.responsable || '';
+        if (hiddenResp) hiddenResp.value = respVal;
+
+        if (selectResp) {
+            selectResp.innerHTML = `
+                <option value="" disabled>Selecciona un responsable...</option>
+                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+            `;
+            if (respVal && respVal.toLowerCase() !== 'sergio barrera') {
+                const opt = new Option(respVal, respVal, true, true);
+                const otroOpt = Array.from(selectResp.options).find(o => o.value === '__otro__');
+                if (otroOpt) selectResp.insertBefore(opt, otroOpt);
+                else selectResp.appendChild(opt);
+            }
+            selectResp.value = respVal;
+        }
         
         let dateVal = item.instalacionRaw;
         if (!dateVal && item.instalacion && item.instalacion.includes('/')) {
@@ -244,8 +417,86 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         const apiario = document.getElementById('modalColmenaApiario').value;
         let tipoAbeja = document.getElementById('modalColmenaTipoAbeja').value;
         const rawFecha = document.getElementById('modalColmenaFecha').value;
-        const responsable = document.getElementById('modalColmenaResponsable').value.trim();
         const estado = document.getElementById('modalColmenaEstado').value;
+
+        const selectResp = document.getElementById('modalColmenaRespSelect');
+        const inputOtroResp = document.getElementById('modalColmenaOtroRespInput');
+        const hiddenResp = document.getElementById('modalColmenaResponsable');
+        const errorResp = document.getElementById('errorNumeroRespColmena');
+
+        if (!selectResp || !selectResp.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Responsable requerido',
+                text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la colmena.',
+                confirmButtonColor: '#286043'
+            });
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        if (selectResp.value === '__otro__') {
+            const nuevo = (inputOtroResp?.value || '').trim();
+            if (!nuevo) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre requerido',
+                    text: 'Debes escribir el nombre del nuevo responsable para poder guardar la colmena.',
+                    confirmButtonColor: '#286043'
+                });
+                if (inputOtroResp) inputOtroResp.focus();
+                return;
+            }
+            const confirmOk = confirmarOtroResponsableColmena();
+            if (!confirmOk) {
+                return;
+            }
+        }
+
+        let responsable = (hiddenResp && hiddenResp.value ? hiddenResp.value : (selectResp && selectResp.value !== '__otro__' ? selectResp.value : '')).trim();
+
+        if (!responsable || responsable === '__otro__') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Responsable requerido',
+                text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la colmena.',
+                confirmButtonColor: '#286043'
+            });
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE
+        if (/\d/.test(responsable)) {
+            if (errorResp) errorResp.style.display = 'block';
+            Swal.fire({
+                icon: 'error',
+                title: 'Responsable inválido',
+                text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                confirmButtonColor: '#286043'
+            });
+            if (inputOtroResp) {
+                inputOtroResp.style.borderColor = '#dc2626';
+                inputOtroResp.focus();
+            }
+            return;
+        }
+
+        const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/;
+        if (!regexSoloLetras.test(responsable) || responsable.length < 3) {
+            if (errorResp) errorResp.style.display = 'block';
+            Swal.fire({
+                icon: 'error',
+                title: 'Responsable inválido',
+                text: 'El responsable debe ser un nombre real de persona válido (solo letras, mínimo 3 caracteres).',
+                confirmButtonColor: '#286043'
+            });
+            if (inputOtroResp) {
+                inputOtroResp.style.borderColor = '#dc2626';
+                inputOtroResp.focus();
+            }
+            return;
+        }
 
         if (tipoAbeja === '__otra__') {
             const otroInput = document.getElementById('modalColmenaOtroTipoAbeja');
@@ -256,12 +507,6 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
                 return;
             }
             tipoAbeja = customVal;
-        }
-
-        if (!responsable) {
-            showToast('Por favor escribe el nombre o usuario del responsable.');
-            document.getElementById('modalColmenaResponsable').focus();
-            return;
         }
 
         const btnSave = document.getElementById('btnSaveColmena');
@@ -456,3 +701,19 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
             showToast(err.message || 'Error al desactivar la colmena en el servidor.');
         }
     }
+
+    // Exponer funciones en window para llamadas HTML
+    window.openNewColmenaModal = openNewColmenaModal;
+    window.openEditColmenaModal = openEditColmenaModal;
+    window.closeColmenaModal = closeColmenaModal;
+    window.saveColmenaForm = saveColmenaForm;
+    window.filterColmenas = filterColmenas;
+    window.openColmenaDetailModal = openColmenaDetailModal;
+    window.closeColmenaDetailModal = closeColmenaDetailModal;
+    window.toggleColmenaStatus = toggleColmenaStatus;
+    window.desactivarColmena = desactivarColmena;
+    window.handleTipoAbejaChange = handleTipoAbejaChange;
+    window.confirmarNuevaEspecieAbeja = confirmarNuevaEspecieAbeja;
+    window.handleColmenaRespSelect = handleColmenaRespSelect;
+    window.confirmarOtroResponsableColmena = confirmarOtroResponsableColmena;
+    window.validarTextoSinNumerosColmena = validarTextoSinNumerosColmena;

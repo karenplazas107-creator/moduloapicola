@@ -8,6 +8,27 @@
     <span class="active-page">Gestión de apiarios</span>
 @endsection
 
+@section('styles')
+<style>
+    .mapboxgl-popup-content {
+        border-radius: 12px !important;
+        padding: 12px 14px !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    .mapboxgl-ctrl-group {
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+    .mapboxgl-popup-close-button {
+        font-size: 16px;
+        color: #64748b;
+        padding: 4px 8px;
+    }
+</style>
+@endsection
+
 @section('content')
     <!-- Encabezado de la vista con perfil apicultor -->
     <div class="ap-view-header-row">
@@ -132,21 +153,39 @@
                     <!-- 1. Nombre -->
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalApiarioNombre">NOMBRE DEL APIARIO</label>
-                        <input type="text" id="modalApiarioNombre" class="ap-field-input" placeholder="Ej: Apiario La Angostura" required>
+                        <input type="text" id="modalApiarioNombre" class="ap-field-input" placeholder="Ej: Apiario La Angostura" oninput="validarTextoSinNumeros(this, 'errorNumeroNombre')" required>
+                        <span id="errorNumeroNombre" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                            <i class="fas fa-circle-exclamation"></i> Nombre inválido: no se permiten números, solo texto.
+                        </span>
                     </div>
 
                     <!-- 2. Responsable -->
                     <div class="ap-form-field">
-                        <label class="ap-field-label" for="modalApiarioResp">RESPONSABLE</label>
-                        <input type="text" id="modalApiarioResp" list="responsablesSugeridosApiario" class="ap-field-input" placeholder="Escribe el nombre del responsable..." value="" required>
-                        <datalist id="responsablesSugeridosApiario">
-                            @if(auth()->check() && auth()->user()->person)
-                                <option value="{{ trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) }}"></option>
-                            @endif
-                            @if(auth()->check() && auth()->user()->nickname)
-                                <option value="{{ auth()->user()->nickname }}"></option>
-                            @endif
-                        </datalist>
+                        <label class="ap-field-label" for="modalApiarioRespSelect">RESPONSABLE</label>
+                        <select id="modalApiarioRespSelect" class="ap-field-input" onchange="handleApiarioRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            <option value="" disabled selected>Selecciona un responsable...</option>
+                            <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                            <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+                        </select>
+
+                        <!-- Contenedor para añadir a otro responsable -->
+                        <div id="containerOtroRespApiario" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nombre del nuevo responsable:</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="modalApiarioOtroRespInput" class="ap-field-input" placeholder="Escribe el nombre del nuevo responsable..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumeros(this, 'errorNumeroResp')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarOtroResponsableApiario();}">
+                                <button type="button" onclick="confirmarOtroResponsableApiario()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                    <i class="fas fa-plus"></i> Usar este
+                                </button>
+                            </div>
+                            <span id="errorNumeroResp" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                <i class="fas fa-circle-exclamation"></i> Responsable inválido: no se permiten números, solo nombres reales de personas.
+                            </span>
+                            <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Debes ingresar solo nombres reales de personas (sin números).</span>
+                        </div>
+
+                        <!-- Input oculto para enviar al backend -->
+                        <input type="hidden" id="modalApiarioResp" value="" required>
+
                     </div>
 
                     <!-- 3. Estado -->
@@ -170,18 +209,24 @@
 
                     <!-- 5. Ubicación & Mapa -->
                     <div class="ap-form-field">
-                        <label class="ap-field-label">UBICACIÓN GEOGRÁFICA</label>
-                        <div id="modalMapContainer" style="width:100%; height:190px; border-radius:12px; border:1px solid #cbd5e1; margin-bottom:6px;"></div>
-                        <p class="ap-field-hint">Haga clic en el mapa para marcar la ubicación exacta.</p>
+                        <label class="ap-field-label">UBICACIÓN GEOGRÁFICA (MAPA MAPBOX)</label>
+                        <div id="modalMapContainer" style="width:100%; height:200px; border-radius:12px; border:1px solid #cbd5e1; margin-bottom:6px; position:relative; overflow:hidden;"></div>
+                        <p class="ap-field-hint">Haga clic en el mapa o arrastre el marcador para marcar la ubicación exacta.</p>
 
                         <div class="ap-coords-row">
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLat">LATITUD</label>
-                                <input type="text" id="modalApiarioLat" class="ap-field-input" value="" placeholder="Ej: 2.6857">
+                                <input type="text" id="modalApiarioLat" class="ap-field-input" value="" placeholder="Ej: 2.6857" oninput="validarCoordenada(this, 'errorLatCoords', -90, 90)" required>
+                                <span id="errorLatCoords" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                    <i class="fas fa-circle-exclamation"></i> Coordenada inválida: no se permiten letras, solo números reales.
+                                </span>
                             </div>
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLng">LONGITUD</label>
-                                <input type="text" id="modalApiarioLng" class="ap-field-input" value="" placeholder="Ej: -75.3241">
+                                <input type="text" id="modalApiarioLng" class="ap-field-input" value="" placeholder="Ej: -75.3241" oninput="validarCoordenada(this, 'errorLngCoords', -180, 180)" required>
+                                <span id="errorLngCoords" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                    <i class="fas fa-circle-exclamation"></i> Coordenada inválida: no se permiten letras, solo números reales.
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -208,7 +253,9 @@
                 <p style="font-size:0.84rem; color:#64748b; margin-bottom:1rem;">
                     Visualización georreferenciada de los apiarios en el Centro La Angostura y zonas aledañas de Campoalegre, Huila.
                 </p>
-                <div id="generalMapContainer" style="width:100%; height: 420px; border-radius: 14px; border: 1px solid #cbd5e1;"></div>
+                <div id="generalMapContainer" style="width:100%; height: 450px; border-radius: 14px; border: 1px solid #cbd5e1; position: relative; overflow: hidden;">
+                    <div id="map" style="position: absolute; top: 0; bottom: 0; width: 100%; height: 100%;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -263,9 +310,12 @@
 <script>
     window.ApiariosConfig = {
         apiariosList: @json($apiariosFormatted ?? []),
+        responsablesSugeridos: @json($responsablesSugeridos ?? []),
+        currentUserName: "{{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : '') }}",
         baseUrl: "{{ url('apicola/apiarios') }}",
         storeUrl: "{{ route('apicola.admin.apiarios.store') }}",
-        csrfToken: "{{ csrf_token() }}"
+        csrfToken: "{{ csrf_token() }}",
+        mapboxToken: "pk.eyJ1Ijoia2FyZW5wbGF6YXMxMDciLCJhIjoiY213MHJxdG5jMDJmMzMwcHp6OTVjMjJ3dCJ9.WTvascS5RNXOfr2xgemF2A"
     };
 </script>
 <script src="{{ asset('modules/apicola/js/apiarios.js') }}?v={{ time() }}"></script>

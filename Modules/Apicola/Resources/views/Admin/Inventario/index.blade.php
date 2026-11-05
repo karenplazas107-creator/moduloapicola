@@ -204,7 +204,8 @@
                         <div class="modal-grid-2">
                             <div>
                                 <label class="ap-label-text" for="inputNombreNuevo">NOMBRE DEL ELEMENTO</label>
-                                <input type="text" id="inputNombreNuevo" class="ap-form-control" placeholder="Ej: Traje apícola">
+                                <input type="text" id="inputNombreNuevo" class="ap-form-control" placeholder="Ej: Traje apícola" oninput="validarTextoSinNumerosInventario(this, 'errorNombreElemento')">
+                                <span id="errorNombreElemento" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Nombre inválido: no se permiten números, solo letras.</span>
                             </div>
                             <div>
                                 <label class="ap-label-text" for="selectUnidadMedida">UNIDAD DE MEDIDA</label>
@@ -244,7 +245,8 @@
                     <!-- 3.1 NUEVA BODEGA (Aparece si selecciona '+ Registrar nueva bodega...') -->
                     <div id="seccionRegistrarNuevaBodega" style="display: none; margin-bottom: 1.25rem;">
                         <label class="ap-label-text" for="inputNombreNuevaBodega">NOMBRE DE LA NUEVA BODEGA</label>
-                        <input type="text" id="inputNombreNuevaBodega" class="ap-form-control" placeholder="Ej: Bodega Norte, Almacén de Insumos, Bodega 3...">
+                        <input type="text" id="inputNombreNuevaBodega" class="ap-form-control" placeholder="Ej: Bodega Norte, Almacén de Insumos, Bodega Principal..." oninput="validarTextoSinNumerosInventario(this, 'errorNombreNuevaBodega')">
+                        <span id="errorNombreNuevaBodega" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Bodega inválida: no se permiten números, solo letras.</span>
                     </div>
 
                     <!-- 4. CANTIDAD INICIAL Y STOCK MÍNIMO (2 Columnas) -->
@@ -297,7 +299,8 @@
                     <!-- 2. NOMBRE DEL ELEMENTO -->
                     <div class="ap-field-group">
                         <label class="ap-label-text" for="editNombre">NOMBRE DEL ELEMENTO</label>
-                        <input type="text" id="editNombre" class="ap-form-control" required>
+                        <input type="text" id="editNombre" class="ap-form-control" oninput="validarTextoSinNumerosInventario(this, 'errorEditNombre')" required>
+                        <span id="errorEditNombre" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Nombre inválido: no se permiten números, solo letras.</span>
                     </div>
 
                     <!-- 3. BODEGA Y UNIDAD DE MEDIDA (2 Columnas) -->
@@ -317,7 +320,8 @@
                                 <option value="__nueva__">+ Registrar nueva bodega...</option>
                             </select>
                             <div id="seccionEditNuevaBodega" style="display: none; margin-top: 6px;">
-                                <input type="text" id="editNombreNuevaBodega" class="ap-form-control" placeholder="Nombre de la nueva bodega...">
+                                <input type="text" id="editNombreNuevaBodega" class="ap-form-control" placeholder="Nombre de la nueva bodega..." oninput="validarTextoSinNumerosInventario(this, 'errorEditNombreBodega')">
+                                <span id="errorEditNombreBodega" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Bodega inválida: no se permiten números, solo letras.</span>
                             </div>
                         </div>
 
