@@ -10,6 +10,15 @@
     <span class="active-page">Producción e inspección</span>
 @endsection
 
+@section('styles')
+<style>
+    .swal2-container,
+    .swal2-high-priority {
+        z-index: 999999 !important;
+    }
+</style>
+@endsection
+
 @section('content')
     <!-- Encabezado de la vista con perfil apicultor -->
     <div class="ap-view-header-row">

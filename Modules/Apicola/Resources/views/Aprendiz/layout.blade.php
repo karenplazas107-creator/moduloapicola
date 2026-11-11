@@ -101,6 +101,9 @@
     <!-- Modales del Módulo -->
     @yield('modals')
 
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Scripts Base -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ asset('modules/apicola/js/aprendiz-layout.js') }}"></script>

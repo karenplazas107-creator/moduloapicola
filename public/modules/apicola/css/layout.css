@@ -1287,6 +1287,11 @@
             padding: 1rem;
         }
 
+        .swal2-container,
+        .swal2-high-priority {
+            z-index: 999999 !important;
+        }
+
         .ap-modal-backdrop.is-open {
             display: flex;
         }

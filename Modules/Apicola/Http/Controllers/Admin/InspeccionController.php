@@ -342,7 +342,7 @@ class InspeccionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Enfermedad \"{$nombreFormateado}\" registrada con éxito.",
+            'message' => 'Enfermedad registrada exitosa.',
             'enfermedad' => $nueva,
             'data' => $all
         ], 201);

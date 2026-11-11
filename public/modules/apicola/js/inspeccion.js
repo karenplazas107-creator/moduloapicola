@@ -340,16 +340,11 @@
 
         container.innerHTML = lista.map(enf => {
             const nombre = typeof enf === 'string' ? enf : (enf.nombre || '');
-            const id = typeof enf === 'object' && enf.id ? enf.id : null;
-            const deleteBtn = id 
-                ? `<button type="button" class="ap-enf-pill-del" onclick="eliminarEnfermedadCatalogo(${id}, '${escapeHtml(nombre)}')" title="Eliminar ${escapeHtml(nombre)}" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1.15rem; line-height:1; padding:0 3px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; transition:transform 0.15s ease;">&times;</button>`
-                : '';
 
             return `
                 <div class="ap-enf-pill" style="display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #065f46; border: 1.5px solid #a7f3d0; padding: 6px 14px; border-radius: 20px; font-size: 0.86rem; font-weight: 700;">
                     <i class="fas fa-virus" style="color: #059669; font-size: 0.82rem;"></i>
                     <span>${escapeHtml(nombre)}</span>
-                    ${deleteBtn}
                 </div>
             `;
         }).join('');
@@ -428,11 +423,16 @@
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Enfermedad registrada',
-                        text: body.message || 'La enfermedad fue agregada al catálogo.',
-                        timer: 2000,
-                        showConfirmButton: false
+                        title: '¡Operación Exitosa!',
+                        text: body.message || 'Enfermedad registrada exitosa.',
+                        confirmButtonColor: '#059669',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            container: 'swal2-high-priority'
+                        }
                     });
+                } else {
+                    alert('¡Operación Exitosa!\n' + (body.message || 'Enfermedad registrada exitosa.'));
                 }
                 if (input) input.focus();
             } else {
@@ -459,86 +459,6 @@
                 });
             }
         });
-    }
-
-    function eliminarEnfermedadCatalogo(id, nombre) {
-        if (!id) return;
-
-        const url = window.InspeccionConfig?.enfermedadesUrl || window.AprendizInspeccionConfig?.enfermedadesUrl;
-        const csrf = window.InspeccionConfig?.csrfToken || window.AprendizInspeccionConfig?.csrfToken;
-
-        const ejecutarEliminacion = () => {
-            fetch(`${url}/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(res => res.json())
-            .then(body => {
-                if (body.success) {
-                    if (Array.isArray(body.data)) {
-                        enfermedadesCatalogo = body.data;
-                    } else {
-                        enfermedadesCatalogo = enfermedadesCatalogo.filter(e => e.id !== id);
-                    }
-                    renderEnfermedadesCatalogo(enfermedadesCatalogo);
-                    renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
-
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Eliminada',
-                            text: body.message || `La enfermedad "${nombre}" fue eliminada del catálogo.`,
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    }
-                } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: body.message || 'No se pudo eliminar la enfermedad.',
-                            confirmButtonColor: '#286043'
-                        });
-                    }
-                }
-            })
-            .catch(() => {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No fue posible comunicarse con el servidor.',
-                        confirmButtonColor: '#286043'
-                    });
-                }
-            });
-        };
-
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: '¿Eliminar enfermedad?',
-                text: `¿Desea quitar "${nombre}" del catálogo de enfermedades disponibles?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            }).then(result => {
-                if (result.isConfirmed) {
-                    ejecutarEliminacion();
-                }
-            });
-        } else {
-            if (confirm(`¿Desea eliminar "${nombre}" del catálogo?`)) {
-                ejecutarEliminacion();
-            }
-        }
     }
 
     function renderVisitaEnfermedadesCheckboxes(lista) {
@@ -1526,7 +1446,6 @@
     window.openEnfermedadesModal = openEnfermedadesModal;
     window.closeEnfermedadesModal = closeEnfermedadesModal;
     window.guardarNuevaEnfermedadCatalogo = guardarNuevaEnfermedadCatalogo;
-    window.eliminarEnfermedadCatalogo = eliminarEnfermedadCatalogo;
     window.cargarEnfermedadesCatalogo = cargarEnfermedadesCatalogo;
     window.renderEnfermedadesCatalogo = renderEnfermedadesCatalogo;
     window.renderVisitaEnfermedadesCheckboxes = renderVisitaEnfermedadesCheckboxes;

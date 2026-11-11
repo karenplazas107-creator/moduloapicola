@@ -12,6 +12,12 @@
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('modules/apicola/css/aprendiz-inspeccion.css') }}">
+    <style>
+        .swal2-container,
+        .swal2-high-priority {
+            z-index: 999999 !important;
+        }
+    </style>
 @endsection
 
 @section('content')
