@@ -282,34 +282,106 @@
         document.getElementById('wrapperColorMarcaOtro').style.display = 'none';
     }
 
-    // ==================== MANEJO DE OTRAS ENFERMEDADES (ESTILO TIPO DE ABEJA) ====================
-    function toggleSeccionNuevaEnfermedad(e) {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        const container = document.getElementById('containerNuevaEnfermedad');
-        const input = document.getElementById('inputNuevaEnfermedadTexto');
-        const errorSpan = document.getElementById('errorNuevaEnfermedadAprendiz') || document.getElementById('errorNuevaEnfermedad');
-        if (errorSpan) errorSpan.style.display = 'none';
-        if (input) input.style.borderColor = '#cbd5e1';
-        if (!container) return;
-
-        if (container.style.display === 'none' || !container.style.display) {
-            container.style.display = 'block';
-            if (input) {
-                input.value = '';
-                input.focus();
-            }
-        } else {
-            container.style.display = 'none';
-        }
+    // ==================== HELPER ESCAPE HTML ====================
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
-    function confirmarNuevaEnfermedad() {
-        const input = document.getElementById('inputNuevaEnfermedadTexto');
-        const errorSpan = document.getElementById('errorNuevaEnfermedadAprendiz') || document.getElementById('errorNuevaEnfermedad');
+    // ==================== GESTIÓN DE CATÁLOGO DE ENFERMEDADES ====================
+    let enfermedadesCatalogo = window.AprendizInspeccionConfig?.enfermedadesList || [];
+
+    function openEnfermedadesModal() {
+        const modal = document.getElementById('modalEnfermedadesBackdrop');
+        if (!modal) return;
+        modal.classList.add('is-open');
+
+        const input = document.getElementById('inputNuevaEnfermedadCatalogo');
+        const err = document.getElementById('errorNuevaEnfermedadCatalogo');
+        if (input) {
+            input.value = '';
+            input.style.borderColor = '#10b981';
+            setTimeout(() => input.focus(), 150);
+        }
+        if (err) err.style.display = 'none';
+
+        cargarEnfermedadesCatalogo();
+    }
+
+    function closeEnfermedadesModal() {
+        const modal = document.getElementById('modalEnfermedadesBackdrop');
+        if (modal) modal.classList.remove('is-open');
+    }
+
+    function cargarEnfermedadesCatalogo() {
+        const url = window.AprendizInspeccionConfig?.enfermedadesUrl;
+        if (!url) {
+            renderEnfermedadesCatalogo(enfermedadesCatalogo);
+            return;
+        }
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success && Array.isArray(res.data)) {
+                enfermedadesCatalogo = res.data;
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
+            } else {
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+            }
+        })
+        .catch(() => {
+            renderEnfermedadesCatalogo(enfermedadesCatalogo);
+        });
+    }
+
+    function renderEnfermedadesCatalogo(lista) {
+        const container = document.getElementById('listaEnfermedadesCatalogo');
+        const badge = document.getElementById('badgeTotalEnfermedades');
+        if (badge) {
+            badge.textContent = `${lista.length} registrada${lista.length === 1 ? '' : 's'}`;
+        }
+        if (!container) return;
+
+        if (!lista || lista.length === 0) {
+            container.innerHTML = '<p style="margin: 12px 0; font-size: 0.85rem; color: #64748b; font-style: italic; width: 100%; text-align: center;">No hay enfermedades registradas en el catálogo. Use el campo superior para registrar una nueva enfermedad.</p>';
+            return;
+        }
+
+        container.innerHTML = lista.map(enf => {
+            const nombre = typeof enf === 'string' ? enf : (enf.nombre || '');
+            const id = typeof enf === 'object' && enf.id ? enf.id : null;
+            const deleteBtn = id 
+                ? `<button type="button" class="ap-enf-pill-del" onclick="eliminarEnfermedadCatalogo(${id}, '${escapeHtml(nombre)}')" title="Eliminar ${escapeHtml(nombre)}" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:1.15rem; line-height:1; padding:0 3px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; transition:transform 0.15s ease;">&times;</button>`
+                : '';
+
+            return `
+                <div class="ap-enf-pill" style="display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #065f46; border: 1.5px solid #a7f3d0; padding: 6px 14px; border-radius: 20px; font-size: 0.86rem; font-weight: 700;">
+                    <i class="fas fa-virus" style="color: #059669; font-size: 0.82rem;"></i>
+                    <span>${escapeHtml(nombre)}</span>
+                    ${deleteBtn}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function guardarNuevaEnfermedadCatalogo() {
+        const input = document.getElementById('inputNuevaEnfermedadCatalogo');
+        const err = document.getElementById('errorNuevaEnfermedadCatalogo');
+        const btn = document.getElementById('btnGuardarEnfermedadCatalogo');
         const valor = (input ? input.value : '').trim();
+
         if (!valor) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -325,9 +397,8 @@
             return;
         }
 
-        // Validación: no números
         if (/\d/.test(valor)) {
-            if (errorSpan) errorSpan.style.display = 'block';
+            if (err) err.style.display = 'block';
             if (input) input.style.borderColor = '#dc2626';
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
@@ -342,83 +413,181 @@
             if (input) input.focus();
             return;
         }
-        if (errorSpan) errorSpan.style.display = 'none';
-        if (input) input.style.borderColor = '#cbd5e1';
 
-        agregarNuevaEnfermedad(valor, true);
+        if (err) err.style.display = 'none';
+        if (input) input.style.borderColor = '#10b981';
 
-        const container = document.getElementById('containerNuevaEnfermedad');
-        if (container) container.style.display = 'none';
-        if (input) input.value = '';
-    }
+        const url = window.AprendizInspeccionConfig?.enfermedadesUrl;
+        const csrf = window.AprendizInspeccionConfig?.csrfToken;
 
-    function toggleEnfermedadOtra(cb) {
-        toggleSeccionNuevaEnfermedad();
-    }
+        if (btn) btn.disabled = true;
 
-    function agregarNuevaEnfermedad(nombreForzado = null, isChecked = true) {
-        const input = document.getElementById('inputNuevaEnfermedadTexto') || document.getElementById('txtNuevaEnfermedad');
-        const errorSpan = document.getElementById('errorNuevaEnfermedadAprendiz') || document.getElementById('errorNuevaEnfermedad');
-        const valor = (nombreForzado !== null ? nombreForzado : (input ? input.value : '')).trim();
-        if (!valor) {
-            if (input) input.focus();
-            return;
-        }
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre: valor })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(({ status, body }) => {
+            if (btn) btn.disabled = false;
+            if (status === 201 || body.success) {
+                if (input) input.value = '';
+                if (Array.isArray(body.data)) {
+                    enfermedadesCatalogo = body.data;
+                } else if (body.enfermedad) {
+                    enfermedadesCatalogo.push(body.enfermedad);
+                }
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
 
-        // Validación: no números
-        if (/\d/.test(valor)) {
-            if (errorSpan) errorSpan.style.display = 'block';
-            if (input) input.style.borderColor = '#dc2626';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Enfermedad registrada',
+                        text: body.message || 'La enfermedad fue agregada al catálogo.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+                if (input) input.focus();
+            } else {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Atención',
+                        text: body.message || 'No fue posible registrar la enfermedad.',
+                        confirmButtonColor: '#286043'
+                    });
+                } else {
+                    alert(body.message || 'No fue posible registrar la enfermedad.');
+                }
+            }
+        })
+        .catch(err => {
+            if (btn) btn.disabled = false;
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Enfermedad inválida',
-                    text: 'No se permiten números en el nombre de la enfermedad. Solo se permiten letras.',
+                    title: 'Error de conexión',
+                    text: 'Ocurrió un problema al guardar la enfermedad.',
                     confirmButtonColor: '#286043'
                 });
-            } else {
-                alert('No se permiten números en el nombre de la enfermedad. Solo se permiten letras.');
             }
-            if (input) input.focus();
-            return;
-        }
-        if (errorSpan) errorSpan.style.display = 'none';
-        if (input) input.style.borderColor = '#cbd5e1';
+        });
+    }
 
+    function eliminarEnfermedadCatalogo(id, nombre) {
+        if (!id) return;
+
+        const url = window.AprendizInspeccionConfig?.enfermedadesUrl;
+        const csrf = window.AprendizInspeccionConfig?.csrfToken;
+
+        const ejecutarEliminacion = () => {
+            fetch(`${url}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(body => {
+                if (body.success) {
+                    if (Array.isArray(body.data)) {
+                        enfermedadesCatalogo = body.data;
+                    } else {
+                        enfermedadesCatalogo = enfermedadesCatalogo.filter(e => e.id !== id);
+                    }
+                    renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                    renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminada',
+                            text: body.message || `La enfermedad "${nombre}" fue eliminada del catálogo.`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: body.message || 'No se pudo eliminar la enfermedad.',
+                            confirmButtonColor: '#286043'
+                        });
+                    }
+                }
+            })
+            .catch(() => {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No fue posible comunicarse con el servidor.',
+                        confirmButtonColor: '#286043'
+                    });
+                }
+            });
+        };
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '¿Eliminar enfermedad?',
+                text: `¿Desea quitar "${nombre}" del catálogo de enfermedades disponibles?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    ejecutarEliminacion();
+                }
+            });
+        } else {
+            if (confirm(`¿Desea eliminar "${nombre}" del catálogo?`)) {
+                ejecutarEliminacion();
+            }
+        }
+    }
+
+    function renderVisitaEnfermedadesCheckboxes(lista) {
         const container = document.getElementById('containerEnfermedades');
         if (!container) return;
 
-        // Si ya existe la tarjeta con ese valor, la marcamos
-        const existing = container.querySelector(`input[name="enfermedades"][value="${CSS.escape(valor)}"]`);
-        if (existing) {
-            existing.checked = true;
-            const parentLbl = existing.closest('.ap-checkbox-card');
-            if (parentLbl) parentLbl.classList.add('is-checked');
-            if (input && nombreForzado === null) input.value = '';
+        const currentlyChecked = new Set();
+        container.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
+            currentlyChecked.add(cb.value);
+        });
+
+        if (!lista || lista.length === 0) {
+            container.innerHTML = '<p id="msgSinEnfermedades" style="font-size: 0.85rem; color: #64748b; font-style: italic; margin: 6px 0;">No hay enfermedades registradas en el sistema. Puede registrarlas desde el botón superior "Enfermedades".</p>';
             return;
         }
 
-        const customId = 'lblEnfCust_' + Math.random().toString(36).substring(2, 9);
-        const label = document.createElement('label');
-        label.className = 'ap-checkbox-card is-custom-card' + (isChecked ? ' is-checked' : '');
-        label.id = customId;
+        container.innerHTML = lista.map(enf => {
+            const nombre = typeof enf === 'string' ? enf : (enf.nombre || '');
+            const slug = nombre.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const enfId = 'lblEnf_' + slug;
+            const isChecked = currentlyChecked.has(nombre);
 
-        label.innerHTML = `
-            <input type="checkbox" name="enfermedades" value="${valor}" ${isChecked ? 'checked' : ''} onchange="toggleCheckboxCard(this, '${customId}')">
-            <span style="flex: 1; word-break: break-word;">${valor}</span>
-            <button type="button" class="ap-btn-remove-card" onclick="removerCardItem(event, '${customId}')" title="Eliminar">&times;</button>
-        `;
-
-        const otraLabel = document.getElementById('lblEnfOtra');
-        if (otraLabel && otraLabel.parentNode === container) {
-            container.insertBefore(label, otraLabel);
-        } else {
-            container.appendChild(label);
-        }
-
-        if (input && nombreForzado === null) {
-            input.value = '';
-        }
+            return `
+                <label class="ap-checkbox-card ${isChecked ? 'is-checked' : ''}" id="${enfId}">
+                    <input type="checkbox" name="enfermedades" value="${escapeHtml(nombre)}" ${isChecked ? 'checked' : ''} onchange="toggleCheckboxCard(this, '${enfId}')">
+                    <span>${escapeHtml(nombre)}</span>
+                </label>
+            `;
+        }).join('');
     }
 
     // ==================== MANEJO DE OTRAS LABORES (ESTILO IDÉNTICO A OTRA ENFERMEDAD) ====================
@@ -1075,9 +1244,13 @@
     window.toggleCheckboxCard = toggleCheckboxCard;
     window.handleColorMarcaChange = handleColorMarcaChange;
     window.agregarColorMarcaCustom = agregarColorMarcaCustom;
-    window.toggleSeccionNuevaEnfermedad = toggleSeccionNuevaEnfermedad;
-    window.confirmarNuevaEnfermedad = confirmarNuevaEnfermedad;
-    window.agregarNuevaEnfermedad = agregarNuevaEnfermedad;
+    window.openEnfermedadesModal = openEnfermedadesModal;
+    window.closeEnfermedadesModal = closeEnfermedadesModal;
+    window.guardarNuevaEnfermedadCatalogo = guardarNuevaEnfermedadCatalogo;
+    window.eliminarEnfermedadCatalogo = eliminarEnfermedadCatalogo;
+    window.cargarEnfermedadesCatalogo = cargarEnfermedadesCatalogo;
+    window.renderEnfermedadesCatalogo = renderEnfermedadesCatalogo;
+    window.renderVisitaEnfermedadesCheckboxes = renderVisitaEnfermedadesCheckboxes;
     window.removerCardItem = removerCardItem;
     window.toggleLaborOtra = toggleLaborOtra;
     window.toggleSeccionNuevaLabor = toggleSeccionNuevaLabor;

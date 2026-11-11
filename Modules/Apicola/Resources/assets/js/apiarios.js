@@ -1,32 +1,8 @@
 let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
-    const MAPBOX_ACCESS_TOKEN = window.ApiariosConfig?.mapboxToken || 'pk.eyJ1Ijoia2FyZW5wbGF6YXMxMDciLCJhIjoiY213MHJxdG5jMDJmMzMwcHp6OTVjMjJ3dCJ9.WTvascS5RNXOfr2xgemF2A';
-    if (typeof mapboxgl !== 'undefined') {
-        mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
-    }
-
-    let modalMap = null;
-    let modalMarker = null;
-    let generalMap = null;
-    let generalMarkers = [];
-
     document.addEventListener('DOMContentLoaded', () => {
         renderApiariosTable();
         updateMetricCards();
-
-        // Sincronizar inputs manuales de lat/lng con el mapa modal
-        const latInput = document.getElementById('modalApiarioLat');
-        const lngInput = document.getElementById('modalApiarioLng');
-        const onCoordManualChange = () => {
-            const lat = parseFloat(latInput.value);
-            const lng = parseFloat(lngInput.value);
-            if (!isNaN(lat) && !isNaN(lng) && modalMap && modalMarker) {
-                modalMarker.setLngLat([lng, lat]);
-                modalMap.flyTo({ center: [lng, lat], zoom: 14, speed: 1.2 });
-            }
-        };
-        if (latInput) latInput.addEventListener('change', onCoordManualChange);
-        if (lngInput) lngInput.addEventListener('change', onCoordManualChange);
     });
 
     function updateMetricCards() {
@@ -213,10 +189,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         setApiarioEstado('Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
-
-        setTimeout(() => {
-            initModalMap(defaultLat, defaultLng);
-        }, 200);
     }
 
     function openEditApiarioModal(id) {
@@ -293,10 +265,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         setApiarioEstado(item.estado || 'Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
-
-        setTimeout(() => {
-            initModalMap(item.lat || 2.6857, item.lng || -75.3241);
-        }, 200);
     }
 
     function validarTextoSinNumeros(input, errorSpanId) {
@@ -346,16 +314,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
         if (errorSpan) errorSpan.style.display = 'none';
         input.style.borderColor = '#10b981';
-
-        // Sincronizar marcador en el mapa
-        const otherId = input.id === 'modalApiarioLat' ? 'modalApiarioLng' : 'modalApiarioLat';
-        const otherVal = parseFloat(document.getElementById(otherId)?.value);
-        if (!isNaN(otherVal) && modalMap && modalMarker) {
-            const targetLat = input.id === 'modalApiarioLat' ? num : otherVal;
-            const targetLng = input.id === 'modalApiarioLng' ? num : otherVal;
-            modalMarker.setLngLat([targetLng, targetLat]);
-            modalMap.flyTo({ center: [targetLng, targetLat], speed: 1.2 });
-        }
 
         return true;
     }
@@ -448,105 +406,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
     function closeNewApiarioModal() {
         document.getElementById('modalApiarioBackdrop').classList.remove('is-open');
-    }
-
-    function initModalMap(lat, lng) {
-        const container = document.getElementById('modalMapContainer');
-        if (!container) return;
-
-        lat = parseFloat(lat) || 2.6857;
-        lng = parseFloat(lng) || -75.3241;
-
-        if (typeof mapboxgl === 'undefined') {
-            console.warn('Mapbox GL JS no está cargado todavía.');
-            return;
-        }
-
-        if (!modalMap) {
-            modalMap = new mapboxgl.Map({
-                accessToken: MAPBOX_ACCESS_TOKEN,
-                container: 'modalMapContainer',
-                style: 'mapbox://styles/mapbox/standard',
-                center: [lng, lat],
-                zoom: 14
-            });
-
-            // Controles de navegación
-            modalMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
-
-            // Marcador arrastrable en el mapa
-            modalMarker = new mapboxgl.Marker({
-                draggable: true,
-                color: '#059669'
-            })
-            .setLngLat([lng, lat])
-            .addTo(modalMap);
-
-            function syncCoordinatesToInputs(pointLngLat) {
-                const inputL = document.getElementById('modalApiarioLat');
-                const inputG = document.getElementById('modalApiarioLng');
-                if (inputL) {
-                    inputL.value = pointLngLat.lat.toFixed(6);
-                    inputL.style.borderColor = '#10b981';
-                    const eL = document.getElementById('errorLatCoords');
-                    if (eL) eL.style.display = 'none';
-                }
-                if (inputG) {
-                    inputG.value = pointLngLat.lng.toFixed(6);
-                    inputG.style.borderColor = '#10b981';
-                    const eG = document.getElementById('errorLngCoords');
-                    if (eG) eG.style.display = 'none';
-                }
-            }
-
-            modalMarker.on('dragend', function () {
-                const lngLat = modalMarker.getLngLat();
-                syncCoordinatesToInputs(lngLat);
-            });
-
-            modalMap.on('click', function (e) {
-                if (!modalMarker) {
-                    modalMarker = new mapboxgl.Marker({ draggable: true, color: '#059669' }).addTo(modalMap);
-                }
-                modalMarker.setLngLat(e.lngLat);
-                syncCoordinatesToInputs(e.lngLat);
-            });
-
-            modalMap.on('style.load', () => {
-                try {
-                    if (!modalMap.getSource('urban-areas')) {
-                        modalMap.addSource('urban-areas', {
-                            'type': 'geojson',
-                            'data': 'https://docs.mapbox.com/mapbox-gl-js/assets/ne_50m_urban_areas.geojson'
-                        });
-
-                        modalMap.addLayer({
-                            'id': 'urban-areas-fill',
-                            'type': 'fill',
-                            'slot': 'middle',
-                            'source': 'urban-areas',
-                            'layout': {},
-                            'paint': {
-                                'fill-color': '#f08',
-                                'fill-opacity': 0.4
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.warn('Error al cargar capa urban-areas:', err);
-                }
-            });
-
-            modalMap.on('load', () => {
-                modalMap.resize();
-            });
-        } else {
-            modalMap.setCenter([lng, lat]);
-            modalMarker.setLngLat([lng, lat]);
-            setTimeout(() => {
-                modalMap.resize();
-            }, 100);
-        }
     }
 
     async function saveApiarioForm(e) {
@@ -929,123 +788,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         }
     }
 
-    function openGeneralMapModal() {
-        document.getElementById('modalGeneralMapBackdrop').classList.add('is-open');
-
-        setTimeout(() => {
-            if (typeof mapboxgl === 'undefined') {
-                console.warn('Mapbox GL JS no está cargado.');
-                return;
-            }
-
-            const mapTarget = document.getElementById('map') || document.getElementById('generalMapContainer');
-            if (!mapTarget) return;
-
-            if (!generalMap) {
-                generalMap = new mapboxgl.Map({
-                    accessToken: MAPBOX_ACCESS_TOKEN,
-                    container: mapTarget,
-                    style: 'mapbox://styles/mapbox/standard',
-                    center: [-75.3241, 2.6857],
-                    zoom: 13
-                });
-
-                generalMap.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
-                generalMap.addControl(new mapboxgl.FullscreenControl(), 'top-left');
-
-                generalMap.on('style.load', () => {
-                    // Capa estándar slot middle (tal cual el código oficial de Mapbox)
-                    try {
-                        if (!generalMap.getSource('urban-areas')) {
-                            generalMap.addSource('urban-areas', {
-                                'type': 'geojson',
-                                'data': 'https://docs.mapbox.com/mapbox-gl-js/assets/ne_50m_urban_areas.geojson'
-                            });
-                            generalMap.addLayer({
-                                'id': 'urban-areas-fill',
-                                'type': 'fill',
-                                'slot': 'middle',
-                                'source': 'urban-areas',
-                                'layout': {},
-                                'paint': {
-                                    'fill-color': '#f08',
-                                    'fill-opacity': 0.4
-                                }
-                            });
-                        }
-                    } catch (e) {
-                        console.warn('Layer urban-areas info:', e);
-                    }
-
-                    renderGeneralMapMarkers();
-                });
-
-                generalMap.on('load', () => {
-                    generalMap.resize();
-                });
-            } else {
-                generalMap.resize();
-                renderGeneralMapMarkers();
-            }
-        }, 250);
-    }
-
-    function renderGeneralMapMarkers() {
-        if (generalMarkers && generalMarkers.length > 0) {
-            generalMarkers.forEach(m => m.remove());
-            generalMarkers = [];
-        }
-
-        if (!generalMap || !apiariosList || apiariosList.length === 0) return;
-
-        const bounds = new mapboxgl.LngLatBounds();
-        let validCoords = 0;
-
-        apiariosList.forEach(a => {
-            const lat = parseFloat(a.lat);
-            const lng = parseFloat(a.lng);
-            if (isNaN(lat) || isNaN(lng)) return;
-
-            validCoords++;
-            bounds.extend([lng, lat]);
-
-            const isActivo = a.estado === 'Activo';
-            const markerColor = isActivo ? '#059669' : '#ef4444';
-
-            const popupContent = `
-                <div style="font-family:'Nunito','Open Sans',sans-serif; min-width:180px; padding:4px;">
-                    <strong style="font-size:0.95rem; color:#0f172a; display:block; margin-bottom:4px; font-weight:800;">${a.nombre}</strong>
-                    <div style="font-size:0.80rem; color:#475569; margin-bottom:3px;"><i class="fas fa-user" style="color:#059669; margin-right:4px;"></i> ${a.responsable}</div>
-                    <div style="font-size:0.80rem; color:#475569; margin-bottom:6px;"><i class="fas fa-boxes-stacked" style="color:#059669; margin-right:4px;"></i> <strong>${a.colmenas}</strong> colmenas</div>
-                    <span style="display:inline-block; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:12px; background:${isActivo ? '#ecfdf5' : '#fee2e2'}; color:${isActivo ? '#059669' : '#dc2626'};">
-                        ${a.estado}
-                    </span>
-                </div>
-            `;
-
-            const popup = new mapboxgl.Popup({ offset: 25, closeButton: true }).setHTML(popupContent);
-
-            const marker = new mapboxgl.Marker({ color: markerColor })
-                .setLngLat([lng, lat])
-                .setPopup(popup)
-                .addTo(generalMap);
-
-            generalMarkers.push(marker);
-        });
-
-        if (validCoords > 1) {
-            generalMap.fitBounds(bounds, { padding: 60, maxZoom: 15 });
-        } else if (validCoords === 1) {
-            const first = apiariosList[0];
-            generalMap.setCenter([parseFloat(first.lng), parseFloat(first.lat)]);
-            generalMap.setZoom(14);
-        }
-    }
-
-    function closeGeneralMapModal() {
-        document.getElementById('modalGeneralMapBackdrop').classList.remove('is-open');
-    }
-
     function openDetailModal(id) {
         const apiario = apiariosList.find(a => a.id == id);
         if (!apiario) return;
@@ -1081,8 +823,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     window.filterApiarios = filterApiarios;
     window.toggleApiarioStatus = toggleApiarioStatus;
     window.eliminarApiario = eliminarApiario;
-    window.openGeneralMapModal = openGeneralMapModal;
-    window.closeGeneralMapModal = closeGeneralMapModal;
     window.openDetailModal = openDetailModal;
     window.closeDetailModal = closeDetailModal;
     window.handleApiarioRespSelect = handleApiarioRespSelect;

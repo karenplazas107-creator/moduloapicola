@@ -68,6 +68,9 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::post('inspecciones', [InspeccionController::class, 'store'])->name('apicola.admin.inspecciones.store');
     Route::delete('inspecciones/{id}', [InspeccionController::class, 'destroy'])->name('apicola.admin.inspecciones.destroy');
     Route::post('inspecciones/{id}/toggle-status', [InspeccionController::class, 'toggleStatus'])->name('apicola.admin.inspecciones.toggle-status');
+    Route::get('enfermedades', [InspeccionController::class, 'getEnfermedades'])->name('apicola.admin.enfermedades.index');
+    Route::post('enfermedades', [InspeccionController::class, 'storeEnfermedad'])->name('apicola.admin.enfermedades.store');
+    Route::delete('enfermedades/{id}', [InspeccionController::class, 'destroyEnfermedad'])->name('apicola.admin.enfermedades.destroy');
 
     // Módulo de Calendario Floral
     Route::get('calendario', [CalendarioController::class, 'index'])->name('apicola.admin.calendario.index');
@@ -125,4 +128,7 @@ Route::prefix('apicola/aprendiz')->middleware(['auth', 'apicola.aprendiz'])->gro
     Route::post('inspecciones', [AprendizInspeccionController::class, 'store'])->name('apicola.aprendiz.inspecciones.store');
     Route::delete('inspecciones/{id}', [AprendizInspeccionController::class, 'destroy'])->name('apicola.aprendiz.inspecciones.destroy');
     Route::post('inspecciones/{id}/toggle-status', [AprendizInspeccionController::class, 'toggleStatus'])->name('apicola.aprendiz.inspecciones.toggle-status');
+    Route::get('enfermedades', [AprendizInspeccionController::class, 'getEnfermedades'])->name('apicola.aprendiz.enfermedades.index');
+    Route::post('enfermedades', [AprendizInspeccionController::class, 'storeEnfermedad'])->name('apicola.aprendiz.enfermedades.store');
+    Route::delete('enfermedades/{id}', [AprendizInspeccionController::class, 'destroyEnfermedad'])->name('apicola.aprendiz.enfermedades.destroy');
 });

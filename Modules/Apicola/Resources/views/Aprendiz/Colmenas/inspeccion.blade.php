@@ -91,7 +91,10 @@
                 </button>
             </div>
 
-            <div class="ap-controls-right">
+            <div class="ap-controls-right" style="display: flex; gap: 10px; align-items: center;">
+                <button type="button" class="ap-btn-outline-green" onclick="openEnfermedadesModal()" title="Registrar y gestionar catálogo de enfermedades" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-virus"></i> Enfermedades
+                </button>
                 <button type="button" class="ap-btn-solid-green" onclick="openNewVisitaModal()">
                     <i class="fas fa-plus"></i> Registrar visita
                 </button>
@@ -235,52 +238,26 @@
                     <!-- Sección: Enfermedades Detectadas -->
                     <div class="ap-form-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <span>ENFERMEDADES DETECTADAS</span>
-                        <span style="font-size: 0.72rem; color: #64748b; font-weight: normal; text-transform: none;">Marque las detectadas o registre otra</span>
+                        <span style="font-size: 0.72rem; color: #64748b; font-weight: normal; text-transform: none;">Marque las detectadas durante la visita</span>
                     </div>
 
                     <div class="ap-checkbox-card-group" id="containerEnfermedades" style="margin-bottom: 0.5rem;">
-                        @php
-                            $enfermedadesList = isset($enfermedadesDisponibles) && count($enfermedadesDisponibles) > 0 
-                                ? $enfermedadesDisponibles 
-                                : ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
-                        @endphp
-
-                        @foreach($enfermedadesList as $enf)
-                            @php
-                                $enfId = 'lblEnf_' . \Illuminate\Support\Str::slug($enf, '_');
-                            @endphp
-                            <label class="ap-checkbox-card" id="{{ $enfId }}">
-                                <input type="checkbox" name="enfermedades" value="{{ $enf }}" onchange="toggleCheckboxCard(this, '{{ $enfId }}')">
-                                <span>{{ $enf }}</span>
-                            </label>
-                        @endforeach
-
-                        <!-- Botón para registrar otra enfermedad -->
-                        <label class="ap-checkbox-card" id="lblEnfOtra" onclick="toggleSeccionNuevaEnfermedad(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
-                            <span>➕ Otra / Registrar...</span>
-                        </label>
+                        @if(isset($enfermedadesDisponibles) && count($enfermedadesDisponibles) > 0)
+                            @foreach($enfermedadesDisponibles as $enf)
+                                @php
+                                    $enfId = 'lblEnf_' . \Illuminate\Support\Str::slug($enf, '_');
+                                @endphp
+                                <label class="ap-checkbox-card" id="{{ $enfId }}">
+                                    <input type="checkbox" name="enfermedades" value="{{ $enf }}" onchange="toggleCheckboxCard(this, '{{ $enfId }}')">
+                                    <span>{{ $enf }}</span>
+                                </label>
+                            @endforeach
+                        @else
+                            <p id="msgSinEnfermedades" style="font-size: 0.85rem; color: #64748b; font-style: italic; margin: 6px 0;">No hay enfermedades registradas en el sistema. Puede registrarlas desde el botón superior "Enfermedades".</p>
+                        @endif
                     </div>
 
-                    <!-- Contenedor desplegable para registrar una nueva enfermedad (Estilo Color / Tipo de abeja) -->
-                    <div id="containerNuevaEnfermedad" style="display: none; margin-top: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 12px; border-radius: 12px; border: 1.5px solid #bbf7d0;">
-                        <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #166534; margin-bottom: 5px; text-transform: uppercase;">
-                            <i class="fas fa-virus"></i> Nombre de la nueva enfermedad:
-                        </label>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="inputNuevaEnfermedadTexto" class="ap-field-input" placeholder="Ej: Nosema, Polilla de la cera, Micosis..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.88rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosVisita(this, 'errorNuevaEnfermedadAprendiz')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaEnfermedad();}">
-                            <button type="button" onclick="confirmarNuevaEnfermedad()" style="background: #047857; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.84rem; font-weight: 800; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-plus"></i> Agregar
-                            </button>
-                        </div>
-                        <span id="errorNuevaEnfermedadAprendiz" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
-                            <i class="fas fa-circle-exclamation"></i> Enfermedad inválida: no se permiten números, solo letras.
-                        </span>
-                        <span style="display: block; font-size: 0.72rem; color: #15803d; margin-top: 5px;">
-                            Quedará marcada en esta visita y guardada para futuras inspecciones.
-                        </span>
-                    </div>
-
-                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó algo. Puede dejarlo vacío o registrar otra enfermedad.</p>
+                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó alguna patología en la colmena. Para agregar más opciones use el botón superior "Enfermedades".</p>
 
                     <!-- Sección: Labores Realizadas -->
                     <div class="ap-form-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -431,6 +408,64 @@
             </div>
         </div>
     </div>
+
+    <!-- ==================== MODAL: GESTIÓN DE ENFERMEDADES ==================== -->
+    <div class="ap-modal-backdrop" id="modalEnfermedadesBackdrop">
+        <div class="ap-modal-window" style="max-width: 560px;">
+            <div class="ap-modal-header" style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); color: #ffffff; padding: 18px 24px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <i class="fas fa-virus"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #ffffff;">Registro de Enfermedades</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.78rem; color: #d1fae5;">Patologías y alertas sanitarias apícolas</p>
+                    </div>
+                </div>
+                <button type="button" class="ap-modal-close" onclick="closeEnfermedadesModal()" style="background: none; border: none; color: #ffffff; font-size: 1.4rem; cursor: pointer; opacity: 0.85;">&times;</button>
+            </div>
+
+            <div class="ap-modal-body" style="padding: 22px 24px;">
+                <!-- Formulario exclusivo para registrar una enfermedad -->
+                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 14px; padding: 18px; margin-bottom: 20px;">
+                    <label for="inputNuevaEnfermedadCatalogo" style="display: block; font-size: 0.76rem; font-weight: 800; color: #166534; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-plus-circle" style="color: #059669;"></i> Nombre de la nueva enfermedad:
+                    </label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="inputNuevaEnfermedadCatalogo" class="ap-field-input" placeholder="Ej: Nosema, Polilla de la cera, Micosis..." maxlength="100" style="flex: 1; padding: 10px 14px; border-radius: 10px; border: 1.5px solid #10b981; font-size: 0.92rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosVisita(this, 'errorNuevaEnfermedadCatalogo')" onkeydown="if(event.key==='Enter'){event.preventDefault(); guardarNuevaEnfermedadCatalogo();}">
+                        <button type="button" id="btnGuardarEnfermedadCatalogo" onclick="guardarNuevaEnfermedadCatalogo()" class="ap-btn-solid-green" style="padding: 10px 20px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;">
+                            <i class="fas fa-plus"></i> Registrar
+                        </button>
+                    </div>
+                    <span id="errorNuevaEnfermedadCatalogo" style="display:none; color:#dc2626; font-size:0.78rem; font-weight:700; margin-top:6px;">
+                        <i class="fas fa-circle-exclamation"></i> Enfermedad inválida: no se permiten números, solo letras.
+                    </span>
+                    <p style="margin: 8px 0 0; font-size: 0.74rem; color: #15803d; line-height: 1.4;">
+                        <i class="fas fa-info-circle"></i> Al registrarla quedará guardada y aparecerá como opción disponible al registrar una visita.
+                    </p>
+                </div>
+
+                <!-- Listado de Enfermedades Registradas -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 0.8rem; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fas fa-list-check" style="color: #047857;"></i> Enfermedades Registradas
+                    </span>
+                    <span id="badgeTotalEnfermedades" style="background: #e0f2fe; color: #0369a1; font-weight: 800; font-size: 0.75rem; padding: 3px 12px; border-radius: 20px;">
+                        {{ count($enfermedadesDisponibles ?? []) }} registradas
+                    </span>
+                </div>
+
+                <!-- Contenedor dinámico de pills -->
+                <div id="listaEnfermedadesCatalogo" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <!-- Rellenado dinámicamente -->
+                </div>
+            </div>
+
+            <div class="ap-modal-footer" style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; display: flex; justify-content: flex-end;">
+                <button type="button" class="ap-btn-modal-cancel" onclick="closeEnfermedadesModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
@@ -438,8 +473,11 @@
     window.AprendizInspeccionConfig = {
         activeColmena: "{{ $selectedColmena ?? '' }}",
         inspeccionesList: @json($visitasInit ?? []),
+        enfermedadesList: @json($enfermedades ?? []),
+        enfermedadesNombres: @json($enfermedadesDisponibles ?? []),
         storeUrl: "{{ route('apicola.aprendiz.inspecciones.store') }}",
         baseUrl: "{{ url('apicola/aprendiz/inspecciones') }}",
+        enfermedadesUrl: "{{ route('apicola.aprendiz.enfermedades.index') }}",
         csrfToken: "{{ csrf_token() }}",
         currentUserName: "{{ $aprendizNombre ?? (Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz')) }}"
     };

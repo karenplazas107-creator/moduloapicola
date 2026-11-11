@@ -20,11 +20,13 @@ class InspeccionController extends Controller
         $selectedColmena = $request->get('colmena', $firstCode);
         $visitasInit = $this->getVisitasFromDb();
 
-        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
-        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
-        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+        $enfermedades = DB::table('apicola_enfermedades')
+            ->where('estado', 'Activa')
+            ->orderBy('nombre', 'asc')
+            ->get();
+        $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades'));
     }
 
     /**
@@ -36,11 +38,13 @@ class InspeccionController extends Controller
         $selectedColmena = $code;
         $visitasInit = $this->getVisitasFromDb();
 
-        $enfermedadesBase = ['Varroa', 'Loque americana', 'Loque europea', 'Abejas negras', 'Envenenadas', 'Hormiga'];
-        $enfermedadesDb = DB::table('enfermedades_registro')->distinct()->pluck('nombre_enfermedad')->filter()->toArray();
-        $enfermedadesDisponibles = array_values(array_unique(array_filter(array_merge($enfermedadesBase, $enfermedadesDb))));
+        $enfermedades = DB::table('apicola_enfermedades')
+            ->where('estado', 'Activa')
+            ->orderBy('nombre', 'asc')
+            ->get();
+        $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades'));
     }
 
     /**
@@ -252,6 +256,124 @@ class InspeccionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al desactivar la inspección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener listado de enfermedades registradas en formato JSON.
+     */
+    public function getEnfermedades()
+    {
+        try {
+            $enfermedades = DB::table('apicola_enfermedades')
+                ->where('estado', 'Activa')
+                ->orderBy('nombre', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $enfermedades
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener enfermedades: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Registrar una nueva enfermedad en el catálogo oficial apícola.
+     */
+    public function storeEnfermedad(Request $request)
+    {
+        $validated = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:150',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.]+$/'
+            ]
+        ], [
+            'nombre.required' => 'El nombre de la enfermedad es obligatorio.',
+            'nombre.regex' => 'Enfermedad inválida: no se permiten números, solo letras.',
+            'nombre.min' => 'El nombre debe tener al menos 2 letras.',
+        ]);
+
+        $nombreLimpio = trim($request->input('nombre'));
+        $nombreFormateado = mb_convert_case($nombreLimpio, MB_CASE_TITLE, 'UTF-8');
+
+        // Verificar si ya existe (insensible a mayúsculas/minúsculas)
+        $existe = DB::table('apicola_enfermedades')
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombreLimpio, 'UTF-8')])
+            ->first();
+
+        if ($existe) {
+            if ($existe->estado !== 'Activa') {
+                DB::table('apicola_enfermedades')->where('id', $existe->id)->update([
+                    'estado' => 'Activa',
+                    'updated_at' => now()
+                ]);
+                $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+                return response()->json([
+                    'success' => true,
+                    'message' => "La enfermedad \"{$existe->nombre}\" fue reactivada exitosamente.",
+                    'enfermedad' => $existe,
+                    'data' => $all
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => "La enfermedad \"{$existe->nombre}\" ya se encuentra registrada."
+            ], 422);
+        }
+
+        $id = DB::table('apicola_enfermedades')->insertGetId([
+            'nombre' => $nombreFormateado,
+            'estado' => 'Activa',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        $nueva = DB::table('apicola_enfermedades')->where('id', $id)->first();
+        $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Enfermedad \"{$nombreFormateado}\" registrada con éxito.",
+            'enfermedad' => $nueva,
+            'data' => $all
+        ], 201);
+    }
+
+    /**
+     * Eliminar una enfermedad del catálogo.
+     */
+    public function destroyEnfermedad($id)
+    {
+        try {
+            $enf = DB::table('apicola_enfermedades')->where('id', $id)->first();
+            if (!$enf) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Enfermedad no encontrada.'
+                ], 404);
+            }
+
+            DB::table('apicola_enfermedades')->where('id', $id)->delete();
+            $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Enfermedad \"{$enf->nombre}\" eliminada correctamente.",
+                'data' => $all
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la enfermedad: ' . $e->getMessage()
             ], 500);
         }
     }

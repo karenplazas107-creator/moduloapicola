@@ -8,26 +8,6 @@
     <span class="active-page">Gestión de apiarios</span>
 @endsection
 
-@section('styles')
-<style>
-    .mapboxgl-popup-content {
-        border-radius: 12px !important;
-        padding: 12px 14px !important;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
-        border: 1px solid #e2e8f0 !important;
-    }
-    .mapboxgl-ctrl-group {
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-    }
-    .mapboxgl-popup-close-button {
-        font-size: 16px;
-        color: #64748b;
-        padding: 4px 8px;
-    }
-</style>
-@endsection
 
 @section('content')
     <!-- Encabezado de la vista con perfil apicultor -->
@@ -96,9 +76,6 @@
             </div>
 
             <div class="ap-controls-right">
-                <button type="button" class="ap-btn-outline-green" onclick="openGeneralMapModal()">
-                    <i class="fas fa-map-location-dot"></i> Ver mapa general
-                </button>
                 <button type="button" class="ap-btn-solid-green" onclick="openNewApiarioModal()">
                     <i class="fas fa-plus"></i> Nuevo apiario
                 </button>
@@ -207,12 +184,9 @@
                         </p>
                     </div>
 
-                    <!-- 5. Ubicación & Mapa -->
+                    <!-- 5. Ubicación Geográfica -->
                     <div class="ap-form-field">
-                        <label class="ap-field-label">UBICACIÓN GEOGRÁFICA (MAPA MAPBOX)</label>
-                        <div id="modalMapContainer" style="width:100%; height:200px; border-radius:12px; border:1px solid #cbd5e1; margin-bottom:6px; position:relative; overflow:hidden;"></div>
-                        <p class="ap-field-hint">Haga clic en el mapa o arrastre el marcador para marcar la ubicación exacta.</p>
-
+                        <label class="ap-field-label">UBICACIÓN GEOGRÁFICA (COORDENADAS)</label>
                         <div class="ap-coords-row">
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLat">LATITUD</label>
@@ -236,26 +210,6 @@
                         <button type="submit" class="ap-btn-modal-save" id="btnSaveApiario">Guardar apiario</button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== MODAL: MAPA GENERAL DE APIARIOS ==================== -->
-    <div class="ap-modal-backdrop" id="modalGeneralMapBackdrop">
-        <div class="ap-modal-window large">
-            <div class="ap-modal-body">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
-                    <h2 class="ap-modal-title" style="margin-bottom:0;">
-                        <i class="fas fa-map-marked-alt" style="color: #059669;"></i> Mapa general de apiarios
-                    </h2>
-                    <button type="button" class="ap-modal-close-btn" onclick="closeGeneralMapModal()" title="Cerrar">&times;</button>
-                </div>
-                <p style="font-size:0.84rem; color:#64748b; margin-bottom:1rem;">
-                    Visualización georreferenciada de los apiarios en el Centro La Angostura y zonas aledañas de Campoalegre, Huila.
-                </p>
-                <div id="generalMapContainer" style="width:100%; height: 450px; border-radius: 14px; border: 1px solid #cbd5e1; position: relative; overflow: hidden;">
-                    <div id="map" style="position: absolute; top: 0; bottom: 0; width: 100%; height: 100%;"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -314,8 +268,7 @@
         currentUserName: "{{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : '') }}",
         baseUrl: "{{ url('apicola/apiarios') }}",
         storeUrl: "{{ route('apicola.admin.apiarios.store') }}",
-        csrfToken: "{{ csrf_token() }}",
-        mapboxToken: "pk.eyJ1Ijoia2FyZW5wbGF6YXMxMDciLCJhIjoiY213MHJxdG5jMDJmMzMwcHp6OTVjMjJ3dCJ9.WTvascS5RNXOfr2xgemF2A"
+        csrfToken: "{{ csrf_token() }}"
     };
 </script>
 <script src="{{ asset('modules/apicola/js/apiarios.js') }}?v={{ time() }}"></script>
