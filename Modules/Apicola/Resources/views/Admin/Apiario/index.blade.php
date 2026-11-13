@@ -76,6 +76,9 @@
             </div>
 
             <div class="ap-controls-right">
+                <button type="button" class="ap-btn-outline-green" onclick="openGeneralMapModal()">
+                    <i class="fas fa-map-location-dot"></i> Ver mapa general
+                </button>
                 <button type="button" class="ap-btn-solid-green" onclick="openNewApiarioModal()">
                     <i class="fas fa-plus"></i> Nuevo apiario
                 </button>
@@ -130,7 +133,7 @@
                     <!-- 1. Nombre -->
                     <div class="ap-form-field">
                         <label class="ap-field-label" for="modalApiarioNombre">NOMBRE DEL APIARIO</label>
-                        <input type="text" id="modalApiarioNombre" class="ap-field-input" placeholder="Ej: Apiario La Angostura" oninput="validarTextoSinNumeros(this, 'errorNumeroNombre')" required>
+                        <input type="text" id="modalApiarioNombre" class="ap-field-input" placeholder="Ej: Apiario La Angostura" oninput="validarTextoSinNumeros(this, 'errorNumeroNombre'); updateModalMarkerLabel();" required>
                         <span id="errorNumeroNombre" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
                             <i class="fas fa-circle-exclamation"></i> Nombre inválido: no se permiten números, solo texto.
                         </span>
@@ -186,7 +189,16 @@
 
                     <!-- 5. Ubicación Geográfica -->
                     <div class="ap-form-field">
-                        <label class="ap-field-label">UBICACIÓN GEOGRÁFICA (COORDENADAS)</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <label class="ap-field-label" style="margin-bottom:0;">UBICACIÓN GEOGRÁFICA</label>
+                            <button type="button" id="btnToggleModalMapStyle" class="ap-btn-outline-green" style="padding:4px 10px; font-size:0.72rem;" onclick="toggleModalMapStyle()">
+                                <i class="fas fa-satellite"></i> Ver satélite
+                            </button>
+                        </div>
+                        <div id="modalMapContainer" style="width:100%; height:190px; border-radius:12px; border:1px solid #cbd5e1; margin:8px 0 6px; position:relative; overflow:hidden;"></div>
+                        <p class="ap-field-hint" style="font-size:0.75rem; color:#64748b; margin:0 0 10px;">
+                            <i class="fas fa-map-marker-alt"></i> Haz clic en el mapa o arrastra el marcador para marcar la ubicación exacta. El nombre del apiario se mostrará como letrero sobre el pin.
+                        </p>
                         <div class="ap-coords-row">
                             <div>
                                 <label class="ap-field-label" for="modalApiarioLat">LATITUD</label>
@@ -210,6 +222,29 @@
                         <button type="submit" class="ap-btn-modal-save" id="btnSaveApiario">Guardar apiario</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: MAPA GENERAL DE APIARIOS ==================== -->
+    <div class="ap-modal-backdrop" id="modalGeneralMapBackdrop">
+        <div class="ap-modal-window large">
+            <div class="ap-modal-body">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                    <h2 class="ap-modal-title" style="margin-bottom:0;">
+                        <i class="fas fa-map-marked-alt" style="color: #059669;"></i> Mapa general de apiarios
+                    </h2>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button type="button" id="btnToggleMapStyle" class="ap-btn-outline-green" style="padding:6px 12px; font-size:0.78rem;" onclick="toggleGeneralMapStyle()">
+                            <i class="fas fa-satellite"></i> Ver satélite
+                        </button>
+                        <button type="button" class="ap-modal-close-btn" onclick="closeGeneralMapModal()" title="Cerrar">&times;</button>
+                    </div>
+                </div>
+                <p style="font-size:0.84rem; color:#64748b; margin-bottom:1rem;">
+                    Visualización georreferenciada de los apiarios en el Centro de Formación Agroindustrial La Angostura (SENA) y zonas aledañas de Campoalegre, Huila. Los nombres que incluyan "SENA" o "Angostura" se destacan automáticamente con una etiqueta en el mapa.
+                </p>
+                <div id="generalMapContainer" style="width:100%; height: 450px; border-radius: 14px; border: 1px solid #cbd5e1; position: relative; overflow: hidden;"></div>
             </div>
         </div>
     </div>
@@ -268,7 +303,8 @@
         currentUserName: "{{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : '') }}",
         baseUrl: "{{ url('apicola/apiarios') }}",
         storeUrl: "{{ route('apicola.admin.apiarios.store') }}",
-        csrfToken: "{{ csrf_token() }}"
+        csrfToken: "{{ csrf_token() }}",
+        mapboxToken: "{{ config('services.mapbox.token') }}"
     };
 </script>
 <script src="{{ asset('modules/apicola/js/apiarios.js') }}?v={{ time() }}"></script>
