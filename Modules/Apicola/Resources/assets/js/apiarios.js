@@ -1,5 +1,18 @@
 let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
+    const MAPBOX_ACCESS_TOKEN = window.ApiariosConfig?.mapboxToken || '';
+    if (typeof mapboxgl !== 'undefined' && MAPBOX_ACCESS_TOKEN) {
+        mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+    }
+
+    let modalMap = null;
+    let modalMarker = null;
+    let modalMarkerBadgeEl = null;
+    let modalMapIsSatellite = false;
+
+    let generalMap = null;
+    let generalMarkers = [];
+
     document.addEventListener('DOMContentLoaded', () => {
         renderApiariosTable();
         updateMetricCards();
@@ -168,9 +181,9 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
         document.getElementById('modalApiarioColmenas').value = '0';
 
-        // Coordenadas iniciales por defecto (La Angostura, Campoalegre)
-        const defaultLat = 2.6857;
-        const defaultLng = -75.3241;
+        // Coordenadas iniciales por defecto: SENA La Angostura, Campoalegre (verificado en Google Maps)
+        const defaultLat = 2.614811;
+        const defaultLng = -75.360875;
         const inputLat = document.getElementById('modalApiarioLat');
         const inputLng = document.getElementById('modalApiarioLng');
         if (inputLat) {
@@ -189,6 +202,10 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         setApiarioEstado('Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
+
+        setTimeout(() => {
+            initModalMap(defaultLat, defaultLng);
+        }, 200);
     }
 
     function openEditApiarioModal(id) {
@@ -245,8 +262,8 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
         document.getElementById('modalApiarioColmenas').value = item.colmenas || 0;
         
-        const latVal = item.lat || 2.6857;
-        const lngVal = item.lng || -75.3241;
+        const latVal = item.lat || 2.614811;
+        const lngVal = item.lng || -75.360875;
         const editLatInput = document.getElementById('modalApiarioLat');
         const editLngInput = document.getElementById('modalApiarioLng');
         if (editLatInput) {
@@ -265,6 +282,210 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         setApiarioEstado(item.estado || 'Activo');
 
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
+
+        setTimeout(() => {
+            initModalMap(parseFloat(latVal), parseFloat(lngVal));
+        }, 200);
+    }
+
+    // El mapa base de Mapbox no conoce nombres de apiarios (no son sitios registrados en su
+    // base de datos de lugares), así que cada marcador dibuja su propia etiqueta con el nombre.
+    function buildApiarioMarkerElement(color, label) {
+        const el = document.createElement('div');
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+        el.style.alignItems = 'center';
+        el.style.cursor = 'pointer';
+
+        const badge = document.createElement('div');
+        badge.style.cssText = 'background:#b45309; color:#fff; font-size:0.68rem; font-weight:800; padding:3px 9px; border-radius:20px; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.25); margin-bottom:3px; border:1.5px solid #fff;';
+        badge.innerHTML = label ? ('<i class="fas fa-tag"></i> ' + label) : '';
+        badge.style.display = label ? 'inline-block' : 'none';
+        el.appendChild(badge);
+
+        const dot = document.createElement('div');
+        dot.style.cssText = `width:18px; height:18px; border-radius:50%; background:${color}; border:3px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);`;
+        el.appendChild(dot);
+
+        el._badgeEl = badge;
+        return el;
+    }
+
+    function initModalMap(lat, lng) {
+        const container = document.getElementById('modalMapContainer');
+        if (!container) return;
+
+        if (typeof mapboxgl === 'undefined') {
+            console.warn('Mapbox GL JS no está cargado todavía.');
+            return;
+        }
+
+        if (!modalMap) {
+            modalMap = new mapboxgl.Map({
+                container: 'modalMapContainer',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [lng, lat],
+                zoom: 14
+            });
+
+            modalMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+            modalMap.on('click', (e) => {
+                modalMarker.setLngLat(e.lngLat);
+                syncMapCoordsToInputs(e.lngLat.lat, e.lngLat.lng);
+            });
+        } else {
+            modalMap.resize();
+            modalMap.setCenter([lng, lat]);
+            modalMap.setZoom(14);
+        }
+
+        if (modalMarker) {
+            modalMarker.remove();
+        }
+
+        const nombreActual = (document.getElementById('modalApiarioNombre')?.value || '').trim();
+        const markerEl = buildApiarioMarkerElement('#059669', nombreActual || null);
+
+        modalMarker = new mapboxgl.Marker({
+            element: markerEl,
+            draggable: true
+        })
+            .setLngLat([lng, lat])
+            .addTo(modalMap);
+
+        modalMarkerBadgeEl = markerEl._badgeEl;
+
+        modalMarker.on('dragend', () => {
+            const pos = modalMarker.getLngLat();
+            syncMapCoordsToInputs(pos.lat, pos.lng);
+        });
+    }
+
+    function updateModalMarkerLabel() {
+        if (!modalMarkerBadgeEl) return;
+        const nombre = (document.getElementById('modalApiarioNombre')?.value || '').trim();
+        if (nombre) {
+            modalMarkerBadgeEl.innerHTML = '<i class="fas fa-tag"></i> ' + nombre;
+            modalMarkerBadgeEl.style.display = 'inline-block';
+        } else {
+            modalMarkerBadgeEl.style.display = 'none';
+        }
+    }
+
+    function toggleModalMapStyle() {
+        if (!modalMap) return;
+        modalMapIsSatellite = !modalMapIsSatellite;
+        modalMap.setStyle(modalMapIsSatellite
+            ? 'mapbox://styles/mapbox/satellite-streets-v12'
+            : 'mapbox://styles/mapbox/streets-v12');
+
+        const btn = document.getElementById('btnToggleModalMapStyle');
+        if (btn) {
+            btn.innerHTML = modalMapIsSatellite
+                ? '<i class="fas fa-map"></i> Ver calles'
+                : '<i class="fas fa-satellite"></i> Ver satélite';
+        }
+    }
+
+    function syncMapCoordsToInputs(lat, lng) {
+        const inputLat = document.getElementById('modalApiarioLat');
+        const inputLng = document.getElementById('modalApiarioLng');
+        if (inputLat) {
+            inputLat.value = lat.toFixed(6);
+            validarCoordenada(inputLat, 'errorLatCoords', -90, 90);
+        }
+        if (inputLng) {
+            inputLng.value = lng.toFixed(6);
+            validarCoordenada(inputLng, 'errorLngCoords', -180, 180);
+        }
+    }
+
+    let generalMapIsSatellite = false;
+
+    function openGeneralMapModal() {
+        document.getElementById('modalGeneralMapBackdrop').classList.add('is-open');
+
+        setTimeout(() => {
+            if (typeof mapboxgl === 'undefined') {
+                console.warn('Mapbox GL JS no está cargado todavía.');
+                return;
+            }
+
+            if (!generalMap) {
+                generalMap = new mapboxgl.Map({
+                    container: 'generalMapContainer',
+                    style: 'mapbox://styles/mapbox/streets-v12',
+                    center: [-75.360875, 2.614811],
+                    zoom: 13
+                });
+
+                generalMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+            } else {
+                generalMap.resize();
+            }
+
+            renderApiarioMarkersGeneral();
+        }, 200);
+    }
+
+    function renderApiarioMarkersGeneral() {
+        if (!generalMap) return;
+
+        generalMarkers.forEach(marker => marker.remove());
+        generalMarkers = [];
+
+        apiariosList.forEach(a => {
+            const isActivo = a.estado === 'Activo';
+            const markerColor = isActivo ? '#059669' : '#ef4444';
+
+            const popupContent = `
+                <div style="font-family:Inter,sans-serif; min-width:180px;">
+                    <strong style="font-size:0.95rem; color:#0f172a; display:block; margin-bottom:4px;">${a.nombre}</strong>
+                    <div style="font-size:0.8rem; color:#475569; margin-bottom:4px;"><i class="fas fa-user"></i> ${a.responsable}</div>
+                    <div style="font-size:0.8rem; color:#475569; margin-bottom:6px;"><i class="fas fa-boxes-stacked"></i> <strong>${a.colmenas}</strong> colmenas</div>
+                    <span style="display:inline-block; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:12px; background:${isActivo ? '#ecfdf5' : '#fee2e2'}; color:${isActivo ? '#059669' : '#dc2626'};">
+                        ${a.estado}
+                    </span>
+                    <div style="display:flex; gap:6px; margin-top:8px;">
+                        <button type="button" onclick="openEditApiarioModal(${a.id})" style="flex:1; font-size:0.72rem; font-weight:700; padding:5px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; cursor:pointer;">
+                            <i class="fas fa-pen-to-square"></i> Editar
+                        </button>
+                        <button type="button" onclick="eliminarApiario(${a.id}, '${a.nombre}')" style="flex:1; font-size:0.72rem; font-weight:700; padding:5px 6px; border-radius:6px; border:1px solid #fecaca; background:#fef2f2; color:#dc2626; cursor:pointer;">
+                            <i class="fas fa-trash-can"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const marker = new mapboxgl.Marker({
+                element: buildApiarioMarkerElement(markerColor, a.nombre)
+            })
+                .setLngLat([a.lng, a.lat])
+                .setPopup(new mapboxgl.Popup({ offset: 20 }).setHTML(popupContent))
+                .addTo(generalMap);
+
+            generalMarkers.push(marker);
+        });
+    }
+
+    function toggleGeneralMapStyle() {
+        if (!generalMap) return;
+        generalMapIsSatellite = !generalMapIsSatellite;
+        generalMap.setStyle(generalMapIsSatellite
+            ? 'mapbox://styles/mapbox/satellite-streets-v12'
+            : 'mapbox://styles/mapbox/streets-v12');
+
+        const btn = document.getElementById('btnToggleMapStyle');
+        if (btn) {
+            btn.innerHTML = generalMapIsSatellite
+                ? '<i class="fas fa-map"></i> Ver calles'
+                : '<i class="fas fa-satellite"></i> Ver satélite';
+        }
+    }
+
+    function closeGeneralMapModal() {
+        document.getElementById('modalGeneralMapBackdrop').classList.remove('is-open');
     }
 
     function validarTextoSinNumeros(input, errorSpanId) {
@@ -679,6 +900,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
             closeNewApiarioModal();
             renderApiariosTable();
             updateMetricCards();
+            renderApiarioMarkersGeneral();
         } catch (error) {
             console.error('Error al guardar apiario:', error);
             alert('Error al guardar en la base de datos: ' + error.message);
@@ -714,6 +936,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
             showToast(result.message);
             renderApiariosTable();
             updateMetricCards();
+            renderApiarioMarkersGeneral();
         } catch (error) {
             console.error('Error al cambiar estado:', error);
             alert('Error al cambiar el estado: ' + error.message);
@@ -769,6 +992,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
             }
 
             renderApiariosTable();
+            renderApiarioMarkersGeneral();
 
             Swal.fire({
                 icon: 'success',
@@ -825,6 +1049,11 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     window.eliminarApiario = eliminarApiario;
     window.openDetailModal = openDetailModal;
     window.closeDetailModal = closeDetailModal;
+    window.openGeneralMapModal = openGeneralMapModal;
+    window.closeGeneralMapModal = closeGeneralMapModal;
+    window.toggleGeneralMapStyle = toggleGeneralMapStyle;
+    window.toggleModalMapStyle = toggleModalMapStyle;
+    window.updateModalMarkerLabel = updateModalMarkerLabel;
     window.handleApiarioRespSelect = handleApiarioRespSelect;
     window.confirmarOtroResponsableApiario = confirmarOtroResponsableApiario;
     window.validarTextoSinNumeros = validarTextoSinNumeros;
