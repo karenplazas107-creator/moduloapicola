@@ -531,6 +531,65 @@
         `;
 
         modal.classList.add('is-open');
+
+        // Descarga automática e inmediata del reporte en PDF al presionar "Reporte"
+        descargarPdfAutomatico(tipo);
+    }
+
+    function descargarPdfAutomatico(tipoOverride) {
+        const sheet = document.getElementById('repFloatSheet');
+        if (!sheet) return;
+
+        const tipo = tipoOverride || currentTipo || 'miel';
+        const tipoName = tipo.toUpperCase();
+        const now = new Date();
+        const dateSlug = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const filename = `Reporte_Oficial_SENA_${tipoName}_${dateSlug}.pdf`;
+
+        // Notificación flotante informativa
+        const toast = document.getElementById('apToast');
+        const toastText = document.getElementById('apToastText');
+        if (toast && toastText) {
+            toastText.textContent = `Descargando reporte oficial (${tipoName}) en PDF...`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        const btnPrint = document.querySelector('.rep-modal-btn.print');
+        const originalHtml = btnPrint ? btnPrint.innerHTML : '';
+        if (btnPrint) {
+            btnPrint.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Descargando PDF...';
+        }
+
+        if (typeof html2pdf !== 'undefined') {
+            const opt = {
+                margin: [5, 6, 5, 6],
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+
+            setTimeout(() => {
+                html2pdf().set(opt).from(sheet).save().then(() => {
+                    if (btnPrint) btnPrint.innerHTML = originalHtml;
+                    if (toast && toastText) {
+                        toastText.textContent = 'Reporte PDF descargado con éxito.';
+                        toast.classList.add('show');
+                        setTimeout(() => toast.classList.remove('show'), 3000);
+                    }
+                }).catch(err => {
+                    console.warn('html2pdf generó un aviso, usando visor alternativo:', err);
+                    if (btnPrint) btnPrint.innerHTML = originalHtml;
+                    imprimirReporteAhiMismo();
+                });
+            }, 350);
+        } else {
+            if (btnPrint) btnPrint.innerHTML = originalHtml;
+            setTimeout(() => {
+                imprimirReporteAhiMismo();
+            }, 400);
+        }
     }
 
     function cerrarModalReporteFlotante() {
