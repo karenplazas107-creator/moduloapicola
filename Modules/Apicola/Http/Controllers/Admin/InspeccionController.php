@@ -25,8 +25,9 @@ class InspeccionController extends Controller
             ->orderBy('nombre', 'asc')
             ->get();
         $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
+        $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos'));
     }
 
     /**
@@ -43,8 +44,9 @@ class InspeccionController extends Controller
             ->orderBy('nombre', 'asc')
             ->get();
         $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
+        $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos'));
     }
 
     /**
@@ -142,7 +144,7 @@ class InspeccionController extends Controller
 
         // Formatear notas con el responsable si no hay columna responsable
         $notas = $request->input('notes');
-        $responsableText = $request->input('responsable');
+        $responsableText = \Modules\Apicola\Entities\Responsable::registrar($request->input('responsable'));
         $observacionesFinal = $responsableText ? "Responsable: {$responsableText}" . ($notas ? " | {$notas}" : "") : $notas;
 
         // 2. Insertar en registro_inspeccion vinculando el usuario administrador

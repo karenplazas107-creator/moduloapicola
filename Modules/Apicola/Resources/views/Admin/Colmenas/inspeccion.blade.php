@@ -167,7 +167,9 @@
                             <label class="ap-field-label" for="modalVisitaRespSelect">RESPONSABLE</label>
                             <select id="modalVisitaRespSelect" class="ap-field-input" onchange="handleVisitaRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
                                 <option value="" disabled selected>Selecciona responsable...</option>
-                                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                                @foreach(($responsablesSugeridos ?? ['SERGIO BARRERA']) as $resp)
+                                <option value="{{ $resp }}">{{ $resp }}</option>
+                                @endforeach
                                 <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
                             </select>
                             <input type="hidden" id="modalVisitaResponsable" value="" required>
@@ -495,6 +497,8 @@
     window.InspeccionConfig = {
         activeColmena: "{{ $selectedColmena ?? '' }}",
         inspeccionesList: @json($visitasInit ?? []),
+        responsables: @json($responsablesSugeridos ?? []),
+        responsablesUrl: "{{ route('apicola.admin.responsables.store') }}",
         enfermedadesList: @json($enfermedades ?? []),
         enfermedadesNombres: @json($enfermedadesDisponibles ?? []),
         storeUrl: "{{ route('apicola.admin.inspecciones.store') }}",

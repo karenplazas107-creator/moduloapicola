@@ -52,10 +52,7 @@ class ColmenaController extends Controller
             ]);
         }
 
-        $apiarios = Apiario::activos()->get();
-        if ($apiarios->isEmpty()) {
-            $apiarios = Apiario::all();
-        }
+        $apiarios = Apiario::orderBy('nombre_apiario')->get();
 
         $tiposAbejaBase = ['Apis mellifera', 'Melipona eburnea', 'Tetragonisca angustula', 'Scaptotrigona pectoralis'];
         $tiposAbejaDb = Colmena::whereNotNull('tipo_abeja')->where('tipo_abeja', '!=', '')->distinct()->pluck('tipo_abeja')->toArray();

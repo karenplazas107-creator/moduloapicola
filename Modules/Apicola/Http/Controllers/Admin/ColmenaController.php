@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Apicola\Entities\Colmena;
 use Modules\Apicola\Entities\Apiario;
+use Modules\Apicola\Entities\Responsable;
 
 class ColmenaController extends Controller
 {
@@ -51,10 +52,8 @@ class ColmenaController extends Controller
             ]);
         }
 
-        $apiarios = Apiario::activos()->get();
-        if ($apiarios->isEmpty()) {
-            $apiarios = Apiario::all();
-        }
+        // Todos los apiarios registrados (los inactivos se marcan en el selector)
+        $apiarios = Apiario::orderBy('nombre_apiario')->get();
 
         $tiposAbejaBase = ['Apis mellifera', 'Melipona eburnea', 'Tetragonisca angustula', 'Scaptotrigona pectoralis'];
         $tiposAbejaDb = Colmena::whereNotNull('tipo_abeja')->where('tipo_abeja', '!=', '')->distinct()->pluck('tipo_abeja')->toArray();
@@ -78,7 +77,7 @@ class ColmenaController extends Controller
             ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
             : (auth()->check() ? auth()->user()->nickname : '');
 
-        $responsablesSugeridos = collect(['SERGIO BARRERA']);
+        $responsablesSugeridos = Responsable::todos();
 
         return view('apicola::Admin.Colmenas.index', compact('colmenas', 'metrics', 'apiarios', 'tiposAbeja', 'responsablesSugeridos'));
     }
@@ -100,6 +99,8 @@ class ColmenaController extends Controller
         ], [
             'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
         ]);
+
+        $validated['responsable'] = Responsable::registrar($validated['responsable']);
 
         if (empty($validated['last_visit_date'])) {
             $validated['last_visit_date'] = $validated['installation_date'];
@@ -179,6 +180,8 @@ class ColmenaController extends Controller
         ], [
             'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
         ]);
+
+        $validated['responsable'] = Responsable::registrar($validated['responsable']);
 
         if (empty($validated['last_visit_date'])) {
             $validated['last_visit_date'] = $colmena->last_visit_date ?? $validated['installation_date'];

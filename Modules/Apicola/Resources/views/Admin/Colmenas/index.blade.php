@@ -155,10 +155,10 @@
                         <label class="ap-field-label" for="modalColmenaApiario" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">APIARIO</label>
                         <select id="modalColmenaApiario" class="ap-field-input" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
                             @foreach($apiarios as $ap)
-                                <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}</option>
+                                <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}{{ $ap->estado !== 'Activo' ? ' (Inactivo)' : '' }}</option>
                             @endforeach
                         </select>
-                        <p class="ap-field-hint" style="color: #94a3b8; font-size: 0.76rem; margin-top: 5px; margin-bottom: 0;">Solo se listan apiarios activos.</p>
+                        <p class="ap-field-hint" style="color: #94a3b8; font-size: 0.76rem; margin-top: 5px; margin-bottom: 0;">Se listan todos los apiarios registrados.</p>
                     </div>
 
                     <!-- Fila 3: TIPO DE ABEJA (izq) y ESTADO (der) -->
@@ -202,7 +202,9 @@
                         <label class="ap-field-label" for="modalColmenaRespSelect" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">RESPONSABLE</label>
                         <select id="modalColmenaRespSelect" class="ap-field-input" onchange="handleColmenaRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
                             <option value="" disabled selected>Selecciona un responsable...</option>
-                            <option value="SERGIO BARRERA">SERGIO BARRERA</option>
+                            @foreach(($responsablesSugeridos ?? ['SERGIO BARRERA']) as $resp)
+                            <option value="{{ $resp }}">{{ $resp }}</option>
+                            @endforeach
                             <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
                         </select>
 
@@ -317,6 +319,8 @@
 <script>
     window.ColmenasConfig = {
         colmenasList: @json($colmenasFormatted),
+        responsables: @json($responsablesSugeridos ?? []),
+        responsablesUrl: "{{ route('apicola.admin.responsables.store') }}",
         baseUrl: "{{ url('apicola/colmenas') }}",
         storeUrl: "{{ route('apicola.admin.colmenas.store') }}",
         csrfToken: "{{ csrf_token() }}"

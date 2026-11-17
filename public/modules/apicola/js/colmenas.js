@@ -201,6 +201,37 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         }
     }
 
+    // ==================== RESPONSABLES COMPARTIDOS ====================
+    // La lista viene del servidor (tabla apicola_responsables + responsables ya usados) y es la misma
+    // en apiarios, colmenas e inspecciones.
+    function buildResponsablesOptions(placeholder, selectedVal) {
+        const cfg = window.ColmenasConfig || {};
+        const lista = Array.isArray(cfg.responsables) ? cfg.responsables.slice() : [];
+        if (!lista.some(n => String(n).toLowerCase() === 'sergio barrera')) lista.unshift('SERGIO BARRERA');
+        if (selectedVal && !lista.some(n => String(n).toLowerCase() === String(selectedVal).toLowerCase())) lista.push(selectedVal);
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const sel = selectedVal ? String(selectedVal).toLowerCase() : '';
+        return `<option value="" disabled ${sel ? '' : 'selected'}>${placeholder}</option>`
+            + lista.map(n => `<option value="${esc(n)}" ${String(n).toLowerCase() === sel ? 'selected' : ''}>${esc(n)}</option>`).join('')
+            + `<option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>`;
+    }
+
+    function guardarResponsableServidor(nombre) {
+        const cfg = window.ColmenasConfig || {};
+        if (!Array.isArray(cfg.responsables)) cfg.responsables = [];
+        if (!cfg.responsables.some(n => String(n).toLowerCase() === nombre.toLowerCase())) cfg.responsables.push(nombre);
+        if (!cfg.responsablesUrl) return;
+        fetch(cfg.responsablesUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': cfg.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
+            },
+            body: JSON.stringify({ nombre })
+        }).catch(() => {});
+    }
+
     function confirmarOtroResponsableColmena() {
         const inputOtro = document.getElementById('modalColmenaOtroRespInput');
         const select = document.getElementById('modalColmenaRespSelect');
@@ -259,8 +290,10 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
             else select.appendChild(opt);
         }
 
-        select.value = nuevo;
-        if (hidden) hidden.value = nuevo;
+        guardarResponsableServidor(nuevo);
+        const valorFinal = existingOpt ? existingOpt.value : nuevo;
+        select.value = valorFinal;
+        if (hidden) hidden.value = valorFinal;
         if (container) container.style.display = 'none';
         return true;
     }
@@ -288,18 +321,15 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         if (errorResp) errorResp.style.display = 'none';
 
         if (selectResp) {
-            selectResp.innerHTML = `
-                <option value="" disabled selected>Selecciona un responsable...</option>
-                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
-                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
-            `;
+            selectResp.innerHTML = buildResponsablesOptions('Selecciona un responsable...', '');
             selectResp.value = '';
         }
         if (hiddenResp) hiddenResp.value = '';
 
         const apiarioSelect = document.getElementById('modalColmenaApiario');
         if (apiarioSelect && apiarioSelect.options.length > 0) {
-            apiarioSelect.selectedIndex = 0;
+            const primerActivo = Array.from(apiarioSelect.options).findIndex(o => !o.textContent.includes('(Inactivo)'));
+            apiarioSelect.selectedIndex = primerActivo >= 0 ? primerActivo : 0;
         }
 
         const tipoSelect = document.getElementById('modalColmenaTipoAbeja');
@@ -381,18 +411,7 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         if (hiddenResp) hiddenResp.value = respVal;
 
         if (selectResp) {
-            selectResp.innerHTML = `
-                <option value="" disabled>Selecciona un responsable...</option>
-                <option value="SERGIO BARRERA">SERGIO BARRERA</option>
-                <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
-            `;
-            if (respVal && respVal.toLowerCase() !== 'sergio barrera') {
-                const opt = new Option(respVal, respVal, true, true);
-                const otroOpt = Array.from(selectResp.options).find(o => o.value === '__otro__');
-                if (otroOpt) selectResp.insertBefore(opt, otroOpt);
-                else selectResp.appendChild(opt);
-            }
-            selectResp.value = respVal;
+            selectResp.innerHTML = buildResponsablesOptions('Selecciona un responsable...', respVal);
         }
         
         let dateVal = item.instalacionRaw;

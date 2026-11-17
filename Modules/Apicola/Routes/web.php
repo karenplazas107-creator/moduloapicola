@@ -58,6 +58,10 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::delete('apiarios/{id}', [ApiarioController::class, 'destroy'])->name('apicola.admin.apiarios.destroy');
     Route::post('apiarios/{id}/toggle-status', [ApiarioController::class, 'toggleStatus'])->name('apicola.admin.apiarios.toggle-status');
 
+    // Responsables compartidos (apiarios, colmenas e inspecciones)
+    Route::get('responsables', [\Modules\Apicola\Http\Controllers\Admin\ResponsableController::class, 'index'])->name('apicola.admin.responsables.index');
+    Route::post('responsables', [\Modules\Apicola\Http\Controllers\Admin\ResponsableController::class, 'store'])->name('apicola.admin.responsables.store');
+
     // Módulo de Colmenas
     Route::post('colmenas/{id}/toggle-status', [ColmenaController::class, 'toggleStatus'])->name('apicola.admin.colmenas.toggle-status');
     Route::resource('colmenas', ColmenaController::class)->names('apicola.admin.colmenas');

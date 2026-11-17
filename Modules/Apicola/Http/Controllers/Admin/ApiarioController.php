@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Apicola\Entities\Apiario;
 use Modules\Apicola\Entities\Colmena;
+use Modules\Apicola\Entities\Responsable;
 
 class ApiarioController extends Controller
 {
@@ -37,8 +38,8 @@ class ApiarioController extends Controller
             'colmenas' => Colmena::count(),
         ];
 
-        // Solo SERGIO BARRERA y opción de añadir a otro
-        $responsablesSugeridos = ['SERGIO BARRERA'];
+        // Lista compartida de responsables (la misma en apiarios, colmenas e inspecciones)
+        $responsablesSugeridos = Responsable::todos();
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -79,7 +80,7 @@ class ApiarioController extends Controller
                 : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
 
             $nombre = trim($validated['nombre_apiario']);
-            $responsable = !empty($validated['responsable']) ? trim($validated['responsable']) : $currentUserName;
+            $responsable = !empty($validated['responsable']) ? Responsable::registrar($validated['responsable']) : $currentUserName;
 
             $apiario = Apiario::create([
                 'nombre_apiario' => $nombre,
@@ -159,7 +160,7 @@ class ApiarioController extends Controller
                 ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
                 : (auth()->check() ? auth()->user()->nickname : 'Sin asignar');
 
-            $responsable = !empty($validated['responsable']) ? trim($validated['responsable']) : ($apiario->responsable ?? $currentUserName);
+            $responsable = !empty($validated['responsable']) ? Responsable::registrar($validated['responsable']) : ($apiario->responsable ?? $currentUserName);
 
             $apiario->update([
                 'nombre_apiario' => $newNombre,
