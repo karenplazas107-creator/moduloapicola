@@ -272,8 +272,11 @@
             </div>
 
             <div class="rep-modal-topbar-actions">
-                <button type="button" class="rep-modal-btn print" onclick="imprimirReporteAhiMismo()">
-                    <i class="fas fa-print"></i> Imprimir / Guardar en PDF
+                <button type="button" class="rep-modal-btn print" onclick="descargarPdfAutomatico()">
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+                <button type="button" class="rep-modal-btn" onclick="imprimirReporteAhiMismo()" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:8px; padding:7px 14px; font-size:0.82rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-print"></i> Imprimir
                 </button>
                 <button type="button" class="rep-modal-btn excel" onclick="exportarExcel()">
                     <i class="far fa-file-excel"></i> Exportar Excel
@@ -309,5 +312,6 @@
         logoFallback: "{{ asset('apicola-assets/assets/img/logo-apicola-bee-original.png') }}"
     };
 </script>
-<script src="{{ asset('modules/apicola/js/reportes.js') }}"></script>
+<script src="{{ asset('modules/apicola/js/vendor/html2pdf.bundle.min.js') }}"></script>
+<script src="{{ asset('modules/apicola/js/reportes.js') }}?v={{ time() }}"></script>
 @endsection
