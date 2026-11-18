@@ -143,4 +143,24 @@ class Produccion extends Model
             ->map(fn ($v) => round((float) $v, 2))
             ->all();
     }
+
+    /**
+     * Miel cosechada durante inspecciones agrupada por mes y colmena (para la gráfica de Producción).
+     * Devuelve una lista de ['mes' => 'YYYY-MM', 'colmena' => código, 'kg' => total].
+     */
+    public static function mielInspeccionesMensual(int $meses = 12): array
+    {
+        $desde = \Carbon\Carbon::now()->startOfMonth()->subMonths($meses - 1)->toDateString();
+
+        return \Illuminate\Support\Facades\DB::table('registro_inspeccion')
+            ->join('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+            ->whereNull('registro_inspeccion.deleted_at')
+            ->where('registro_inspeccion.miel_cosechada', '>', 0)
+            ->where('registro_inspeccion.fecha', '>=', $desde)
+            ->selectRaw("DATE_FORMAT(registro_inspeccion.fecha, '%Y-%m') as mes, colmenas.codigo as colmena, SUM(registro_inspeccion.miel_cosechada) as kg")
+            ->groupBy('mes', 'colmena')
+            ->get()
+            ->map(fn ($r) => ['mes' => $r->mes, 'colmena' => $r->colmena, 'kg' => round((float) $r->kg, 2)])
+            ->all();
+    }
 }

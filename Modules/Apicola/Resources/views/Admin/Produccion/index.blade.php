@@ -1,9 +1,9 @@
-@extends('apicola::Admin.layout')
+@extends(($esAprendiz ?? false) ? 'apicola::Aprendiz.layout' : 'apicola::Admin.layout')
 
 @section('title', 'Producción • ' . ($selected ?: 'Colmenas') . ' • SENA APÍCOLA')
 
 @section('breadcrumb')
-    <a href="{{ route('apicola.admin.colmenas.index') }}">Colmenas</a>
+    <a href="{{ route(($esAprendiz ?? false) ? 'apicola.aprendiz.colmenas.index' : 'apicola.admin.colmenas.index') }}">Colmenas</a>
     <span>/</span>
     <span style="font-weight: 700; color: #059669;" id="currentColmenaCode">{{ $selected ?: 'Todas las colmenas' }}</span>
     <span>/</span>
@@ -11,6 +11,9 @@
 @endsection
 
 @section('styles')
+@if($esAprendiz ?? false)
+    <link rel="stylesheet" href="{{ asset('modules/apicola/css/aprendiz-inspeccion.css') }}">
+@endif
 <style>
     .swal2-container { z-index: 999999 !important; }
     .prod-related-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.25rem; margin-top: 1.25rem; }
@@ -60,6 +63,17 @@
             <div class="ap-metric-card-title">ÚLTIMA COSECHA</div>
             <div class="ap-metric-card-num" id="metricUltima" style="font-size: 1.6rem;">-</div>
             <div class="ap-metric-card-sub">Fecha del último registro</div>
+        </div>
+    </div>
+
+    <!-- Gráfica: miel por mes (producción + miel cosechada en inspecciones) -->
+    <div class="prod-related-card" id="cardGraficaMiel" style="margin-top: 0; margin-bottom: 1.5rem;">
+        <div class="prod-related-title">
+            <span><i class="fas fa-chart-column" style="color:#047857;"></i> Miel por mes</span>
+            <span id="graficaSubtitulo" style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Últimos 12 meses</span>
+        </div>
+        <div style="position: relative; width: 100%; height: 250px;">
+            <canvas id="mielMesChart"></canvas>
         </div>
     </div>
 
@@ -171,7 +185,7 @@
                         <input type="number" id="modalProduccionMiel" class="ap-field-input" min="0.1" step="0.1" placeholder="Ej: 4.5" required>
                     </div>
 
-                    <div class="ap-form-field" style="margin-bottom: 0.9rem;">
+                    <div class="ap-form-field" id="bloqueResponsableProduccion" style="margin-bottom: 0.9rem;">
                         <label class="ap-field-label" for="modalProduccionRespSelect">RESPONSABLE</label>
                         <select id="modalProduccionRespSelect" class="ap-field-input" onchange="handleProduccionRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
                         </select>
@@ -257,11 +271,15 @@
         inspeccionesResumen: @json($inspeccionesResumen),
         responsables: @json($responsablesSugeridos ?? []),
         responsablesUrl: "{{ route('apicola.admin.responsables.store') }}",
-        storeUrl: "{{ route('apicola.admin.producciones.store') }}",
-        baseUrl: "{{ url('apicola/producciones') }}",
-        inspeccionesBaseUrl: "{{ url('apicola/colmenas') }}",
+        storeUrl: "{{ route(($esAprendiz ?? false) ? 'apicola.aprendiz.producciones.store' : 'apicola.admin.producciones.store') }}",
+        baseUrl: "{{ url(($esAprendiz ?? false) ? 'apicola/aprendiz/producciones' : 'apicola/producciones') }}",
+        inspeccionesBaseUrl: "{{ url(($esAprendiz ?? false) ? 'apicola/aprendiz/colmenas' : 'apicola/colmenas') }}",
+        mielInspeccionesMensual: @json($mielInspeccionesMensual ?? []),
+        soloRegistro: @json($esAprendiz ?? false),
+        responsableFijo: @json(($esAprendiz ?? false) && auth()->check() ? (auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : auth()->user()->nickname) : ''),
         csrfToken: "{{ csrf_token() }}"
     };
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="{{ asset('modules/apicola/js/produccion.js') }}?v={{ time() }}"></script>
 @endsection

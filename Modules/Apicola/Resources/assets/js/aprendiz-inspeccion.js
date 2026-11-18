@@ -656,7 +656,7 @@
     }
 
     function openNewVisitaModal() {
-        document.getElementById('modalVisitaTitle').textContent = 'Registrar visita';
+        document.getElementById('modalVisitaTitle').textContent = 'Registrar inspección';
         document.getElementById('modalVisitaId').value = '';
         
         // Fecha por defecto hoy en formato ISO para el calendario
@@ -729,7 +729,7 @@
         const item = inspeccionesList.find(v => v.id === id);
         if (!item) return;
 
-        document.getElementById('modalVisitaTitle').textContent = 'Editar visita';
+        document.getElementById('modalVisitaTitle').textContent = 'Editar inspección';
         document.getElementById('modalVisitaId').value = item.id;
         document.getElementById('modalVisitaFecha').value = toIsoDate(item.fecha);
         document.getElementById('modalVisitaColmena').value = item.colmena;
@@ -845,7 +845,7 @@
         document.getElementById('modalVisitaBackdrop').classList.remove('is-open');
     }
 
-    function saveVisitaForm(e) {
+    async function saveVisitaForm(e) {
         e.preventDefault();
 
         const id = document.getElementById('modalVisitaId').value;
@@ -967,91 +967,88 @@
 
         const notas = document.getElementById('modalVisitaObservaciones').value.trim();
 
-        if (id) {
-            // Editar existente
-            const item = inspeccionesList.find(v => v.id === parseInt(id));
-            if (item) {
-                item.fecha = fecha;
-                item.colmena = colmena;
-                item.responsable = responsable;
-                item.estadoGeneral = estadoGeneral;
-                item.presenciaMiel = presenciaMiel;
-                item.mielKg = mielKg;
-                item.reinaVista = reinaVista;
-                item.reinaMarcada = reinaMarcada;
-                item.colorMarca = colorMarca;
-                item.enfermedades = enfermedades;
-                item.labores = labores;
-                item.alimenSuministrada = alimenSuministrada;
-                item.notas = notas;
-                showToast(`Visita ${item.regNumber} actualizada con éxito.`);
-            }
+        const formattedIso = toIsoDate(rawFecha) || (fecha.includes('/') ? `${fecha.split('/')[2]}-${fecha.split('/')[1]}-${fecha.split('/')[0]}` : new Date().toISOString().split('T')[0]);
+
+        const esEdicion = !!id;
+        const itemExistente = esEdicion ? inspeccionesList.find(v => v.id === parseInt(id)) : null;
+
+        let regNumber;
+        if (itemExistente) {
+            regNumber = itemExistente.regNumber;
         } else {
-            // Crear nueva
             const maxReg = inspeccionesList.reduce((max, v) => {
-                const match = v.regNumber.match(/REG-(\d+)/);
-                if (match) {
-                    const num = parseInt(match[1]);
-                    return num > max ? num : max;
-                }
-                return max;
+                const match = (v.regNumber || '').match(/REG-(\d+)/);
+                return match && parseInt(match[1]) > max ? parseInt(match[1]) : max;
             }, 0);
-            const nextReg = `REG-${String(maxReg + 1).padStart(4, '0')}`;
-            const newId = inspeccionesList.length ? Math.max(...inspeccionesList.map(v => v.id)) + 1 : 1;
+            regNumber = `REG-${String(maxReg + 1).padStart(4, '0')}`;
+        }
 
-            inspeccionesList.unshift({
-                id: newId,
-                regNumber: nextReg,
-                colmena: colmena,
-                fecha: fecha,
-                estadoGeneral: estadoGeneral,
-                presenciaMiel: presenciaMiel,
-                mielKg: mielKg,
-                enfermedades: enfermedades,
-                responsable: responsable,
-                reinaVista: reinaVista,
-                reinaMarcada: reinaMarcada,
-                colorMarca: colorMarca,
-                labores: labores,
-                alimenSuministrada: alimenSuministrada,
-                notas: notas,
-                estado: 'Activa'
-            });
+        const payload = {
+            registration_number: regNumber,
+            colmena_code: colmena,
+            date: formattedIso,
+            responsable: responsable,
+            general_state: estadoGeneral,
+            honey_presence: presenciaMiel,
+            harvested_honey_kg: mielKg,
+            queen_seen: reinaVista,
+            queen_marked: reinaMarcada,
+            queen_color: colorMarca,
+            diseases: enfermedades,
+            tasks: labores,
+            feed_supplied: alimenSuministrada,
+            notes: notas
+        };
 
-            showToast(`Visita ${nextReg} registrada con éxito.`);
+        // Se guarda primero en el servidor: si falla (p. ej. apiario desactivado) no se agrega nada en pantalla
+        const btnGuardar = document.querySelector('#formVisita button[type="submit"]');
+        if (btnGuardar) btnGuardar.disabled = true;
 
-            // Envío asíncrono para persistencia en backend
-            const formattedIso = toIsoDate(rawFecha) || (fecha.includes('/') ? `${fecha.split('/')[2]}-${fecha.split('/')[1]}-${fecha.split('/')[0]}` : new Date().toISOString().split('T')[0]);
-
-            fetch((window.AprendizInspeccionConfig?.storeUrl || "/apicola/aprendiz/inspecciones"), {
-                method: 'POST',
+        let respuesta;
+        try {
+            const baseUrl = window.AprendizInspeccionConfig?.baseUrl || "/apicola/aprendiz/inspecciones";
+            const resp = await fetch(esEdicion ? `${baseUrl}/${id}` : (window.AprendizInspeccionConfig?.storeUrl || "/apicola/aprendiz/inspecciones"), {
+                method: esEdicion ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.AprendizInspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    registration_number: nextReg,
-                    colmena_code: colmena,
-                    date: formattedIso,
-                    responsable: responsable,
-                    general_state: estadoGeneral,
-                    honey_presence: presenciaMiel,
-                    harvested_honey_kg: mielKg,
-                    queen_seen: reinaVista,
-                    queen_marked: reinaMarcada,
-                    queen_color: colorMarca,
-                    diseases: enfermedades,
-                    tasks: labores,
-                    feed_supplied: alimenSuministrada,
-                    notes: notas
-                })
-            }).then(res => res.json()).then(data => {
-                if (data && data.id_registro) {
-                    const newItem = inspeccionesList.find(v => v.regNumber === nextReg);
-                    if (newItem) newItem.id = data.id_registro;
-                }
-            }).catch(err => console.log('Registro guardado'));
+                body: JSON.stringify(payload)
+            });
+            respuesta = await resp.json();
+            if (!resp.ok || respuesta.success === false) {
+                let msg = respuesta.message || 'No se pudo guardar la inspección.';
+                if (respuesta.errors) msg = Object.values(respuesta.errors).flat().join(' | ');
+                throw new Error(msg);
+            }
+        } catch (err) {
+            if (btnGuardar) btnGuardar.disabled = false;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: err.message, confirmButtonColor: '#286043' });
+            } else {
+                alert(err.message);
+            }
+            return;
+        }
+        if (btnGuardar) btnGuardar.disabled = false;
+
+        if (itemExistente) {
+            Object.assign(itemExistente, {
+                fecha, colmena, responsable, estadoGeneral, presenciaMiel, mielKg,
+                reinaVista, reinaMarcada, colorMarca, enfermedades, labores,
+                alimenSuministrada, notas
+            });
+            showToast(`Inspección ${itemExistente.regNumber} actualizada con éxito.`);
+        } else {
+            inspeccionesList.unshift({
+                id: respuesta.id_registro,
+                regNumber: regNumber,
+                colmena, fecha, estadoGeneral, presenciaMiel, mielKg, enfermedades, responsable,
+                reinaVista, reinaMarcada, colorMarca, labores, alimenSuministrada, notas,
+                estado: 'Activa'
+            });
+            showToast(`Inspección ${regNumber} registrada con éxito.`);
         }
 
         closeVisitaModal();

@@ -1,13 +1,13 @@
 @extends('apicola::Aprendiz.layout')
 
-@section('title', 'Producción e Inspección • ' . ($selectedColmena ?: 'Colmenas') . ' • SENA APÍCOLA')
+@section('title', 'Inspección • ' . ($selectedColmena ?: 'Colmenas') . ' • SENA APÍCOLA')
 
 @section('breadcrumb')
     <a href="{{ route('apicola.aprendiz.colmenas.index') }}">Colmenas</a>
     <span>/</span>
     <span style="font-weight: 700; color: #059669;" id="currentColmenaCode">{{ $selectedColmena ?: 'Sin colmena' }}</span>
     <span>/</span>
-    <span class="active-page">Producción e inspección</span>
+    <span class="active-page">Inspección</span>
 @endsection
 
 @section('styles')
@@ -25,9 +25,9 @@
     <div class="ap-view-header-row">
         <div>
             <span class="ap-view-subtitle-tag">
-                COLMENAS / <span id="colmenaTag">{{ $selectedColmena ?: 'GENERAL' }}</span> / PRODUCCIÓN E INSPECCIÓN
+                COLMENAS / <span id="colmenaTag">{{ $selectedColmena ?: 'GENERAL' }}</span> / INSPECCIÓN
             </span>
-            <h1 class="ap-view-main-title">Producción e inspección</h1>
+            <h1 class="ap-view-main-title">Inspección</h1>
         </div>
         <div class="ap-user-chip">
             <div class="ap-user-chip-avatar" style="background: #f59e0b;">
@@ -43,7 +43,7 @@
     <!-- 3 Tarjetas de Métricas -->
     <div class="ap-metrics-grid cols-3">
         <div class="ap-metric-card border-green">
-            <div class="ap-metric-card-title">VISITAS REGISTRADAS</div>
+            <div class="ap-metric-card-title">INSPECCIONES REGISTRADAS</div>
             <div class="ap-metric-card-num" id="metricTotalVisitas">0</div>
             <div class="ap-metric-card-sub" id="metricColmenaSub">{{ $selectedColmena ? 'Colmena ' . $selectedColmena : 'Colmenas registradas' }}</div>
         </div>
@@ -102,7 +102,7 @@
                     <i class="fas fa-virus"></i> Enfermedades
                 </button>
                 <button type="button" class="ap-btn-solid-green" onclick="openNewVisitaModal()">
-                    <i class="fas fa-plus"></i> Registrar visita
+                    <i class="fas fa-plus"></i> Registrar inspección
                 </button>
             </div>
         </div>
@@ -150,7 +150,7 @@
         <div class="ap-modal-window">
             <div class="ap-modal-body">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-                    <h2 class="ap-modal-title" id="modalVisitaTitle" style="margin-bottom:0;">Registrar visita</h2>
+                    <h2 class="ap-modal-title" id="modalVisitaTitle" style="margin-bottom:0;">Registrar inspección</h2>
                     <button type="button" class="ap-modal-close-btn" onclick="closeVisitaModal()" title="Cerrar">&times;</button>
                 </div>
 

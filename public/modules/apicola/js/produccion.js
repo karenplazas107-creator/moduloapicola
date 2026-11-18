@@ -3,16 +3,89 @@
     const cfg = window.ProduccionConfig || {};
     let producciones = cfg.produccionesList || [];
     let activeColmena = cfg.selected || '';
+    const soloRegistro = !!cfg.soloRegistro;   // el aprendiz solo consulta y registra
+    let mielChart = null;
 
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const fmtKg = (n) => (parseFloat(n) || 0).toFixed(1).replace('.', ',');
     const csrf = () => cfg.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
 
     document.addEventListener('DOMContentLoaded', () => {
+        if (soloRegistro) {
+            const bloque = document.getElementById('bloqueResponsableProduccion');
+            if (bloque) bloque.style.display = 'none';
+            const btnEditarDetalle = document.getElementById('btnEditFromProduccionDetail');
+            if (btnEditarDetalle) btnEditarDetalle.style.display = 'none';
+        }
         renderProduccionesTable();
         updateMetrics();
         renderRelatedInspecciones();
+        renderGraficaMiel();
     });
+
+    // ---------------------------------------------------------------- gráfica: miel por mes
+    function renderGraficaMiel() {
+        const canvas = document.getElementById('mielMesChart');
+        const tarjeta = document.getElementById('cardGraficaMiel');
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') {
+            if (tarjeta) tarjeta.style.display = 'none';
+            return;
+        }
+
+        const nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const hoy = new Date();
+        const meses = [];
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+            meses.push({
+                key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+                label: `${nombres[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`
+            });
+        }
+
+        const filtraColmena = (codigo) => !activeColmena || codigo === activeColmena;
+        const dePro = meses.map(m => producciones
+            .filter(p => p.estado !== 'Inactiva' && filtraColmena(p.colmena) && (p.fechaRaw || '').startsWith(m.key))
+            .reduce((t, p) => t + (parseFloat(p.mielKg) || 0), 0));
+        const deInsp = meses.map(m => (cfg.mielInspeccionesMensual || [])
+            .filter(x => x.mes === m.key && filtraColmena(x.colmena))
+            .reduce((t, x) => t + (parseFloat(x.kg) || 0), 0));
+
+        const redondear = (n) => Math.round(n * 100) / 100;
+        const total = dePro.reduce((a, b) => a + b, 0) + deInsp.reduce((a, b) => a + b, 0);
+        const sub = document.getElementById('graficaSubtitulo');
+        if (sub) sub.textContent = `${activeColmena ? 'Colmena ' + activeColmena : 'Todas las colmenas'} · últimos 12 meses · ${fmtKg(total)} kg`;
+
+        if (mielChart) mielChart.destroy();
+        mielChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: meses.map(m => m.label),
+                datasets: [
+                    { label: 'Producción', data: dePro.map(redondear), backgroundColor: '#047857', borderRadius: 4, stack: 'miel' },
+                    { label: 'Cosechada en inspecciones', data: deInsp.map(redondear), backgroundColor: '#f59e0b', borderRadius: 4, stack: 'miel' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label}: ${fmtKg(ctx.parsed.y)} kg`,
+                            footer: (items) => `Total del mes: ${fmtKg(items.reduce((s, i) => s + i.parsed.y, 0))} kg`
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, title: { display: true, text: 'kg de miel' } }
+                }
+            }
+        });
+    }
 
     // ---------------------------------------------------------------- filtros y tabla
     function parseDMY(str) {
@@ -67,10 +140,10 @@
                     <td style="text-align: center;">
                         <div class="ap-actions-group" style="justify-content: center;">
                             <button type="button" class="ap-action-btn view" onclick="openProduccionDetailModal(${p.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
-                            <button type="button" class="ap-action-btn edit" onclick="openEditProduccionModal(${p.id})" title="Editar producción"><i class="fas fa-pen-to-square"></i></button>
-                            ${inactiva
+                            ${soloRegistro ? '' : `<button type="button" class="ap-action-btn edit" onclick="openEditProduccionModal(${p.id})" title="Editar producción"><i class="fas fa-pen-to-square"></i></button>`}
+                            ${soloRegistro ? '' : (inactiva
                                 ? `<button type="button" class="ap-action-btn activate" style="color: #059669;" onclick="toggleProduccionStatus(${p.id})" title="Activar producción"><i class="fas fa-circle-check"></i></button>`
-                                : `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444;" onclick="desactivarProduccion(${p.id})" title="Desactivar producción"><i class="fas fa-ban"></i></button>`}
+                                : `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444;" onclick="desactivarProduccion(${p.id})" title="Desactivar producción"><i class="fas fa-ban"></i></button>`)}
                         </div>
                     </td>
                 </tr>`;
@@ -109,6 +182,7 @@
         renderProduccionesTable();
         updateMetrics();
         renderRelatedInspecciones();
+        renderGraficaMiel();
     }
 
     // ---------------------------------------------------------------- relación con las inspecciones
@@ -266,10 +340,12 @@
         const select = document.getElementById('modalProduccionRespSelect');
         const hidden = document.getElementById('modalProduccionResponsable');
 
-        if (select.value === '__otro__') {
+        if (!soloRegistro && select.value === '__otro__') {
             if (!confirmarOtroResponsableProduccion()) return;
         }
-        const responsable = (hidden.value || (select.value !== '__otro__' ? select.value : '')).trim();
+        const responsable = soloRegistro
+            ? String(cfg.responsableFijo || '').trim()
+            : (hidden.value || (select.value !== '__otro__' ? select.value : '')).trim();
         if (!responsable) {
             Swal.fire({ icon: 'warning', title: 'Responsable requerido', text: 'Selecciona un responsable o añade uno nuevo.', confirmButtonColor: '#286043' });
             return;
@@ -319,6 +395,7 @@
             renderProduccionesTable();
             updateMetrics();
             renderRelatedInspecciones();
+            renderGraficaMiel();
             showToast(result.message);
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: err.message, confirmButtonColor: '#286043' });
@@ -378,6 +455,7 @@
             p.estado = 'Inactiva';
             renderProduccionesTable();
             updateMetrics();
+            renderGraficaMiel();
             showToast(result.message);
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'No se pudo desactivar', text: err.message, confirmButtonColor: '#286043' });
@@ -395,6 +473,7 @@
             p.estado = result.nuevo_estado || 'Activa';
             renderProduccionesTable();
             updateMetrics();
+            renderGraficaMiel();
             showToast(result.message);
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'No se pudo activar', text: err.message, confirmButtonColor: '#286043' });

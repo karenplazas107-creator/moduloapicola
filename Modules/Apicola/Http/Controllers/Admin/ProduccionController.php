@@ -25,7 +25,10 @@ class ProduccionController extends Controller
         return $this->render($code);
     }
 
-    private function render(?string $selected)
+    /**
+     * Vista de Producción. El aprendiz usa la misma pantalla pero solo puede consultar y registrar.
+     */
+    protected function render(?string $selected, bool $aprendiz = false)
     {
         $colmenas = Colmena::with('apiario')->orderBy('code', 'asc')->get();
         if ($selected === null) {
@@ -35,20 +38,24 @@ class ProduccionController extends Controller
         $produccionesInit = $this->listado();
         $inspeccionesResumen = $this->resumenInspecciones();
         $responsablesSugeridos = Responsable::todos();
+        $mielInspeccionesMensual = Produccion::mielInspeccionesMensual(12);
+        $esAprendiz = $aprendiz;
 
         return view('apicola::Admin.Produccion.index', compact(
             'selected',
             'colmenas',
             'produccionesInit',
             'inspeccionesResumen',
-            'responsablesSugeridos'
+            'responsablesSugeridos',
+            'mielInspeccionesMensual',
+            'esAprendiz'
         ));
     }
 
     /**
      * Todos los registros de producción con el formato que usa la interfaz.
      */
-    private function listado()
+    protected function listado()
     {
         return Produccion::with('colmena')
             ->orderByDesc('fecha')
@@ -58,7 +65,7 @@ class ProduccionController extends Controller
             ->values();
     }
 
-    private function formatear(Produccion $p): array
+    protected function formatear(Produccion $p): array
     {
         return [
             'id' => $p->id,
@@ -110,7 +117,15 @@ class ProduccionController extends Controller
         return $resumen;
     }
 
-    private function reglas(Request $request): array
+    /**
+     * Nombre con el que se guarda el responsable (el administrador lo agrega a la lista compartida).
+     */
+    protected function nombreResponsable(string $nombre): string
+    {
+        return Responsable::registrar($nombre);
+    }
+
+    protected function reglas(Request $request): array
     {
         return $request->validate([
             'colmena_code' => ['required', 'string', 'exists:apicola_colmenas,code'],
@@ -141,7 +156,7 @@ class ProduccionController extends Controller
             'colmena_id' => $colmena->id,
             'fecha' => $v['fecha'],
             'miel_kg' => $v['miel_kg'],
-            'responsable' => Responsable::registrar($v['responsable']),
+            'responsable' => $this->nombreResponsable($v['responsable']),
             'observaciones' => $v['observaciones'] ?? null,
             'estado' => 'Activa',
             'user_id' => auth()->id(),
@@ -170,7 +185,7 @@ class ProduccionController extends Controller
             'colmena_id' => $colmena->id,
             'fecha' => $v['fecha'],
             'miel_kg' => $v['miel_kg'],
-            'responsable' => Responsable::registrar($v['responsable']),
+            'responsable' => $this->nombreResponsable($v['responsable']),
             'observaciones' => $v['observaciones'] ?? null,
         ]);
 

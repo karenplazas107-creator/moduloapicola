@@ -142,7 +142,14 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem;">
                         <div>
                             <label class="ap-field-label" for="modalColmenaCode" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">CÓDIGO</label>
-                            <input type="text" id="modalColmenaCode" class="ap-field-input" placeholder="Ej: COL-001" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a;">
+                            <div style="display: flex; gap: 8px;">
+                                <select id="modalColmenaTipoCodigo" class="ap-field-input" onchange="sugerirCodigoColmena(this.value)" title="Tipo" style="width: 112px; padding: 10px 8px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.88rem; color: #0f172a; background: #ffffff;">
+                                    <option value="COL">Colmena</option>
+                                    <option value="NUC">Núcleo</option>
+                                </select>
+                                <input type="text" id="modalColmenaCode" class="ap-field-input" placeholder="Ej: COL-001" maxlength="7" pattern="(COL|NUC)-[0-9]{3}" title="Formato COL-001 (colmena) o NUC-001 (núcleo)" oninput="this.value = this.value.toUpperCase()" required style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            </div>
+                            <p style="font-size: 0.72rem; color: #64748b; margin: 5px 0 0;">Formato: COL-001 (colmena) o NUC-001 (núcleo).</p>
                         </div>
                         <div>
                             <label class="ap-field-label" for="modalColmenaFecha" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">FECHA DE INSTALACIÓN</label>

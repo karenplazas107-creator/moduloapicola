@@ -11,6 +11,10 @@ use Modules\Apicola\Entities\Responsable;
 
 class ColmenaController extends Controller
 {
+    /** Los códigos son COL-001 (colmena) o NUC-001 (núcleo). */
+    private const FORMATO_CODIGO = '/^(COL|NUC)-\d{3}$/';
+    private const MENSAJE_CODIGO = 'El código debe tener el formato COL-001 (colmena) o NUC-001 (núcleo).';
+
     /**
      * Display a listing of colmenas.
      */
@@ -88,8 +92,10 @@ class ColmenaController extends Controller
      */
     public function store(Request $request)
     {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
         $validated = $request->validate([
-            'code' => 'required|string|max:30|unique:apicola_colmenas,code',
+            'code' => ['required', 'string', 'regex:' . self::FORMATO_CODIGO, 'unique:apicola_colmenas,code'],
             'apiario_name' => 'required|string|max:150',
             'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
             'tipo_abeja' => 'nullable|string|max:150',
@@ -99,6 +105,8 @@ class ColmenaController extends Controller
             'notes' => 'nullable|string',
         ], [
             'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+            'code.regex' => self::MENSAJE_CODIGO,
+            'code.unique' => 'Ya existe una colmena o núcleo con ese código.',
         ]);
 
         $validated['responsable'] = Responsable::registrar($validated['responsable']);
@@ -168,9 +176,12 @@ class ColmenaController extends Controller
     public function update(Request $request, $id)
     {
         $colmena = Colmena::findOrFail($id);
+        $codigoAnterior = $colmena->code;
+
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
 
         $validated = $request->validate([
-            'code' => 'required|string|max:30|unique:apicola_colmenas,code,' . $colmena->id,
+            'code' => ['required', 'string', 'regex:' . self::FORMATO_CODIGO, 'unique:apicola_colmenas,code,' . $colmena->id],
             'apiario_name' => 'required|string|max:150',
             'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
             'tipo_abeja' => 'nullable|string|max:150',
@@ -180,6 +191,8 @@ class ColmenaController extends Controller
             'notes' => 'nullable|string',
         ], [
             'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+            'code.regex' => self::MENSAJE_CODIGO,
+            'code.unique' => 'Ya existe una colmena o núcleo con ese código.',
         ]);
 
         $validated['responsable'] = Responsable::registrar($validated['responsable']);
@@ -206,6 +219,11 @@ class ColmenaController extends Controller
         }
 
         $colmena->update($validated);
+
+        // Si cambió el código, la tabla física 'colmenas' también cambia (así sus inspecciones siguen ligadas)
+        if ($codigoAnterior !== $colmena->code) {
+            \Illuminate\Support\Facades\DB::table('colmenas')->where('codigo', $codigoAnterior)->update(['codigo' => $colmena->code]);
+        }
         $this->syncToColmenasTable($colmena);
         if ($motivoBaja) {
             MotivoBaja::registrar('colmena', $colmena->id, $colmena->code, 'desactivar', $motivoBaja);

@@ -299,10 +299,23 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
     }
 
     // ==================== MODAL DE NUEVA / EDITAR COLMENA ====================
+    // Sugiere el siguiente código libre según el tipo: COL-001 (colmena) o NUC-001 (núcleo)
+    function sugerirCodigoColmena(prefijo) {
+        const sel = document.getElementById('modalColmenaTipoCodigo');
+        if (sel) sel.value = prefijo;
+        const patron = new RegExp('^' + prefijo + '-(\\d+)$');
+        const usados = colmenasList
+            .map(c => String(c.code).match(patron))
+            .filter(Boolean)
+            .map(m => parseInt(m[1]));
+        const siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
+        document.getElementById('modalColmenaCode').value = `${prefijo}-${String(siguiente).padStart(3, '0')}`;
+    }
+
     function openNewColmenaModal() {
         document.getElementById('modalColmenaTitle').textContent = 'Nueva colmena';
         document.getElementById('modalColmenaId').value = '';
-        document.getElementById('modalColmenaCode').value = '';
+        sugerirCodigoColmena('COL');
         document.getElementById('modalColmenaFecha').value = '';
         document.getElementById('modalColmenaEstado').value = 'Activa';
 
@@ -349,6 +362,8 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         document.getElementById('modalColmenaTitle').textContent = 'Editar colmena';
         document.getElementById('modalColmenaId').value = item.id;
         document.getElementById('modalColmenaCode').value = item.code;
+        const prefijoCodigo = (String(item.code).match(/^(COL|NUC)-/) || [])[1];
+        if (prefijoCodigo) document.getElementById('modalColmenaTipoCodigo').value = prefijoCodigo;
 
         // Seleccionar apiario
         const apiarioSelect = document.getElementById('modalColmenaApiario');
@@ -432,7 +447,12 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         e.preventDefault();
 
         const id = document.getElementById('modalColmenaId').value;
-        const code = document.getElementById('modalColmenaCode').value.trim();
+        const code = document.getElementById('modalColmenaCode').value.trim().toUpperCase();
+        if (!/^(COL|NUC)-\d{3}$/.test(code)) {
+            showToast('El código debe tener el formato COL-001 (colmena) o NUC-001 (núcleo).');
+            document.getElementById('modalColmenaCode').focus();
+            return;
+        }
         const apiario = document.getElementById('modalColmenaApiario').value;
         let tipoAbeja = document.getElementById('modalColmenaTipoAbeja').value;
         const rawFecha = document.getElementById('modalColmenaFecha').value;
@@ -768,4 +788,5 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
     window.confirmarNuevaEspecieAbeja = confirmarNuevaEspecieAbeja;
     window.handleColmenaRespSelect = handleColmenaRespSelect;
     window.confirmarOtroResponsableColmena = confirmarOtroResponsableColmena;
+    window.sugerirCodigoColmena = sugerirCodigoColmena;
     window.validarTextoSinNumerosColmena = validarTextoSinNumerosColmena;

@@ -47,7 +47,11 @@
                 $isInspeccionRoute = request()->routeIs('apicola.aprendiz.inspecciones.*') 
                     || request()->routeIs('apicola.aprendiz.colmenas.inspecciones')
                     || request()->is('*inspeccion*');
-                $isColmenaDirect = (request()->routeIs('apicola.aprendiz.colmenas.*') || request()->is('apicola/aprendiz/colmenas*')) && !$isInspeccionRoute;
+                $isProduccionRoute = request()->routeIs('apicola.aprendiz.producciones.*')
+                    || request()->routeIs('apicola.aprendiz.colmenas.producciones')
+                    || request()->is('apicola/aprendiz/producciones*')
+                    || request()->is('apicola/aprendiz/colmenas/*/producciones');
+                $isColmenaDirect = (request()->routeIs('apicola.aprendiz.colmenas.*') || request()->is('apicola/aprendiz/colmenas*')) && !$isInspeccionRoute && !$isProduccionRoute;
             @endphp
             <!-- Módulo: Colmenas -->
             <li class="ap-nav-item {{ $isColmenaDirect ? 'active' : '' }}">
@@ -55,13 +59,20 @@
                     <span class="ap-nav-icon"><i class="fas fa-boxes-stacked"></i></span>
                     <span>Colmenas</span>
                 </a>
-                <!-- Submódulo: Producción e inspección -->
+                <!-- Submódulos: Inspección y Producción -->
                 <ul class="ap-sub-list">
                     <li>
-                        <a href="{{ route('apicola.aprendiz.inspecciones.index') }}" 
+                        <a href="{{ route('apicola.aprendiz.inspecciones.index') }}"
                            class="ap-sub-link {{ $isInspeccionRoute ? 'active-sub' : '' }}">
                             <i class="fas fa-clipboard-check" style="font-size: 0.78rem;"></i>
-                            <span>Producción e inspección</span>
+                            <span>Inspección</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('apicola.aprendiz.producciones.index') }}"
+                           class="ap-sub-link {{ $isProduccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-jar" style="font-size: 0.78rem;"></i>
+                            <span>Producción</span>
                         </a>
                     </li>
                 </ul>

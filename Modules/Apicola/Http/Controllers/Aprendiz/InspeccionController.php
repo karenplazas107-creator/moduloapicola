@@ -141,92 +141,103 @@ class InspeccionController extends Controller
         }
     }
 
+    use \Modules\Apicola\Http\Controllers\Concerns\GuardaInspecciones;
+
     /**
-     * Almacenar una nueva inspección / visita realizada por el Aprendiz.
+     * El aprendiz firma con su propio nombre; no se agrega a la lista de responsables del administrador.
+     */
+    protected function responsableTexto(Request $request): string
+    {
+        return trim((string) $request->input('responsable'));
+    }
+
+    private function nombreAprendiz(): string
+    {
+        $user = auth()->user();
+        return $user?->person
+            ? trim($user->person->first_name . ' ' . $user->person->first_last_name)
+            : ($user->nickname ?? 'Aprendiz');
+    }
+
+    /**
+     * Registrar una nueva inspección. No se permiten inspecciones en colmenas inactivas
+     * ni en apiarios desactivados, ni en colmenas que no existen.
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'registration_number' => 'required|string|max:50',
-            'colmena_code' => 'required|string|max:50',
-            'date' => 'required|date',
-            'responsable' => 'nullable|string|max:150',
-            'general_state' => 'required|in:Bueno,Regular,Malo',
-            'honey_presence' => 'required|in:Bueno,Regular,Malo',
-            'harvested_honey_kg' => 'nullable|numeric|min:0',
-            'queen_seen' => 'nullable|boolean',
-            'queen_marked' => 'nullable|boolean',
-            'queen_color' => 'nullable|string|max:50',
-            'diseases' => 'nullable|array',
-            'tasks' => 'nullable|array',
-            'feed_supplied' => ['nullable', 'string', 'max:150', 'regex:/^[^\d]*$/'],
-            'notes' => 'nullable|string',
-        ], [
-            'feed_supplied.regex' => 'No se permiten números en la alimentación suministrada. Solo se permiten letras.',
-        ]);
+        if (!$request->filled('responsable')) {
+            $request->merge(['responsable' => $this->nombreAprendiz()]);
+        }
+
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
+        }
+        [$colmena, $idColmena] = $resuelto;
 
         $user = auth()->user();
-        $apprenticeId = $user?->person?->apprentices?->first()?->id;
+        $idRegistro = DB::table('registro_inspeccion')->insertGetId(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            [
+                'user_id' => $user?->id,
+                'id_aprendiz' => $user?->person?->apprentices?->first()?->id,
+                'estado' => 'Activa',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ));
 
-        // 1. Obtener id_colmena de la tabla colmenas
-        $colmenaDb = DB::table('colmenas')->where('codigo', $request->input('colmena_code'))->first();
-        if (!$colmenaDb) {
-            $colmenaDb = DB::table('colmenas')->first();
-        }
-        $idColmena = $colmenaDb ? $colmenaDb->id_colmenas : 1;
-
-        // Formatear notas con el responsable identificado
-        $notas = $request->input('notes');
-        $responsableText = $request->input('responsable');
-        if (empty($responsableText) && $user) {
-            $responsableText = $user->person ? trim($user->person->first_name . ' ' . $user->person->first_last_name) : ($user->nickname ?? 'Aprendiz');
-        }
-        $observacionesFinal = $responsableText ? "Responsable: {$responsableText}" . ($notas ? " | {$notas}" : "") : $notas;
-
-        // 2. Insertar en registro_inspeccion vinculado estrictamente al usuario y aprendiz autenticado
-        $idRegistro = DB::table('registro_inspeccion')->insertGetId([
-            'user_id' => $user?->id,
-            'id_aprendiz' => $apprenticeId,
-            'id_colmena' => $idColmena,
-            'numero_registro' => $request->input('registration_number'),
-            'fecha' => $request->input('date'),
-            'miel_cosechada' => $request->input('harvested_honey_kg') ?? 0,
-            'estado_colmena' => $request->input('general_state') ?? 'Bueno',
-            'presencia_miel' => ($request->input('honey_presence') === 'Bueno' || $request->input('honey_presence') == 1) ? 1 : 0,
-            'reina_vista' => $request->boolean('queen_seen') ? 1 : 0,
-            'reina_marcada' => $request->boolean('queen_marked') ? 1 : 0,
-            'color_reina' => $request->input('queen_color') ?? 'Sin marcar',
-            'alimentacion_suministrada' => $request->input('feed_supplied'),
-            'observaciones' => $observacionesFinal,
-            'estado' => 'Activa',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // 3. Insertar enfermedades detectadas en enfermedades_registro
-        if ($request->has('diseases') && is_array($request->input('diseases'))) {
-            foreach ($request->input('diseases') as $enf) {
-                if (!empty($enf)) {
-                    DB::table('enfermedades_registro')->insert([
-                        'id_registro' => $idRegistro,
-                        'nombre_enfermedad' => $enf,
-                        'estado' => 'Detectada',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
-        }
+        $this->guardarEnfermedades($idRegistro, (array) $request->input('diseases', []));
+        Colmena::recalcularUltimaVisita($colmena->code);
 
         if ($request->wantsJson() || $request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Visita registrada con éxito en registro_inspeccion.',
-                'id_registro' => $idRegistro
-            ], 201);
+            return response()->json(['success' => true, 'message' => 'Inspección registrada con éxito.', 'id_registro' => $idRegistro], 201);
         }
 
-        return redirect()->back()->with('success', 'Visita registrada con éxito.');
+        return redirect()->back()->with('success', 'Inspección registrada con éxito.');
+    }
+
+    /**
+     * El aprendiz puede corregir solo las inspecciones que registró él mismo.
+     */
+    public function update(Request $request, $id)
+    {
+        $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+        if (!$registro) {
+            return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
+        }
+        if ((int) $registro->user_id !== (int) auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Solo puedes editar las inspecciones que registraste tú.'], 403);
+        }
+
+        if (!$request->filled('responsable')) {
+            $request->merge(['responsable' => $this->nombreAprendiz()]);
+        }
+
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
+        }
+        [$colmena, $idColmena] = $resuelto;
+
+        $codigoAnterior = DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo');
+
+        DB::table('registro_inspeccion')->where('id_registro', $id)->update(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            ['updated_at' => now()]
+        ));
+        $this->guardarEnfermedades((int) $id, (array) $request->input('diseases', []));
+
+        Colmena::recalcularUltimaVisita($colmena->code);
+        if ($codigoAnterior && $codigoAnterior !== $colmena->code) {
+            Colmena::recalcularUltimaVisita($codigoAnterior);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Inspección actualizada con éxito.', 'id_registro' => (int) $id]);
     }
 
     /**

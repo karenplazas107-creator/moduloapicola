@@ -141,10 +141,16 @@ Route::prefix('apicola/aprendiz')->middleware(['auth', 'apicola.aprendiz'])->gro
     Route::post('colmenas/{id}/toggle-status', [AprendizColmenaController::class, 'toggleStatus'])->name('apicola.aprendiz.colmenas.toggle-status');
     Route::delete('colmenas/{id}', [AprendizColmenaController::class, 'destroy'])->name('apicola.aprendiz.colmenas.destroy');
 
-    // Submódulo de Producción e Inspección
+    // Submódulo de Producción (el aprendiz consulta y registra; no edita ni desactiva)
+    Route::get('producciones', [\Modules\Apicola\Http\Controllers\Aprendiz\ProduccionController::class, 'index'])->name('apicola.aprendiz.producciones.index');
+    Route::get('colmenas/{code}/producciones', [\Modules\Apicola\Http\Controllers\Aprendiz\ProduccionController::class, 'byColmena'])->name('apicola.aprendiz.colmenas.producciones');
+    Route::post('producciones', [\Modules\Apicola\Http\Controllers\Aprendiz\ProduccionController::class, 'store'])->name('apicola.aprendiz.producciones.store');
+
+    // Submódulo de Inspección
     Route::get('inspecciones', [AprendizInspeccionController::class, 'index'])->name('apicola.aprendiz.inspecciones.index');
     Route::get('colmenas/{code}/inspecciones', [AprendizInspeccionController::class, 'byColmena'])->name('apicola.aprendiz.colmenas.inspecciones');
     Route::post('inspecciones', [AprendizInspeccionController::class, 'store'])->name('apicola.aprendiz.inspecciones.store');
+    Route::put('inspecciones/{id}', [AprendizInspeccionController::class, 'update'])->name('apicola.aprendiz.inspecciones.update');
     Route::delete('inspecciones/{id}', [AprendizInspeccionController::class, 'destroy'])->name('apicola.aprendiz.inspecciones.destroy');
     Route::post('inspecciones/{id}/toggle-status', [AprendizInspeccionController::class, 'toggleStatus'])->name('apicola.aprendiz.inspecciones.toggle-status');
     Route::get('enfermedades', [AprendizInspeccionController::class, 'getEnfermedades'])->name('apicola.aprendiz.enfermedades.index');
