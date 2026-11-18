@@ -1,11 +1,11 @@
 @extends('apicola::Admin.layout')
 
-@section('title', 'Inventario de las bodegas • SENA APÍCOLA')
+@section('title', 'Inventario • SENA APÍCOLA')
 
 @section('breadcrumb')
     <a href="{{ route('apicola.admin.inventario.index') }}">Inventario</a>
     <span>/</span>
-    <span class="active-page">Inventario de las bodegas</span>
+    <span class="active-page">Inventario</span>
 @endsection
 
 @section('styles')
@@ -18,7 +18,7 @@
     <div class="inv-header-row">
         <div>
             <span class="inv-subtitle-tag">INVENTARIO</span>
-            <h1 class="inv-main-title">Inventario de las bodegas</h1>
+            <h1 class="inv-main-title">Inventario</h1>
         </div>
         <div class="inv-user-chip">
             <div class="inv-avatar">
@@ -41,21 +41,21 @@
         <div class="inv-metric-card border-green">
             <div class="inv-metric-title">ELEMENTOS REGISTRADOS</div>
             <div class="inv-metric-num" id="cardTotalElementos">{{ $metrics['elementos_registrados'] }}</div>
-            <div class="inv-metric-sub">En las dos bodegas</div>
+            <div class="inv-metric-sub">{{ count($bodegas) > 1 ? 'En las ' . count($bodegas) . ' bodegas' : 'En la bodega del apiario' }}</div>
         </div>
 
-        <!-- 2. BODEGA CENTRAL -->
+        <!-- 2. BODEGAS -->
         <div class="inv-metric-card border-green">
-            <div class="inv-metric-title">BODEGA CENTRAL</div>
-            <div class="inv-metric-num" id="cardBodegaCentral">{{ $metrics['bodega_central'] }}</div>
-            <div class="inv-metric-sub">Centro de Formación</div>
+            <div class="inv-metric-title">{{ count($bodegas) > 1 ? 'BODEGAS' : 'BODEGA' }}</div>
+            <div class="inv-metric-num" id="cardBodegas">{{ $metrics['bodegas'] }}</div>
+            <div class="inv-metric-sub">{{ count($bodegas) > 1 ? 'Registradas' : $bodegas[0] }}</div>
         </div>
 
-        <!-- 3. BODEGA DEL APIARIO -->
+        <!-- 3. ELEMENTOS ACTIVOS -->
         <div class="inv-metric-card border-amber">
-            <div class="inv-metric-title">BODEGA DEL APIARIO</div>
-            <div class="inv-metric-num" id="cardBodegaApiario">{{ $metrics['bodega_apiario'] }}</div>
-            <div class="inv-metric-sub">Apiario La Angostura</div>
+            <div class="inv-metric-title">ELEMENTOS ACTIVOS</div>
+            <div class="inv-metric-num" id="cardActivos">{{ $metrics['activos'] }}</div>
+            <div class="inv-metric-sub">Disponibles en uso</div>
         </div>
 
         <!-- 4. EN ALERTA DE STOCK -->
@@ -69,8 +69,8 @@
     <!-- Sección Principal: Existencias por bodega -->
     <div class="inv-main-card">
         <div class="inv-section-header">
-            <h2 class="inv-section-title">Existencias por bodega</h2>
-            <p class="inv-section-desc">Un mismo elemento puede estar en las dos bodegas con cantidades distintas.</p>
+            <h2 class="inv-section-title">{{ count($bodegas) > 1 ? 'Existencias por bodega' : 'Existencias' }}</h2>
+            <p class="inv-section-desc">{{ count($bodegas) > 1 ? 'Un mismo elemento puede estar en varias bodegas con cantidades distintas.' : 'Elementos de la bodega del apiario.' }}</p>
         </div>
 
         <!-- Barra de Búsqueda y Filtros -->
@@ -81,19 +81,15 @@
                     <input type="text" id="searchInput" class="inv-search-input" placeholder="Buscar por nombre..." oninput="filtrarInventario()">
                 </div>
 
-                <!-- Bodega: todas -->
+                <!-- Bodega: todas (solo aparece cuando hay más de una bodega) -->
+                @if(count($bodegas) > 1)
                 <select id="bodegaFilter" class="inv-select-filter" onchange="filtrarInventario()">
                     <option value="todas">Bodega: todas</option>
-                    <option value="Bodega central">Bodega central</option>
-                    <option value="Bodega del apiario">Bodega del apiario</option>
-                    @if(isset($bodegasUnicas))
-                        @foreach($bodegasUnicas as $b)
-                            @if(!in_array(strtolower(trim($b)), ['bodega central', 'bodega del apiario']))
-                                <option value="{{ $b }}">{{ $b }}</option>
-                            @endif
-                        @endforeach
-                    @endif
+                    @foreach($bodegas as $b)
+                        <option value="{{ $b }}">{{ $b }}</option>
+                    @endforeach
                 </select>
+                @endif
 
                 <!-- Categoría: todas -->
                 <select id="categoriaFilter" class="inv-select-filter" onchange="filtrarInventario()">
@@ -134,7 +130,7 @@
                         <th>CÓDIGO</th>
                         <th>ELEMENTO</th>
                         <th>CATEGORÍA</th>
-                        <th>BODEGA</th>
+                        @if(count($bodegas) > 1)<th>BODEGA</th>@endif
                         <th>DISPONIBLE</th>
                         <th>MÍNIMO</th>
                         <th>ESTADO</th>
@@ -218,19 +214,13 @@
                     <div class="ap-field-group">
                         <label class="ap-label-text" for="selectBodega">BODEGA</label>
                         <select id="selectBodega" class="ap-form-control" onchange="toggleRegistrarNuevaBodega(this.value)" required>
-                            <option value="Bodega central">Bodega central · Centro de Formación</option>
-                            <option value="Bodega del apiario">Bodega del apiario · Apiario La Angostura</option>
-                            @if(isset($bodegasUnicas))
-                                @foreach($bodegasUnicas as $b)
-                                    @if(!in_array(strtolower(trim($b)), ['bodega central', 'bodega del apiario']))
-                                        <option value="{{ $b }}">{{ $b }}</option>
-                                    @endif
-                                @endforeach
-                            @endif
+                            @foreach($bodegas as $b)
+                                <option value="{{ $b }}">{{ $b }}</option>
+                            @endforeach
                             <option value="__nueva__">+ Registrar nueva bodega...</option>
                         </select>
                         <p class="ap-field-note">
-                            El mismo elemento puede estar en distintas bodegas con cantidades diferentes.
+                            Hay una sola bodega (la del apiario). Si necesitas otra, elige "+ Registrar nueva bodega...".
                         </p>
                     </div>
 
@@ -300,15 +290,9 @@
                         <div>
                             <label class="ap-label-text" for="editSelectBodega">BODEGA</label>
                             <select id="editSelectBodega" class="ap-form-control" onchange="toggleEditarNuevaBodega(this.value)" required>
-                                <option value="Bodega central">Bodega central</option>
-                                <option value="Bodega del apiario">Bodega del apiario</option>
-                                @if(isset($bodegasUnicas))
-                                    @foreach($bodegasUnicas as $b)
-                                        @if(!in_array(strtolower(trim($b)), ['bodega central', 'bodega del apiario']))
-                                            <option value="{{ $b }}">{{ $b }}</option>
-                                        @endif
-                                    @endforeach
-                                @endif
+                                @foreach($bodegas as $b)
+                                    <option value="{{ $b }}">{{ $b }}</option>
+                                @endforeach
                                 <option value="__nueva__">+ Registrar nueva bodega...</option>
                             </select>
                             <div id="seccionEditNuevaBodega" style="display: none; margin-top: 6px;">
@@ -502,6 +486,7 @@
     window.InventarioConfig = {
         inventarioData: @json($items),
         elementosPorTipo: @json($elementosPorTipo ?? []),
+        variasBodegas: @json(count($bodegas) > 1),
         storeUrl: "{{ route('apicola.admin.inventario.store') }}",
         baseUrl: "{{ url('apicola/inventario') }}",
         csrfToken: "{{ csrf_token() }}"

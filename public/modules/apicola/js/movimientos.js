@@ -14,10 +14,15 @@
     let motivoActual = '';
 
     // Motivos disponibles según el tipo de movimiento
+    // El traslado entre bodegas solo existe cuando hay más de una bodega
     const MOTIVOS = {
-        Entrada: ['Compra', 'Traslado entre inventarios'],
-        Salida: ['Dañado', 'Traslado entre inventarios', 'Fecha de caducidad', 'Devolución']
+        Entrada: ['Compra'],
+        Salida: ['Dañado', 'Fecha de caducidad', 'Devolución']
     };
+    if (config.variasBodegas) {
+        MOTIVOS.Entrada.push('Traslado entre inventarios');
+        MOTIVOS.Salida.splice(1, 0, 'Traslado entre inventarios');
+    }
     let draftProducts = []; // Lista de productos acumulados para el movimiento
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -131,12 +136,12 @@
 
     function getBodegaActual() {
         const sel = document.getElementById('selectBodega');
-        if (!sel) return 'Bodega Central';
+        if (!sel) return 'Bodega del apiario';
         if (sel.value === '__nueva__') {
             const input = document.getElementById('inputNombreNuevaBodega');
             return input ? (input.value.trim() || 'Nueva Bodega') : 'Nueva Bodega';
         }
-        return sel.value || 'Bodega Central';
+        return sel.value || 'Bodega del apiario';
     }
 
     function handleBodegaChange(val) {
@@ -708,7 +713,7 @@
             if (parts.length === 3) fechaStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
         if (posFecha) posFecha.textContent = fechaStr;
-        if (posBodega) posBodega.textContent = comp.bodega || 'Bodega Central';
+        if (posBodega) posBodega.textContent = comp.bodega || 'Bodega del apiario';
         if (posUsuario) posUsuario.textContent = comp.responsable || 'Karen Plazas';
         if (posSig) posSig.textContent = comp.responsable || 'Karen Michelle Plazas Rojas';
 

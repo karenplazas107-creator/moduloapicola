@@ -169,12 +169,20 @@
                         <span class="ap-quick-action-label">Registrar colmena</span>
                     </a>
 
-                    <!-- 3. Producción e Inspección -->
+                    <!-- 3. Inspección -->
                     <a href="{{ route('apicola.admin.inspecciones.index') }}" class="ap-quick-action-btn">
                         <div class="ap-quick-action-icon">
                             <i class="fas fa-clipboard-check"></i>
                         </div>
-                        <span class="ap-quick-action-label">Producción e inspección</span>
+                        <span class="ap-quick-action-label">Inspección</span>
+                    </a>
+
+                    <!-- 3.1 Producción -->
+                    <a href="{{ route('apicola.admin.producciones.index') }}" class="ap-quick-action-btn">
+                        <div class="ap-quick-action-icon">
+                            <i class="fas fa-jar"></i>
+                        </div>
+                        <span class="ap-quick-action-label">Producción</span>
                     </a>
 
                     <!-- 4. Ver Inventario -->

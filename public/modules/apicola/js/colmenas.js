@@ -661,6 +661,8 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         badge.className = 'ap-status-badge ' + (item.estado === 'Activa' ? 'activa' : (item.estado === 'En revisión' ? 'en-revision' : 'inactiva'));
 
         document.getElementById('linkIrInspeccionColmena').href = `${window.ColmenasConfig?.baseUrl || "/apicola/colmenas"}/${encodeURIComponent(item.code)}/inspecciones`;
+        const linkProd = document.getElementById('linkIrProduccionColmena');
+        if (linkProd) linkProd.href = `${window.ColmenasConfig?.baseUrl || "/apicola/colmenas"}/${encodeURIComponent(item.code)}/producciones`;
 
         document.getElementById('btnEditFromColmenaDetail').onclick = () => {
             closeColmenaDetailModal();

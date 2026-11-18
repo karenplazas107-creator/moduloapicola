@@ -27,8 +27,9 @@ class InspeccionController extends Controller
             ->get();
         $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
         $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
+        $produccionResumen = \Modules\Apicola\Entities\Produccion::resumenPorColmena();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos', 'produccionResumen'));
     }
 
     /**
@@ -46,8 +47,9 @@ class InspeccionController extends Controller
             ->get();
         $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
         $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
+        $produccionResumen = \Modules\Apicola\Entities\Produccion::resumenPorColmena();
 
-        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos'));
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos', 'produccionResumen'));
     }
 
     /**

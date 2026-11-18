@@ -15,8 +15,43 @@
         updateInspeccionMetrics();
     });
 
+    // ==================== PRODUCCIÓN RELACIONADA (misma colmena) ====================
+    function renderRelatedProduccion() {
+        const box = document.getElementById('relatedProduccion');
+        if (!box) return;
+        const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const titulo = (txt, link) => `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.95rem; font-weight:800; color:#0f172a; margin-bottom:0.6rem;">
+            <span><i class="fas fa-jar" style="color:#047857;"></i> ${txt}</span>${link || ''}</div>`;
+
+        if (!activeColmena) {
+            box.innerHTML = titulo('Producción') + '<p style="font-size:0.85rem; color:#64748b; font-style:italic; margin:4px 0;">Elige una colmena para ver su producción relacionada.</p>';
+            return;
+        }
+
+        const resumen = (window.InspeccionConfig?.produccionResumen || {})[activeColmena];
+        const url = `${window.InspeccionConfig?.produccionBaseUrl || '/apicola/colmenas'}/${encodeURIComponent(activeColmena)}/producciones`;
+        const enlace = `<a href="${url}" style="font-size:0.82rem; font-weight:700; color:#047857; text-decoration:none;">Ver producción <i class="fas fa-arrow-right"></i></a>`;
+
+        if (!resumen || !resumen.registros) {
+            box.innerHTML = titulo(`Producción de la colmena ${esc(activeColmena)} (0)`, enlace)
+                + '<p style="font-size:0.85rem; color:#64748b; font-style:italic; margin:4px 0;">Esta colmena todavía no tiene producción registrada.</p>';
+            return;
+        }
+
+        const filas = (resumen.lista || []).map(p => `
+            <div style="display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-top:1px solid #f1f5f9; font-size:0.85rem; color:#334155;">
+                <span><strong>${esc(p.regNumber)}</strong> · ${esc(p.fecha)}</span>
+                <span style="font-weight:700;">${parseFloat(p.mielKg).toFixed(1).replace('.', ',')} kg</span>
+            </div>`).join('');
+
+        box.innerHTML = titulo(`Producción de la colmena ${esc(activeColmena)} (${resumen.registros} · ${parseFloat(resumen.kg).toFixed(1).replace('.', ',')} kg)`, enlace) + filas;
+    }
+
+    document.addEventListener('DOMContentLoaded', renderRelatedProduccion);
+
     function changeActiveColmena(newCode) {
         activeColmena = newCode;
+        renderRelatedProduccion();
         const curEl = document.getElementById('currentColmenaCode');
         if (curEl) curEl.textContent = newCode || 'Sin colmena';
         const colmTag = document.getElementById('colmenaTag');
@@ -901,7 +936,7 @@
     }
 
     function openNewVisitaModal() {
-        document.getElementById('modalVisitaTitle').textContent = 'Registrar visita';
+        document.getElementById('modalVisitaTitle').textContent = 'Registrar inspección';
         document.getElementById('modalVisitaId').value = '';
         
         // Fecha por defecto hoy en formato ISO para el calendario
@@ -998,7 +1033,7 @@
         const item = inspeccionesList.find(v => v.id === id);
         if (!item) return;
 
-        document.getElementById('modalVisitaTitle').textContent = 'Editar visita';
+        document.getElementById('modalVisitaTitle').textContent = 'Editar inspección';
         document.getElementById('modalVisitaId').value = item.id;
         document.getElementById('modalVisitaFecha').value = toIsoDate(item.fecha);
         document.getElementById('modalVisitaColmena').value = item.colmena;

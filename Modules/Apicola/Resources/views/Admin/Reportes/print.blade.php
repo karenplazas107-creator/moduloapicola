@@ -59,7 +59,9 @@
         <div class="rep-title-strip">
             <div class="rep-title-text">
                 @if($tipo === 'miel')
-                    Reporte de Producción y Cosecha de Miel
+                    Reporte de Producción de Miel
+                @elseif($tipo === 'inspeccion')
+                    Reporte de Inspecciones de Colmenas
                 @elseif($tipo === 'colmenas')
                     Censo y Estado Sanitario de Colmenas
                 @else
@@ -83,12 +85,25 @@
                     <span class="kpi-mini-value amber">{{ number_format($totalMiel, 2, ',', '.') }} kg</span>
                 </div>
                 <div class="kpi-mini-card">
-                    <span class="kpi-mini-label">Total Visitas / Registros</span>
+                    <span class="kpi-mini-label">Total Cosechas</span>
                     <span class="kpi-mini-value green">{{ $totalVisitas }}</span>
                 </div>
                 <div class="kpi-mini-card">
-                    <span class="kpi-mini-label">Colmenas Evaluadas</span>
+                    <span class="kpi-mini-label">Colmenas con Producción</span>
                     <span class="kpi-mini-value">{{ count($data) }}</span>
+                </div>
+            @elseif($tipo === 'inspeccion')
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Inspecciones</span>
+                    <span class="kpi-mini-value green">{{ count($data) }}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Con Enfermedades</span>
+                    <span class="kpi-mini-value amber">{{ count(array_filter($data, fn($r) => !empty($r['enfermedades']))) }}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Colmenas Inspeccionadas</span>
+                    <span class="kpi-mini-value">{{ count(array_unique(array_column($data, 'colmena'))) }}</span>
                 </div>
             @elseif($tipo === 'colmenas')
                 <div class="kpi-mini-card">
@@ -129,11 +144,21 @@
                     <tr>
                         <th style="width: 25%; text-align: left;">Apiario</th>
                         <th style="width: 12%; text-align: center;">Colmena</th>
-                        <th style="width: 14%; text-align: center;">Última Visita</th>
-                        <th style="width: 10%; text-align: center;">Visitas</th>
+                        <th style="width: 14%; text-align: center;">Última Cosecha</th>
+                        <th style="width: 10%; text-align: center;">Cosechas</th>
                         <th style="width: 12%; text-align: right;">Miel (kg)</th>
                         <th style="width: 15%; text-align: left;">Responsable</th>
                         <th style="width: 12%; text-align: center;">Estado</th>
+                    </tr>
+                @elseif($tipo === 'inspeccion')
+                    <tr>
+                        <th style="width: 11%; text-align: center;">Fecha</th>
+                        <th style="width: 12%; text-align: center;">N.° Registro</th>
+                        <th style="width: 10%; text-align: center;">Colmena</th>
+                        <th style="width: 10%; text-align: center;">Estado</th>
+                        <th style="width: 17%; text-align: left;">Reina</th>
+                        <th style="width: 23%; text-align: left;">Enfermedades</th>
+                        <th style="width: 17%; text-align: left;">Responsable</th>
                     </tr>
                 @elseif($tipo === 'colmenas')
                     <tr>
@@ -173,6 +198,20 @@
                                     {{ $row['estado'] ?? 'Activa' }}
                                 </span>
                             </td>
+                        </tr>
+                    @elseif($tipo === 'inspeccion')
+                        <tr>
+                            <td style="text-align: center;">{{ $row['fecha'] ?? '-' }}</td>
+                            <td style="text-align: center;">{{ $row['registro'] ?? '-' }}</td>
+                            <td style="text-align: center;"><span class="badge-colmena-print">{{ $row['colmena'] ?? '-' }}</span></td>
+                            <td style="text-align: center;">
+                                <span class="badge-status-print {{ stripos($row['estado'] ?? '', 'mal') !== false ? 'inactiva' : (stripos($row['estado'] ?? '', 'reg') !== false ? 'revision' : 'activa') }}">
+                                    {{ $row['estado'] ?? 'Bueno' }}
+                                </span>
+                            </td>
+                            <td style="text-align: left;">{{ $row['reina'] ?? '-' }}</td>
+                            <td style="text-align: left;">{{ !empty($row['enfermedades']) ? $row['enfermedades'] : 'Ninguna' }}</td>
+                            <td style="text-align: left;">{{ $row['responsable'] ?? '-' }}</td>
                         </tr>
                     @elseif($tipo === 'colmenas')
                         <tr>

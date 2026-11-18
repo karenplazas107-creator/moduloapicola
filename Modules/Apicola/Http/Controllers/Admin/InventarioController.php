@@ -2,6 +2,7 @@
 
 namespace Modules\Apicola\Http\Controllers\Admin;
 
+use Modules\Apicola\Entities\Bodega;
 use Modules\Apicola\Entities\MotivoBaja;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -50,14 +51,14 @@ class InventarioController extends Controller
 
         // Métricas dinámicas exactas según diseño de las 4 tarjetas
         $totalElementos = Inventario::count();
-        $bodegaCentralCount = Inventario::where('bodega', 'like', '%Bodega central%')->count();
-        $bodegaApiarioCount = Inventario::where('bodega', 'like', '%Bodega del apiario%')->count();
+        $bodegas = Bodega::nombres();
+        $activosCount = Inventario::where('estado', 'Activo')->count();
         $alertaStockCount = Inventario::whereColumn('cantidad', '<=', 'stock_minimo')->count();
 
         $metrics = [
             'elementos_registrados' => $totalElementos,
-            'bodega_central' => $bodegaCentralCount,
-            'bodega_apiario' => $bodegaApiarioCount,
+            'bodegas' => count($bodegas),
+            'activos' => $activosCount,
             'alerta_stock' => $alertaStockCount,
         ];
 
@@ -76,12 +77,8 @@ class InventarioController extends Controller
             ->distinct()
             ->pluck('categoria');
 
-        // Bodegas únicas registradas
-        $bodegasUnicas = Inventario::select('bodega')
-            ->distinct()
-            ->pluck('bodega')
-            ->filter()
-            ->values();
+        // Bodegas registradas (la del apiario siempre existe; se pueden agregar más)
+        $bodegasUnicas = collect($bodegas);
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -94,7 +91,7 @@ class InventarioController extends Controller
             ]);
         }
 
-        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos', 'bodegasUnicas', 'elementosPorTipo'));
+        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos', 'bodegasUnicas', 'bodegas', 'elementosPorTipo'));
     }
 
     /**
@@ -105,7 +102,7 @@ class InventarioController extends Controller
         $tipo = $request->input('tipo', 'Herramienta');
         
         // Determinar nombre de bodega (soporte para seleccionar existente o registrar una nueva)
-        $bodegaRaw = trim($request->input('bodega', 'Bodega central'));
+        $bodegaRaw = trim($request->input('bodega', Bodega::PRINCIPAL));
         if ($bodegaRaw === '__nueva__' || $request->filled('nombre_nueva_bodega')) {
             $bodega = trim($request->input('nombre_nueva_bodega', ''));
         } else {
@@ -113,7 +110,7 @@ class InventarioController extends Controller
         }
 
         if (empty($bodega)) {
-            $bodega = 'Bodega central';
+            $bodega = Bodega::PRINCIPAL;
         }
 
         if (($bodegaRaw === '__nueva__' || $request->filled('nombre_nueva_bodega')) && preg_match('/\d/', $bodega)) {
@@ -122,6 +119,8 @@ class InventarioController extends Controller
                 'message' => 'Bodega inválida: no se permiten números, solo letras.',
             ], 422);
         }
+
+        $bodega = Bodega::registrar($bodega);
 
         // Determinar nombre y unidad de medida
         $isNuevo = $request->input('elemento') === '__nuevo__' || $request->filled('nombre_nuevo');
@@ -248,6 +247,9 @@ class InventarioController extends Controller
 
         if (($request->input('bodega') === '__nueva__' || $request->filled('nombre_nueva_bodega')) && $request->filled('nombre_nueva_bodega')) {
             $validated['bodega'] = trim($request->input('nombre_nueva_bodega'));
+        }
+        if (!empty($validated['bodega']) && $validated['bodega'] !== '__nueva__') {
+            $validated['bodega'] = Bodega::registrar($validated['bodega']);
         }
 
         // Si el elemento pasa de Activo a Inactivo, el motivo es obligatorio
@@ -380,16 +382,9 @@ class InventarioController extends Controller
      */
     public function movimientosIndex(Request $request)
     {
-        // 1. Obtener bodegas únicas disponibles
-        $bodegas = Inventario::select('bodega')
-            ->distinct()
-            ->pluck('bodega')
-            ->filter()
-            ->values();
-
-        if ($bodegas->isEmpty()) {
-            $bodegas = collect(['Bodega Central', 'Bodega del Apiario']);
-        }
+        // 1. Bodegas disponibles (una sola por defecto; se pueden registrar más)
+        $bodegas = collect(Bodega::nombres());
+        $variasBodegas = $bodegas->count() > 1;
 
         // 2. Obtener productos activos organizados con su bodega y stock
         $productos = Inventario::where('estado', 'Activo')
@@ -441,7 +436,8 @@ class InventarioController extends Controller
             'comprobanteActual',
             'historialComprobantes',
             'responsable',
-            'siguienteNumero'
+            'siguienteNumero',
+            'variasBodegas'
         ));
     }
 
@@ -470,9 +466,14 @@ class InventarioController extends Controller
 
         // El motivo debe corresponder al tipo de movimiento
         $motivosPermitidos = [
-            'Entrada' => ['Compra', 'Traslado entre inventarios'],
-            'Salida' => ['Dañado', 'Traslado entre inventarios', 'Fecha de caducidad', 'Devolución'],
+            'Entrada' => ['Compra'],
+            'Salida' => ['Dañado', 'Fecha de caducidad', 'Devolución'],
         ];
+        // El traslado entre bodegas solo existe cuando hay más de una bodega
+        if (Bodega::hayVarias()) {
+            $motivosPermitidos['Entrada'][] = 'Traslado entre inventarios';
+            $motivosPermitidos['Salida'][] = 'Traslado entre inventarios';
+        }
         if (!in_array($validated['motivo'], $motivosPermitidos[$tipo], true)) {
             return response()->json([
                 'success' => false,
@@ -480,7 +481,7 @@ class InventarioController extends Controller
             ], 422);
         }
         $motivo = $validated['motivo'];
-        $bodega = $validated['bodega'];
+        $bodega = Bodega::registrar($validated['bodega']);
         $fecha = Carbon::parse($validated['fecha']);
         $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Karen Michelle Plazas Rojas';
 

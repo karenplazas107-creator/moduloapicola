@@ -1,13 +1,13 @@
 @extends('apicola::Admin.layout')
 
-@section('title', 'Producción e Inspección • ' . ($selectedColmena ?: 'Colmenas') . ' • SENA APÍCOLA')
+@section('title', 'Inspección • ' . ($selectedColmena ?: 'Colmenas') . ' • SENA APÍCOLA')
 
 @section('breadcrumb')
     <a href="{{ route('apicola.admin.colmenas.index') }}">Colmenas</a>
     <span>/</span>
     <span style="font-weight: 700; color: #059669;" id="currentColmenaCode">{{ $selectedColmena ?: 'Sin colmena' }}</span>
     <span>/</span>
-    <span class="active-page">Producción e inspección</span>
+    <span class="active-page">Inspección</span>
 @endsection
 
 @section('styles')
@@ -24,9 +24,9 @@
     <div class="ap-view-header-row">
         <div>
             <span class="ap-view-subtitle-tag">
-                COLMENAS / <span id="colmenaTag">{{ $selectedColmena ?: 'GENERAL' }}</span> / PRODUCCIÓN E INSPECCIÓN
+                COLMENAS / <span id="colmenaTag">{{ $selectedColmena ?: 'GENERAL' }}</span> / INSPECCIÓN
             </span>
-            <h1 class="ap-view-main-title">Producción e inspección</h1>
+            <h1 class="ap-view-main-title">Inspección</h1>
         </div>
         <div class="ap-user-chip">
             <div class="ap-user-chip-avatar" style="background: #047857;">
@@ -42,7 +42,7 @@
     <!-- 3 Tarjetas de Métricas -->
     <div class="ap-metrics-grid cols-3">
         <div class="ap-metric-card border-green">
-            <div class="ap-metric-card-title">VISITAS REGISTRADAS</div>
+            <div class="ap-metric-card-title">INSPECCIONES REGISTRADAS</div>
             <div class="ap-metric-card-num" id="metricTotalVisitas">0</div>
             <div class="ap-metric-card-sub" id="metricColmenaSub">{{ $selectedColmena ? 'Colmena ' . $selectedColmena : 'Colmenas registradas' }}</div>
         </div>
@@ -86,7 +86,7 @@
             </div>
         </div>
 
-        <!-- Fila de Controles: Filtro de fechas y Botón + Registrar visita -->
+        <!-- Fila de Controles: Filtro de fechas y Botón + Registrar inspección -->
         <div class="ap-controls-bar" style="margin-top: 1rem;">
             <div class="ap-controls-left">
                 <input type="date" id="filterFechaInicio" class="ap-date-input" value="" title="Fecha inicial" onclick="try{this.showPicker()}catch(e){}" style="cursor: pointer;">
@@ -101,7 +101,7 @@
                     <i class="fas fa-virus"></i> Enfermedades
                 </button>
                 <button type="button" class="ap-btn-solid-green" onclick="openNewVisitaModal()">
-                    <i class="fas fa-plus"></i> Registrar visita
+                    <i class="fas fa-plus"></i> Registrar inspección
                 </button>
             </div>
         </div>
@@ -137,6 +137,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Relación con la producción de la misma colmena -->
+        <div id="relatedProduccion" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:14px; padding:1rem 1.25rem; margin-top:1.25rem;">
+            <!-- Renderizado por JavaScript -->
+        </div>
     </div>
 @endsection
 
@@ -146,7 +151,7 @@
         <div class="ap-modal-window" style="max-width: 580px;">
             <div class="ap-modal-body" style="padding: 2rem 2.2rem 1.5rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.4rem;">
-                    <h2 class="ap-modal-title" id="modalVisitaTitle" style="font-size: 1.65rem; font-weight: 900; color: #0f172a; margin-bottom: 0;">Registrar visita</h2>
+                    <h2 class="ap-modal-title" id="modalVisitaTitle" style="font-size: 1.65rem; font-weight: 900; color: #0f172a; margin-bottom: 0;">Registrar inspección</h2>
                     <button type="button" class="ap-modal-close-btn" onclick="closeVisitaModal()" title="Cerrar">&times;</button>
                 </div>
 
@@ -520,6 +525,8 @@
     window.InspeccionConfig = {
         activeColmena: "{{ $selectedColmena ?? '' }}",
         inspeccionesList: @json($visitasInit ?? []),
+        produccionResumen: @json($produccionResumen ?? []),
+        produccionBaseUrl: "{{ url('apicola/colmenas') }}",
         responsables: @json($responsablesSugeridos ?? []),
         responsablesUrl: "{{ route('apicola.admin.responsables.store') }}",
         enfermedadesList: @json($enfermedades ?? []),

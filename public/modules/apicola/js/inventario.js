@@ -34,7 +34,7 @@
         if (filtered.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
+                    <td colspan="${window.InventarioConfig?.variasBodegas ? 8 : 7}" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8;">
                         <i class="fas fa-search" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block;"></i>
                         No se encontraron registros de inventario con los filtros aplicados.
                     </td>
@@ -72,9 +72,9 @@
                 <td style="color: #475569;">
                     ${item.categoria}
                 </td>
-                <td style="color: #475569;">
+                ${window.InventarioConfig?.variasBodegas ? `<td style="color: #475569;">
                     ${item.bodega}
-                </td>
+                </td>` : ''}
                 <td>
                     <strong style="color: #0f172a; font-weight: 800;">${item.cantidad}</strong> 
                     <span style="color: #64748b; font-size: 0.82rem;">${unidad}</span>
@@ -106,13 +106,15 @@
 
     function actualizarMetricas() {
         const total = inventarioData.length;
-        const bodegaCentral = inventarioData.filter(i => (i.bodega || '').includes('Bodega central')).length;
-        const bodegaApiario = inventarioData.filter(i => (i.bodega || '').includes('apiario') || (i.bodega || '').includes('Apiario')).length;
+        const bodegasDistintas = new Set(inventarioData.map(i => (i.bodega || '').toLowerCase()).filter(Boolean));
+        const activos = inventarioData.filter(i => i.estado !== 'Inactivo').length;
         const alertaStock = inventarioData.filter(i => parseInt(i.cantidad) <= parseInt(i.stock_minimo)).length;
 
         document.getElementById('cardTotalElementos').textContent = total;
-        document.getElementById('cardBodegaCentral').textContent = bodegaCentral;
-        document.getElementById('cardBodegaApiario').textContent = bodegaApiario;
+        const cardBodegas = document.getElementById('cardBodegas');
+        if (cardBodegas) cardBodegas.textContent = Math.max(bodegasDistintas.size, 1);
+        const cardActivos = document.getElementById('cardActivos');
+        if (cardActivos) cardActivos.textContent = activos;
         document.getElementById('cardAlertaStock').textContent = alertaStock;
     }
 
@@ -151,8 +153,11 @@
         validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevaBodega'), 'errorNombreNuevaBodega');
         seleccionarTipo('Herramienta');
         toggleRegistrarNuevo(document.getElementById('selectElemento').value);
-        document.getElementById('selectBodega').value = 'Bodega central';
-        toggleRegistrarNuevaBodega('Bodega central');
+        const selBodega = document.getElementById('selectBodega');
+        if (selBodega) {
+            selBodega.selectedIndex = 0;
+            toggleRegistrarNuevaBodega(selBodega.value);
+        }
         document.getElementById('inputCantidadInicial').value = 1;
         document.getElementById('inputStockMinimo').value = 5;
         document.getElementById('modalAgregarBackdrop').classList.add('is-open');
@@ -375,7 +380,7 @@
                 const opt = new Option(item.bodega, item.bodega, true, true);
                 selectBodega.insertBefore(opt, selectBodega.lastElementChild);
             }
-            selectBodega.value = item.bodega || 'Bodega central';
+            selectBodega.value = item.bodega || (selectBodega.options[0] ? selectBodega.options[0].value : '');
             toggleEditarNuevaBodega(selectBodega.value);
         }
 

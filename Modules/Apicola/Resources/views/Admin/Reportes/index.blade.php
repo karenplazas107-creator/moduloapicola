@@ -59,8 +59,19 @@
                                 <i class="fas fa-droplet"></i>
                             </div>
                             <div class="rep-type-body">
-                                <span class="rep-type-name">Producción de miel</span>
-                                <span class="rep-type-desc">Kilogramos por apiario, colmena y período.</span>
+                                <span class="rep-type-name">Producción</span>
+                                <span class="rep-type-desc">Miel cosechada por colmena y período (submódulo Producción).</span>
+                            </div>
+                        </div>
+
+                        <!-- Opción: Inspecciones -->
+                        <div class="rep-type-card {{ $tipoReporte === 'inspeccion' ? 'active' : '' }}" onclick="seleccionarTipoReporte('inspeccion', this)">
+                            <div class="rep-type-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="rep-type-body">
+                                <span class="rep-type-name">Inspecciones</span>
+                                <span class="rep-type-desc">Estado, reina y enfermedades de cada inspección.</span>
                             </div>
                         </div>
 
@@ -71,7 +82,7 @@
                             </div>
                             <div class="rep-type-body">
                                 <span class="rep-type-name">Estado de colmenas</span>
-                                <span class="rep-type-desc">Estado sanitario y última visita de cada colmena.</span>
+                                <span class="rep-type-desc">Censo de colmenas: apiario, especie, estado y responsable.</span>
                             </div>
                         </div>
 

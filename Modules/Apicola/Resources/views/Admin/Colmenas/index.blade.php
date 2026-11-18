@@ -285,9 +285,14 @@
                 <p id="colmenaDetailNotas" style="font-size:0.85rem; color:#475569; line-height:1.5; margin-bottom:1.25rem;"></p>
 
                 <div class="ap-modal-footer" style="padding:0; border:none; justify-content:space-between;">
-                    <a href="#" id="linkIrInspeccionColmena" class="ap-btn-outline-green" style="font-size:0.84rem;">
-                        <i class="fas fa-clipboard-check"></i> Ver producción e inspección
-                    </a>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <a href="#" id="linkIrInspeccionColmena" class="ap-btn-outline-green" style="font-size:0.84rem;">
+                            <i class="fas fa-clipboard-check"></i> Ver inspección
+                        </a>
+                        <a href="#" id="linkIrProduccionColmena" class="ap-btn-outline-green" style="font-size:0.84rem;">
+                            <i class="fas fa-jar"></i> Ver producción
+                        </a>
+                    </div>
                     <div>
                         <button type="button" class="ap-btn-modal-cancel" onclick="closeColmenaDetailModal()">Cerrar</button>
                         <button type="button" class="ap-btn-modal-save" id="btnEditFromColmenaDetail">Editar colmena</button>

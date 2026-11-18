@@ -11,6 +11,7 @@ use Modules\Apicola\Entities\Apiario;
 use Modules\Apicola\Entities\Colmena;
 use Modules\Apicola\Entities\Inspeccion;
 use Modules\Apicola\Entities\Inventario;
+use Modules\Apicola\Entities\Produccion;
 
 class ReporteController extends Controller
 {
@@ -160,13 +161,20 @@ class ReporteController extends Controller
         $apiariosTotal = 0;
 
         try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('apicola_producciones')) {
+                $prod = DB::table('apicola_producciones')->where('estado', 'Activa');
+                if ($desde && $hasta) {
+                    $prod->whereBetween('fecha', [$desde, $hasta]);
+                }
+                $mielTotal = (float) $prod->sum('miel_kg');
+            }
+
             if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
                 $query = DB::table('registro_inspeccion')->whereNull('deleted_at');
                 if ($desde && $hasta) {
                     $query->whereBetween('fecha', [$desde, $hasta]);
                 }
-                $mielTotal = (float)$query->sum('miel_cosechada');
-                $visitasTotal = (int)$query->count();
+                $visitasTotal = (int) $query->count();
             }
 
             if (\Illuminate\Support\Facades\Schema::hasTable('apiario')) {
@@ -205,11 +213,22 @@ class ReporteController extends Controller
             'miel' => [
                 [
                     'id' => 1,
-                    'titulo' => 'Reporte Oficial de Cosecha y Producción de Miel',
+                    'titulo' => 'Reporte Oficial de Producción de Miel',
+                    'formato' => 'PDF',
+                    'registros' => DB::table('apicola_producciones')->where('estado', 'Activa')->count(),
+                    'autor' => Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera'),
+                    'tipo' => 'miel',
+                    'fecha' => Carbon::now()->format('d/m/Y')
+                ]
+            ],
+            'inspeccion' => [
+                [
+                    'id' => 4,
+                    'titulo' => 'Reporte Oficial de Inspecciones de Colmenas',
                     'formato' => 'PDF',
                     'registros' => DB::table('registro_inspeccion')->whereNull('deleted_at')->count(),
                     'autor' => Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera'),
-                    'tipo' => 'miel',
+                    'tipo' => 'inspeccion',
                     'fecha' => Carbon::now()->format('d/m/Y')
                 ]
             ],
@@ -243,8 +262,10 @@ class ReporteController extends Controller
      */
     private function getReportData($tipo, $apiario, $desde, $hasta, $estado)
     {
-        if ($tipo === 'miel') {
+        if ($tipo === 'miel' || $tipo === 'produccion') {
             return $this->getProduccionMielData($apiario, $desde, $hasta, $estado);
+        } elseif ($tipo === 'inspeccion') {
+            return $this->getInspeccionData($apiario, $desde, $hasta, $estado);
         } elseif ($tipo === 'colmenas') {
             return $this->getEstadoColmenasData($apiario, $desde, $hasta, $estado);
         } else {
@@ -253,51 +274,42 @@ class ReporteController extends Controller
     }
 
     /**
-     * Datos 100% reales de Producción de Miel desde registro_inspeccion.
+     * Producción de miel por colmena, desde el submódulo Producción (tabla apicola_producciones).
+     * Cada fila resume las cosechas vigentes de una colmena en el período.
      */
     private function getProduccionMielData($apiario, $desde, $hasta, $estado)
     {
         $rows = [];
 
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
-                $query = DB::table('registro_inspeccion')
-                    ->leftJoin('apicola_colmenas', 'registro_inspeccion.id_colmena', '=', 'apicola_colmenas.id')
+            if (\Illuminate\Support\Facades\Schema::hasTable('apicola_producciones')) {
+                $query = DB::table('apicola_producciones')
+                    ->join('apicola_colmenas', 'apicola_producciones.colmena_id', '=', 'apicola_colmenas.id')
+                    ->where('apicola_producciones.estado', 'Activa')
                     ->select(
-                        'registro_inspeccion.*',
+                        'apicola_producciones.*',
                         'apicola_colmenas.code as colmena_codigo',
                         'apicola_colmenas.apiario_name',
-                        'apicola_colmenas.status as colmena_status',
-                        'apicola_colmenas.responsable as colmena_responsable'
-                    )
-                    ->whereNull('registro_inspeccion.deleted_at');
+                        'apicola_colmenas.status as colmena_status'
+                    );
 
                 if ($desde && $hasta) {
-                    $query->whereBetween('registro_inspeccion.fecha', [$desde, $hasta]);
+                    $query->whereBetween('apicola_producciones.fecha', [$desde, $hasta]);
                 }
 
-                $records = $query->orderBy('registro_inspeccion.fecha', 'desc')->get();
+                $records = $query->orderBy('apicola_producciones.fecha', 'desc')->orderBy('apicola_producciones.id', 'desc')->get();
 
-                // Agrupar por colmena para calcular total de visitas y miel cosechada
-                $grouped = $records->groupBy('colmena_codigo');
-
-                foreach ($grouped as $code => $items) {
-                    $first = $items->first();
-                    $totalMiel = $items->sum('miel_cosechada');
-
-                    $responsable = $first->colmena_responsable ?: 'Sergio Barrera';
-                    if (!empty($first->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $first->observaciones, $m)) {
-                        $responsable = trim($m[1]);
-                    }
+                foreach ($records->groupBy('colmena_codigo') as $code => $items) {
+                    $first = $items->first(); // la cosecha más reciente
 
                     $rows[] = [
                         'apiario' => $first->apiario_name ?: 'Apiario SENA La Angostura',
-                        'colmena' => $code ?: ('Col-' . str_pad($first->id_colmena, 2, '0', STR_PAD_LEFT)),
+                        'colmena' => $code,
                         'ultima_visita' => Carbon::parse($first->fecha)->format('d/m/Y'),
-                        'visitas' => $items->count(),
-                        'miel_kg' => (float)$totalMiel,
-                        'responsable' => $responsable,
-                        'estado' => $first->colmena_status ?: ($first->estado_colmena ?: 'Activa')
+                        'visitas' => $items->count(),   // número de cosechas
+                        'miel_kg' => (float) $items->sum('miel_kg'),
+                        'responsable' => $first->responsable ?: 'Sergio Barrera',
+                        'estado' => $first->colmena_status ?: 'Activa',
                     ];
                 }
             }
@@ -305,7 +317,6 @@ class ReporteController extends Controller
             // Silencio de excepción
         }
 
-        // Aplicar filtros seleccionados
         if ($apiario !== 'all') {
             $rows = array_filter($rows, function ($item) use ($apiario) {
                 return stripos($item['apiario'], $apiario) !== false || $item['apiario'] == $apiario;
@@ -319,6 +330,74 @@ class ReporteController extends Controller
         }
 
         return array_values($rows);
+    }
+
+    /**
+     * Inspecciones de colmenas: una fila por inspección vigente con los datos que se registran en ella.
+     */
+    private function getInspeccionData($apiario, $desde, $hasta, $estado)
+    {
+        $rows = [];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
+                $query = DB::table('registro_inspeccion')
+                    ->leftJoin('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+                    ->leftJoin('apicola_colmenas', 'colmenas.codigo', '=', 'apicola_colmenas.code')
+                    ->whereNull('registro_inspeccion.deleted_at')
+                    ->select(
+                        'registro_inspeccion.*',
+                        'colmenas.codigo as colmena_codigo',
+                        'apicola_colmenas.apiario_name',
+                        'apicola_colmenas.responsable as colmena_responsable'
+                    );
+
+                if ($desde && $hasta) {
+                    $query->whereBetween('registro_inspeccion.fecha', [$desde, $hasta]);
+                }
+                if ($apiario !== 'all') {
+                    $query->where('apicola_colmenas.apiario_name', $apiario);
+                }
+                if ($estado !== 'all') {
+                    $query->where('registro_inspeccion.estado_colmena', $estado);
+                }
+
+                $records = $query->orderBy('registro_inspeccion.fecha', 'desc')->orderBy('registro_inspeccion.id_registro', 'desc')->get();
+
+                $enfermedades = DB::table('enfermedades_registro')->get()->groupBy('id_registro');
+
+                foreach ($records as $r) {
+                    $responsable = $r->colmena_responsable ?: 'Sergio Barrera';
+                    if (!empty($r->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $r->observaciones, $m)) {
+                        $responsable = trim($m[1]);
+                    }
+
+                    $enfs = isset($enfermedades[$r->id_registro])
+                        ? $enfermedades[$r->id_registro]->pluck('nombre_enfermedad')->filter()->implode(', ')
+                        : '';
+
+                    $reina = $r->reina_vista ? 'Vista' : 'No vista';
+                    if ($r->reina_marcada) {
+                        $reina .= ' · marcada' . (!empty($r->color_reina) && $r->color_reina !== 'Sin marcar' ? ' (' . $r->color_reina . ')' : '');
+                    }
+
+                    $rows[] = [
+                        'fecha' => Carbon::parse($r->fecha)->format('d/m/Y'),
+                        'registro' => $r->numero_registro ?: 'REG-' . str_pad($r->id_registro, 4, '0', STR_PAD_LEFT),
+                        'colmena' => $r->colmena_codigo ?: '-',
+                        'apiario' => $r->apiario_name ?: 'Apiario SENA La Angostura',
+                        'estado' => $r->estado_colmena ?: 'Bueno',
+                        'enfermedades' => $enfs,
+                        'reina' => $reina,
+                        'responsable' => $responsable,
+                    ];
+                }
+            }
+        } catch (\Exception $e) {
+            // Silencio
+        }
+
+        return $rows;
     }
 
     /**

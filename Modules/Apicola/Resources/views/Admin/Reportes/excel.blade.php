@@ -151,7 +151,9 @@
     <tr>
         <td colspan="{{ $totalCols }}" class="header-sub">
             @if($tipo === 'miel')
-                SENA APÍCOLA - REPORTE OFICIAL DE MIEL
+                SENA APÍCOLA - REPORTE OFICIAL DE PRODUCCIÓN DE MIEL
+            @elseif($tipo === 'inspeccion')
+                SENA APÍCOLA - REPORTE OFICIAL DE INSPECCIONES DE COLMENAS
             @elseif($tipo === 'colmenas')
                 SENA APÍCOLA - REPORTE OFICIAL DE ESTADO DE COLMENAS
             @else
@@ -185,8 +187,8 @@
         <tr>
             <th class="th-col" style="width: 280px;">Apiario</th>
             <th class="th-col" style="width: 110px;">Colmena</th>
-            <th class="th-col" style="width: 120px;">Última Visita</th>
-            <th class="th-col" style="width: 110px;">Total Visitas</th>
+            <th class="th-col" style="width: 120px;">Última Cosecha</th>
+            <th class="th-col" style="width: 110px;">Total Cosechas</th>
             <th class="th-col" style="width: 150px;">Miel Cosechada (kg)</th>
             <th class="th-col" style="width: 180px;">Responsable</th>
             <th class="th-col" style="width: 110px;">Estado</th>
@@ -243,6 +245,46 @@
             <td></td>
             <td></td>
         </tr>
+
+    @elseif($tipo === 'inspeccion')
+        <tr>
+            <th class="th-col" style="width: 110px;">Fecha</th>
+            <th class="th-col" style="width: 120px;">N.° Registro</th>
+            <th class="th-col" style="width: 110px;">Colmena</th>
+            <th class="th-col" style="width: 110px;">Estado</th>
+            <th class="th-col" style="width: 200px;">Reina</th>
+            <th class="th-col" style="width: 260px;">Enfermedades</th>
+            <th class="th-col" style="width: 180px;">Responsable</th>
+        </tr>
+
+        @forelse($data as $row)
+            @php
+                $st = strtolower($row['estado'] ?? '');
+                $badgeClass = str_contains($st, 'mal') ? 'badge-inactiva' : (str_contains($st, 'reg') ? 'badge-warning' : 'badge-activa');
+            @endphp
+            <tr>
+                <td class="td-cell td-center">{{ $row['fecha'] ?? '' }}</td>
+                <td class="td-cell td-center">{{ $row['registro'] ?? '' }}</td>
+                <td class="td-cell td-center">{{ $row['colmena'] ?? '' }}</td>
+                <td class="td-cell {{ $badgeClass }}">{{ $row['estado'] ?? 'Bueno' }}</td>
+                <td class="td-cell td-left">{{ $row['reina'] ?? '' }}</td>
+                <td class="td-cell td-left">{{ !empty($row['enfermedades']) ? $row['enfermedades'] : 'Ninguna' }}</td>
+                <td class="td-cell td-left">{{ strtoupper($row['responsable'] ?? '') }}</td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="7" class="td-cell td-center" style="font-style: italic; color: #757575;">
+                    No se encontraron inspecciones para los filtros aplicados.
+                </td>
+            </tr>
+        @endforelse
+
+        @for($i = count($data); $i < 6; $i++)
+            <tr>
+                <td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td>
+                <td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td>
+            </tr>
+        @endfor
 
     @elseif($tipo === 'colmenas')
         <tr>
@@ -411,8 +453,30 @@
             <td colspan="{{ $totalCols - 2 }}"></td>
         </tr>
         <tr>
-            <td class="td-resumen-label">Total de visitas</td>
+            <td class="td-resumen-label">Total de cosechas</td>
             <td class="td-resumen-val" style="mso-number-format: '0';">{{ $totalVisitas }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+
+    @elseif($tipo === 'inspeccion')
+        <tr>
+            <td class="td-resumen-label">Total de inspecciones</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count($data) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+        <tr>
+            <td class="td-resumen-label">Colmenas inspeccionadas</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_unique(array_column($data, 'colmena'))) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+        <tr>
+            <td class="td-resumen-label">Inspecciones con enfermedades</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_filter($data, fn($r) => !empty($r['enfermedades']))) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+        <tr>
+            <td class="td-resumen-label">Estado "Malo"</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_filter($data, fn($r) => strcasecmp($r['estado'] ?? '', 'Malo') === 0)) }}</td>
             <td colspan="{{ $totalCols - 2 }}"></td>
         </tr>
 

@@ -81,7 +81,11 @@
                 $isInspeccionRoute = request()->routeIs('apicola.admin.inspecciones.*') 
                     || request()->routeIs('apicola.admin.colmenas.inspecciones')
                     || request()->is('*inspeccion*');
-                $isColmenaDirect = (request()->routeIs('apicola.colmenas.*') || request()->routeIs('apicola.admin.colmenas.*') || request()->is('apicola/colmenas*')) && !$isInspeccionRoute;
+                $isProduccionRoute = request()->routeIs('apicola.admin.producciones.*')
+                    || request()->routeIs('apicola.admin.colmenas.producciones')
+                    || request()->is('apicola/producciones*')
+                    || request()->is('apicola/colmenas/*/producciones');
+                $isColmenaDirect = (request()->routeIs('apicola.colmenas.*') || request()->routeIs('apicola.admin.colmenas.*') || request()->is('apicola/colmenas*')) && !$isInspeccionRoute && !$isProduccionRoute;
             @endphp
             <!-- 4. Módulo: Colmenas -->
             <li class="ap-nav-item {{ $isColmenaDirect ? 'active' : '' }}">
@@ -91,13 +95,20 @@
                     </span>
                     <span>Colmenas</span>
                 </a>
-                <!-- Submódulo: Producción e inspección -->
+                <!-- Submódulos: Inspección y Producción -->
                 <ul class="ap-sub-list">
                     <li>
                         <a href="{{ route('apicola.admin.inspecciones.index') }}" 
                            class="ap-sub-link {{ $isInspeccionRoute ? 'active-sub' : '' }}">
                             <i class="fas fa-clipboard-check" style="font-size: 0.78rem;"></i>
-                            <span>Producción e inspección</span>
+                            <span>Inspección</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('apicola.admin.producciones.index') }}" 
+                           class="ap-sub-link {{ $isProduccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-jar" style="font-size: 0.78rem;"></i>
+                            <span>Producción</span>
                         </a>
                     </li>
                 </ul>

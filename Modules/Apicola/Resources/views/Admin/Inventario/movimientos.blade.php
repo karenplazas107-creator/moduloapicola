@@ -92,11 +92,15 @@
                                        required>
                             </div>
 
+                            @if(!($variasBodegas ?? false))
+                                {{-- Una sola bodega: no hay nada que elegir --}}
+                                <input type="hidden" id="selectBodega" value="{{ $bodegas->first() }}">
+                            @else
                             <div class="mov-form-group">
                                 <label class="mov-form-label" for="selectBodega">Bodega</label>
                                 <select id="selectBodega" class="mov-input-ctrl" onchange="window.MovimientosApp.handleBodegaChange(this.value)" required>
                                     @foreach($bodegas as $b)
-                                        <option value="{{ $b }}" {{ $b === 'Bodega Central' ? 'selected' : '' }}>{{ $b }}</option>
+                                        <option value="{{ $b }}" {{ $loop->first ? 'selected' : '' }}>{{ $b }}</option>
                                     @endforeach
                                     <option value="__nueva__">+ Registrar nueva bodega...</option>
                                 </select>
@@ -105,6 +109,7 @@
                                     <span id="errorMovBodega" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;"><i class="fas fa-circle-exclamation"></i> Bodega inválida: no se permiten números, solo letras.</span>
                                 </div>
                             </div>
+                            @endif
                         </div>
 
                         <!-- Fila 2: Tipo de producto y Producto -->
@@ -393,7 +398,7 @@
                         </div>
                         <div class="pos-meta-row">
                             <span class="pos-meta-lbl">BODEGA:</span>
-                            <span class="pos-meta-val" id="posBodega">Bodega Central</span>
+                            <span class="pos-meta-val" id="posBodega">{{ $bodegas->first() }}</span>
                         </div>
                         <div class="pos-meta-row">
                             <span class="pos-meta-lbl">RESPONSABLE:</span>
@@ -477,6 +482,7 @@
         showUrl: "{{ url('apicola/inventario/movimientos') }}",
         printUrl: "{{ url('apicola/inventario/movimientos') }}",
         csrfToken: "{{ csrf_token() }}",
+        variasBodegas: @json($variasBodegas ?? false),
         responsableDefault: "{{ $responsable }}"
     };
 </script>

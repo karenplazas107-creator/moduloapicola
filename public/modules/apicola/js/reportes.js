@@ -6,8 +6,8 @@
     // Definición de metadatos por tipo de reporte
     const configReportes = {
         miel: {
-            titulo: 'Producción de miel',
-            desc: 'Suma los kilogramos registrados en las visitas vigentes. Las visitas anuladas no se cuentan.',
+            titulo: 'Producción',
+            desc: 'Suma la miel registrada en el submódulo Producción. Los registros desactivados no se cuentan.',
             labelApiario: 'APIARIO',
             labelEstado: 'ESTADO DE LA COLMENA',
             opcionesEstado: [
@@ -16,8 +16,8 @@
                 { val: 'En revisión', txt: 'En revisión' },
                 { val: 'Inactiva', txt: 'Inactiva' }
             ],
-            columnas: ['Apiario', 'Colmena', 'Última visita', 'Visitas', 'Miel (kg)', 'Responsable', 'Estado'],
-            headersTh: ['Apiario', 'Colmena', 'Última visita', 'Visitas', 'Miel (kg)', 'Responsable', 'Estado'],
+            columnas: ['Apiario', 'Colmena', 'Última cosecha', 'Cosechas', 'Miel (kg)', 'Responsable', 'Estado'],
+            headersTh: ['Apiario', 'Colmena', 'Última cosecha', 'Cosechas', 'Miel (kg)', 'Responsable', 'Estado'],
             renderRow: function(item) {
                 const statusLower = (item.estado || '').toLowerCase();
                 const statusClass = statusLower.includes('rev') ? 'revision' : (statusLower.includes('inact') || statusLower.includes('malo') ? 'inactiva' : 'activa');
@@ -26,7 +26,7 @@
                         <td style="font-weight: 600; color: #0f172a; white-space: nowrap;">${item.apiario || '-'}</td>
                         <td style="white-space: nowrap;"><span class="rep-colmena-badge">${item.colmena || '-'}</span></td>
                         <td style="white-space: nowrap;">${item.ultima_visita || '-'}</td>
-                        <td style="white-space: nowrap;"><strong style="font-weight: 700;">${item.visitas || 1}</strong> <span style="color:#64748b; font-size:0.75rem;">visitas</span></td>
+                        <td style="white-space: nowrap;"><strong style="font-weight: 700;">${item.visitas || 1}</strong> <span style="color:#64748b; font-size:0.75rem;">cosechas</span></td>
                         <td style="font-weight: 800; color: #d97706; white-space: nowrap;">${parseFloat(item.miel_kg || 0).toFixed(2)} kg</td>
                         <td style="white-space: nowrap;">${item.responsable || '-'}</td>
                         <td style="white-space: nowrap;"><span class="rep-status-badge ${statusClass}">${item.estado || 'Activa'}</span></td>
@@ -34,9 +34,38 @@
                 `;
             }
         },
+        inspeccion: {
+            titulo: 'Inspecciones',
+            desc: 'Una fila por inspección vigente: estado de la colmena, reina observada, enfermedades y responsable.',
+            labelApiario: 'APIARIO',
+            labelEstado: 'ESTADO DE LA COLMENA',
+            opcionesEstado: [
+                { val: 'all', txt: 'Todos los estados' },
+                { val: 'Bueno', txt: 'Bueno' },
+                { val: 'Regular', txt: 'Regular' },
+                { val: 'Malo', txt: 'Malo' }
+            ],
+            columnas: ['Fecha', 'N.° registro', 'Colmena', 'Estado', 'Reina', 'Enfermedades', 'Responsable'],
+            headersTh: ['Fecha', 'N.° registro', 'Colmena', 'Estado', 'Reina', 'Enfermedades', 'Responsable'],
+            renderRow: function(item) {
+                const st = (item.estado || '').toLowerCase();
+                const statusClass = st.includes('mal') ? 'inactiva' : (st.includes('reg') ? 'revision' : 'activa');
+                return `
+                    <tr>
+                        <td style="white-space: nowrap; font-weight: 600; color: #0f172a;">${item.fecha || '-'}</td>
+                        <td style="white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.82rem;">${item.registro || '-'}</td>
+                        <td style="white-space: nowrap;"><span class="rep-colmena-badge">${item.colmena || '-'}</span></td>
+                        <td style="white-space: nowrap;"><span class="rep-status-badge ${statusClass}">${item.estado || 'Bueno'}</span></td>
+                        <td style="white-space: nowrap;">${item.reina || '-'}</td>
+                        <td>${item.enfermedades ? item.enfermedades : '<span style="color:#64748b;">Ninguna</span>'}</td>
+                        <td style="white-space: nowrap;">${item.responsable || '-'}</td>
+                    </tr>
+                `;
+            }
+        },
         colmenas: {
             titulo: 'Estado de colmenas',
-            desc: 'Estado sanitario, registro de reinas, especies y última visita registrada en cada colmena.',
+            desc: 'Estado, especie, apiario, última visita y responsable de cada colmena registrada.',
             labelApiario: 'APIARIO',
             labelEstado: 'ESTADO SANITARIO',
             opcionesEstado: [
@@ -301,7 +330,8 @@
         const dStr = (!isNaN(dObj.getTime())) ? dObj.toLocaleDateString('es-CO') : desdeVal;
         const hStr = (!isNaN(hObj.getTime())) ? hObj.toLocaleDateString('es-CO') : hastaVal;
 
-        let tituloRep = 'Reporte de Producción y Cosecha de Miel';
+        let tituloRep = 'Reporte de Producción de Miel';
+        if (tipo === 'inspeccion') tituloRep = 'Reporte de Inspecciones de Colmenas';
         if (tipo === 'colmenas') tituloRep = 'Censo y Estado Sanitario de Colmenas';
         if (tipo === 'inventario') tituloRep = 'Inventario de Insumos, EPP y Material Apícola';
 
@@ -317,8 +347,8 @@
                 <tr>
                     <th style="width: 25%; text-align: left;">Apiario</th>
                     <th style="width: 12%; text-align: center;">Colmena</th>
-                    <th style="width: 14%; text-align: center;">Última Visita</th>
-                    <th style="width: 10%; text-align: center;">Visitas</th>
+                    <th style="width: 14%; text-align: center;">Última Cosecha</th>
+                    <th style="width: 10%; text-align: center;">Cosechas</th>
                     <th style="width: 12%; text-align: right;">Miel (kg)</th>
                     <th style="width: 15%; text-align: left;">Responsable</th>
                     <th style="width: 12%; text-align: center;">Estado</th>
@@ -353,6 +383,38 @@
                         <td colspan="2"></td>
                     </tr>
                 `;
+            }
+        } else if (tipo === 'inspeccion') {
+            theadHtml = `
+                <tr>
+                    <th style="width: 11%; text-align: center;">Fecha</th>
+                    <th style="width: 12%; text-align: center;">N.° Registro</th>
+                    <th style="width: 10%; text-align: center;">Colmena</th>
+                    <th style="width: 10%; text-align: center;">Estado</th>
+                    <th style="width: 17%; text-align: left;">Reina</th>
+                    <th style="width: 23%; text-align: left;">Enfermedades</th>
+                    <th style="width: 17%; text-align: left;">Responsable</th>
+                </tr>
+            `;
+            if (currentData.length === 0) {
+                tbodyHtml = `<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:#94a3b8;">No se encontraron inspecciones para los criterios seleccionados.</td></tr>`;
+            } else {
+                tbodyHtml = currentData.map(r => {
+                    const st = r.estado || 'Bueno';
+                    const stLower = st.toLowerCase();
+                    const stClass = stLower.includes('mal') ? 'inactiva' : (stLower.includes('reg') ? 'revision' : 'activa');
+                    return `
+                        <tr>
+                            <td style="text-align: center;">${r.fecha || '-'}</td>
+                            <td style="text-align: center;">${r.registro || '-'}</td>
+                            <td style="text-align: center;"><span class="badge-colmena-print">${r.colmena || '-'}</span></td>
+                            <td style="text-align: center;"><span class="badge-status-print ${stClass}">${st}</span></td>
+                            <td style="text-align: left;">${r.reina || '-'}</td>
+                            <td style="text-align: left;">${r.enfermedades || 'Ninguna'}</td>
+                            <td style="text-align: left;">${r.responsable || '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
             }
         } else if (tipo === 'colmenas') {
             theadHtml = `
@@ -432,12 +494,28 @@
                     <span class="kpi-mini-value amber">${totalMiel.toFixed(2)} kg</span>
                 </div>
                 <div class="kpi-mini-card">
-                    <span class="kpi-mini-label">Total Visitas</span>
+                    <span class="kpi-mini-label">Total Cosechas</span>
                     <span class="kpi-mini-value green">${totalVisitas}</span>
                 </div>
                 <div class="kpi-mini-card">
-                    <span class="kpi-mini-label">Colmenas Evaluadas</span>
+                    <span class="kpi-mini-label">Colmenas con Producción</span>
                     <span class="kpi-mini-value">${currentData.length}</span>
+                </div>
+            `;
+        } else if (tipo === 'inspeccion') {
+            const conAlertas = currentData.filter(r => r.enfermedades).length;
+            kpisHtml = `
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Inspecciones</span>
+                    <span class="kpi-mini-value green">${currentData.length}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Con Enfermedades</span>
+                    <span class="kpi-mini-value amber">${conAlertas}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Colmenas Inspeccionadas</span>
+                    <span class="kpi-mini-value">${new Set(currentData.map(r => r.colmena)).size}</span>
                 </div>
             `;
         } else if (tipo === 'colmenas') {

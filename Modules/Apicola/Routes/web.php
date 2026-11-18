@@ -66,7 +66,15 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::post('colmenas/{id}/toggle-status', [ColmenaController::class, 'toggleStatus'])->name('apicola.admin.colmenas.toggle-status');
     Route::resource('colmenas', ColmenaController::class)->names('apicola.admin.colmenas');
 
-    // Submódulo de Producción e Inspección
+    // Submódulo de Producción (cosechas de miel por colmena)
+    Route::get('producciones', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'index'])->name('apicola.admin.producciones.index');
+    Route::get('colmenas/{code}/producciones', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'byColmena'])->name('apicola.admin.colmenas.producciones');
+    Route::post('producciones', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'store'])->name('apicola.admin.producciones.store');
+    Route::put('producciones/{id}', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'update'])->name('apicola.admin.producciones.update');
+    Route::post('producciones/{id}/toggle-status', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'toggleStatus'])->name('apicola.admin.producciones.toggle-status');
+    Route::delete('producciones/{id}', [\Modules\Apicola\Http\Controllers\Admin\ProduccionController::class, 'destroy'])->name('apicola.admin.producciones.destroy');
+
+    // Submódulo de Inspección
     Route::get('inspecciones', [InspeccionController::class, 'index'])->name('apicola.admin.inspecciones.index');
     Route::get('colmenas/{code}/inspecciones', [InspeccionController::class, 'byColmena'])->name('apicola.admin.colmenas.inspecciones');
     Route::post('inspecciones', [InspeccionController::class, 'store'])->name('apicola.admin.inspecciones.store');
