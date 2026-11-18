@@ -48,13 +48,13 @@
                 </div>
                 <div class="ap-kpi-info">
                     <span class="ap-kpi-title">Apiarios</span>
-                    <span class="ap-kpi-val">{{ $totalApiarios ?? 5 }}</span>
+                    <span class="ap-kpi-val">{{ $totalApiarios }}</span>
                 </div>
             </div>
             <div class="ap-kpi-bottom">
                 <span class="ap-kpi-sub-text">Activos</span>
                 <span class="ap-kpi-badge up">
-                    <i class="fas fa-arrow-up"></i> 1 este mes
+                    <i class="fas fa-plus"></i> {{ $apiariosNuevosMes }} este mes
                 </span>
             </div>
         </div>
@@ -67,13 +67,13 @@
                 </div>
                 <div class="ap-kpi-info">
                     <span class="ap-kpi-title">Colmenas</span>
-                    <span class="ap-kpi-val">{{ $totalColmenas ?? 48 }}</span>
+                    <span class="ap-kpi-val">{{ $totalColmenas }}</span>
                 </div>
             </div>
             <div class="ap-kpi-bottom">
-                <span class="ap-kpi-sub-text">En producción</span>
+                <span class="ap-kpi-sub-text">{{ $colmenasProduccion }} en producción</span>
                 <span class="ap-kpi-badge up">
-                    <i class="fas fa-arrow-up"></i> 3 este mes
+                    <i class="fas fa-plus"></i> {{ $colmenasNuevasMes }} este mes
                 </span>
             </div>
         </div>
@@ -86,13 +86,13 @@
                 </div>
                 <div class="ap-kpi-info">
                     <span class="ap-kpi-title">Producción de miel</span>
-                    <span class="ap-kpi-val">{{ $mielMes ?? 125 }} kg</span>
+                    <span class="ap-kpi-val">{{ rtrim(rtrim(number_format($mielTotal, 1, '.', ''), '0'), '.') ?: '0' }} kg</span>
                 </div>
             </div>
             <div class="ap-kpi-bottom">
-                <span class="ap-kpi-sub-text">este mes</span>
+                <span class="ap-kpi-sub-text">en total</span>
                 <span class="ap-kpi-badge up">
-                    <i class="fas fa-arrow-up"></i> 12%
+                    <i class="fas fa-plus"></i> {{ rtrim(rtrim(number_format($mielDelMes, 1, '.', ''), '0'), '.') ?: '0' }} kg este mes
                 </span>
             </div>
         </div>
@@ -105,13 +105,13 @@
                 </div>
                 <div class="ap-kpi-info">
                     <span class="ap-kpi-title">Inventario</span>
-                    <span class="ap-kpi-val">{{ $stockBajo ?? 8 }}</span>
+                    <span class="ap-kpi-val">{{ $stockBajo }}</span>
                 </div>
             </div>
             <div class="ap-kpi-bottom">
                 <span class="ap-kpi-sub-text">Productos con stock bajo</span>
-                <span class="ap-kpi-badge down">
-                    <i class="fas fa-arrow-down"></i> 2 este mes
+                <span class="ap-kpi-badge {{ $stockBajo > 0 ? 'down' : 'up' }}">
+                    {{ $totalInventarios }} en total
                 </span>
             </div>
         </div>
@@ -137,8 +137,8 @@
 
                 <div style="position: relative; width: 100%; height: 210px;">
                     <canvas id="honeyChart" 
-                            data-labels="{{ json_encode($chartLabels ?? ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep']) }}" 
-                            data-values="{{ json_encode($chartData ?? [60, 84, 98, 115, 96, 135]) }}">
+                            data-labels="{{ json_encode($chartLabels) }}" 
+                            data-values="{{ json_encode($chartData) }}">
                     </canvas>
                 </div>
             </div>

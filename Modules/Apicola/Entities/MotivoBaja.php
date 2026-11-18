@@ -15,6 +15,22 @@ class MotivoBaja extends Model
 
     protected $fillable = ['entidad', 'entidad_id', 'entidad_nombre', 'accion', 'motivo', 'user_id'];
 
+    /** Nombre legible del tipo de elemento, para pantallas y reportes. */
+    public const TIPOS = [
+        'apiario' => 'Apiario',
+        'colmena' => 'Colmena',
+        'inspeccion' => 'Inspección',
+        'produccion' => 'Producción',
+        'inventario' => 'Inventario',
+        'calendario' => 'Calendario floral',
+        'enfermedad' => 'Enfermedad',
+    ];
+
+    public static function etiquetaTipo(?string $entidad): string
+    {
+        return self::TIPOS[$entidad] ?? ucfirst((string) $entidad);
+    }
+
     /**
      * Valida que la petición traiga un motivo (mínimo 5 caracteres) y lo devuelve.
      * Lanza ValidationException (422) si falta.

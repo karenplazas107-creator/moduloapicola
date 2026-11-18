@@ -64,6 +64,8 @@
                     Reporte de Inspecciones de Colmenas
                 @elseif($tipo === 'colmenas')
                     Censo y Estado Sanitario de Colmenas
+                @elseif($tipo === 'bajas')
+                    Historial de Bajas
                 @else
                     Inventario de Insumos, EPP y Material Apícola
                 @endif
@@ -118,6 +120,19 @@
                     <span class="kpi-mini-label">Estado del Censo</span>
                     <span class="kpi-mini-value">Actualizado</span>
                 </div>
+            @elseif($tipo === 'bajas')
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Total de Bajas</span>
+                    <span class="kpi-mini-value green">{{ count($data) }}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Desactivaciones</span>
+                    <span class="kpi-mini-value amber">{{ count(array_filter($data, fn($r) => ($r['accion'] ?? '') === 'Desactivación')) }}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Eliminaciones</span>
+                    <span class="kpi-mini-value">{{ count(array_filter($data, fn($r) => ($r['accion'] ?? '') === 'Eliminación')) }}</span>
+                </div>
             @else
                 @php
                     $totalItems = array_sum(array_column($data, 'cantidad'));
@@ -169,6 +184,15 @@
                         <th style="width: 12%; text-align: center;">Última Visita</th>
                         <th style="width: 10%; text-align: center;">Estado</th>
                         <th style="width: 12%; text-align: left;">Responsable</th>
+                    </tr>
+                @elseif($tipo === 'bajas')
+                    <tr>
+                        <th style="width: 13%; text-align: center;">Fecha y hora</th>
+                        <th style="width: 12%; text-align: center;">Tipo</th>
+                        <th style="width: 18%; text-align: left;">Elemento</th>
+                        <th style="width: 12%; text-align: center;">Acción</th>
+                        <th style="width: 30%; text-align: left;">Motivo</th>
+                        <th style="width: 15%; text-align: left;">Registrado por</th>
                     </tr>
                 @else
                     <tr>
@@ -226,6 +250,15 @@
                                 </span>
                             </td>
                             <td style="text-align: left;">{{ $row['responsable'] ?? '-' }}</td>
+                        </tr>
+                    @elseif($tipo === 'bajas')
+                        <tr>
+                            <td style="text-align: center;">{{ $row['fecha'] ?? '-' }}</td>
+                            <td style="text-align: center;">{{ $row['tipo'] ?? '-' }}</td>
+                            <td style="text-align: left;"><strong>{{ $row['elemento'] ?? '-' }}</strong></td>
+                            <td style="text-align: center;">{{ $row['accion'] ?? '-' }}</td>
+                            <td style="text-align: left;">{{ $row['motivo'] ?? '-' }}</td>
+                            <td style="text-align: left;">{{ $row['usuario'] ?? '-' }}</td>
                         </tr>
                     @else
                         <tr>

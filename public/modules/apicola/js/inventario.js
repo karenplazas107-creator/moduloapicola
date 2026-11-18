@@ -562,11 +562,9 @@
         document.getElementById('movTipo').value = tipo;
         const btnE = document.getElementById('btnTipoEntrada');
         const btnS = document.getElementById('btnTipoSalida');
-        const btnA = document.getElementById('btnTipoAjuste');
 
         btnE.className = 'tipo-pill-btn' + (tipo === 'Entrada' ? ' active' : '');
         btnS.className = 'tipo-pill-btn' + (tipo === 'Salida' ? ' active' : '');
-        btnA.className = 'tipo-pill-btn' + (tipo === 'Ajuste' ? ' active' : '');
     }
 
     async function guardarMovimiento(e) {

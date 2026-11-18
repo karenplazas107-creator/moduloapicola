@@ -1,4 +1,9 @@
-// Datos en memoria iniciales
+    // Escapa texto escrito por personas (motivos, nombres) antes de pintarlo en la página
+    function esc(valor) {
+        return String(valor ?? '-').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // Datos en memoria iniciales
     let currentTipo = window.ReportesConfig?.tipoReporte || "apiarios";
     let currentData = window.ReportesConfig?.previewData || [];
     const ultimosReportesData = window.ReportesConfig?.ultimosReportes || [];
@@ -92,11 +97,45 @@
                 `;
             }
         },
+        bajas: {
+            titulo: 'Historial de bajas',
+            desc: 'Toda desactivación o eliminación hecha en el sistema, con su motivo, la fecha y quién la realizó.',
+            labelApiario: 'TIPO DE ELEMENTO',
+            labelEstado: 'ACCIÓN',
+            opcionesApiario: function() {
+                const tipos = window.ReportesConfig?.tiposBaja || {};
+                return [{ val: 'all', txt: 'Todos los tipos' }].concat(Object.keys(tipos).map(k => ({ val: k, txt: tipos[k] })));
+            },
+            opcionesEstado: [
+                { val: 'all', txt: 'Todas las acciones' },
+                { val: 'desactivar', txt: 'Desactivación' },
+                { val: 'eliminar', txt: 'Eliminación' }
+            ],
+            columnas: ['Fecha y hora', 'Tipo', 'Elemento', 'Acción', 'Motivo', 'Registrado por'],
+            headersTh: ['Fecha y hora', 'Tipo', 'Elemento', 'Acción', 'Motivo', 'Registrado por'],
+            renderRow: function(item) {
+                const esElim = item.accion === 'Eliminación';
+                return `
+                    <tr>
+                        <td style="white-space: nowrap; font-weight: 600; color: #0f172a;">${esc(item.fecha)}</td>
+                        <td style="white-space: nowrap;"><span style="font-size: 0.76rem; background: #f1f5f9; padding: 2px 7px; border-radius: 4px; font-weight:600; color:#475569;">${esc(item.tipo)}</span></td>
+                        <td class="rep-wrap" style="font-weight: 600; color: #0f172a;">${esc(item.elemento)}</td>
+                        <td style="white-space: nowrap;"><span class="rep-status-badge ${esElim ? 'inactiva' : 'revision'}">${esc(item.accion)}</span></td>
+                        <td class="rep-wrap">${esc(item.motivo)}</td>
+                        <td class="rep-wrap">${esc(item.usuario)}</td>
+                    </tr>
+                `;
+            }
+        },
         inventario: {
             titulo: 'Inventario',
             desc: 'Existencias, control de stock mínimo, herramientas, EPP y material biológico del apiario.',
             labelApiario: 'BODEGA / UBICACIÓN',
             labelEstado: 'ESTADO DEL ÍTEM',
+            opcionesApiario: function() {
+                const bodegas = window.ReportesConfig?.bodegas || [];
+                return [{ val: 'all', txt: 'Todas las bodegas' }].concat(bodegas.map(b => ({ val: b, txt: b })));
+            },
             opcionesEstado: [
                 { val: 'all', txt: 'Todos los estados' },
                 { val: 'Activo', txt: 'Activo' },
@@ -140,8 +179,32 @@
             document.getElementById('labelApiarioFiltro').textContent = confInicial.labelApiario;
             document.getElementById('labelEstadoFiltro').textContent = confInicial.labelEstado;
             document.getElementById('chipsColumnas').innerHTML = confInicial.columnas.map(col => `<span class="rep-column-chip">${col}</span>`).join('');
+            aplicarListasDeFiltros(confInicial, true);
         }
     });
+
+    // Cada tipo de reporte tiene sus propias opciones en los dos filtros (apiario/tipo/bodega y estado/acción)
+    const opcionesApiarioOriginal = (document.getElementById('selectApiario') || {}).innerHTML;
+    function aplicarListasDeFiltros(conf, conservarSeleccion) {
+        const selApiario = document.getElementById('selectApiario');
+        const selEstado = document.getElementById('selectEstado');
+        const previoApiario = selApiario.value;
+        const previoEstado = selEstado.value;
+
+        if (conf.opcionesApiario) {
+            selApiario.innerHTML = conf.opcionesApiario().map(o => `<option value="${esc(o.val)}">${esc(o.txt)}</option>`).join('');
+        } else {
+            selApiario.innerHTML = opcionesApiarioOriginal;
+        }
+        selEstado.innerHTML = conf.opcionesEstado.map(o => `<option value="${o.val}">${o.txt}</option>`).join('');
+
+        if (conservarSeleccion) {
+            selApiario.value = previoApiario;
+            selEstado.value = previoEstado;
+        }
+        if (!selApiario.value) selApiario.value = 'all';
+        if (!selEstado.value) selEstado.value = 'all';
+    }
 
     // Cambiar tipo de reporte (Miel, Colmenas, Inventario)
     function seleccionarTipoReporte(tipo, element) {
@@ -172,9 +235,8 @@
         const chipsContainer = document.getElementById('chipsColumnas');
         chipsContainer.innerHTML = conf.columnas.map(c => `<span class="rep-column-chip">${c}</span>`).join('');
 
-        // Actualizar opciones del select de estados
-        const selectEstado = document.getElementById('selectEstado');
-        selectEstado.innerHTML = conf.opcionesEstado.map(o => `<option value="${o.val}">${o.txt}</option>`).join('');
+        // Actualizar las opciones de los filtros
+        aplicarListasDeFiltros(conf, false);
 
         // Actualizar lista de últimos reportes
         renderUltimosReportes(tipo);
@@ -344,6 +406,7 @@
         if (tipo === 'inspeccion') tituloRep = 'Reporte de Inspecciones de Colmenas';
         if (tipo === 'colmenas') tituloRep = 'Censo y Estado Sanitario de Colmenas';
         if (tipo === 'inventario') tituloRep = 'Inventario de Insumos, EPP y Material Apícola';
+        if (tipo === 'bajas') tituloRep = 'Historial de Bajas';
 
         let totalMiel = 0;
         let totalVisitas = 0;
@@ -458,6 +521,31 @@
                     `;
                 }).join('');
             }
+        } else if (tipo === 'bajas') {
+            theadHtml = `
+                <tr>
+                    <th style="width: 13%; text-align: center;">Fecha y hora</th>
+                    <th style="width: 12%; text-align: center;">Tipo</th>
+                    <th style="width: 18%; text-align: left;">Elemento</th>
+                    <th style="width: 12%; text-align: center;">Acción</th>
+                    <th style="width: 30%; text-align: left;">Motivo</th>
+                    <th style="width: 15%; text-align: left;">Registrado por</th>
+                </tr>
+            `;
+            if (currentData.length === 0) {
+                tbodyHtml = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:#94a3b8;">No se encontraron bajas para los criterios seleccionados.</td></tr>`;
+            } else {
+                tbodyHtml = currentData.map(r => `
+                    <tr>
+                        <td style="text-align: center;">${esc(r.fecha)}</td>
+                        <td style="text-align: center;">${esc(r.tipo)}</td>
+                        <td style="text-align: left;"><strong>${esc(r.elemento)}</strong></td>
+                        <td style="text-align: center;">${esc(r.accion)}</td>
+                        <td style="text-align: left;">${esc(r.motivo)}</td>
+                        <td style="text-align: left;">${esc(r.usuario)}</td>
+                    </tr>
+                `).join('');
+            }
         } else { // inventario
             theadHtml = `
                 <tr>
@@ -526,6 +614,21 @@
                 <div class="kpi-mini-card">
                     <span class="kpi-mini-label">Colmenas Inspeccionadas</span>
                     <span class="kpi-mini-value">${new Set(currentData.map(r => r.colmena)).size}</span>
+                </div>
+            `;
+        } else if (tipo === 'bajas') {
+            kpisHtml = `
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Total de Bajas</span>
+                    <span class="kpi-mini-value green">${currentData.length}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Desactivaciones</span>
+                    <span class="kpi-mini-value amber">${currentData.filter(r => r.accion === 'Desactivación').length}</span>
+                </div>
+                <div class="kpi-mini-card">
+                    <span class="kpi-mini-label">Eliminaciones</span>
+                    <span class="kpi-mini-value">${currentData.filter(r => r.accion === 'Eliminación').length}</span>
                 </div>
             `;
         } else if (tipo === 'colmenas') {

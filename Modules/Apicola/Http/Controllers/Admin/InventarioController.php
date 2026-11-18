@@ -170,7 +170,7 @@ class InventarioController extends Controller
             ], 422);
         }
         $stockMinimo = max(0, intval($request->input('stock_minimo', 5)));
-        $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Jhon Ramírez Ortiz';
+        $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Usuario del sistema';
 
         $item = Inventario::create([
             'nombre' => $nombre,
@@ -295,14 +295,14 @@ class InventarioController extends Controller
     }
 
     /**
-     * Registra un movimiento (Entrada, Salida o Ajuste) y actualiza el stock.
+     * Registra un movimiento (Entrada o Salida) y actualiza el stock.
      */
     public function registrarMovimiento(Request $request, $id)
     {
         $item = Inventario::findOrFail($id);
 
         $validated = $request->validate([
-            'tipo' => 'required|in:Entrada,Salida,Ajuste',
+            'tipo' => 'required|in:Entrada,Salida',
             'cantidad' => 'required|integer|min:1',
             'motivo' => 'required|string|max:255',
             'responsable' => 'nullable|string|max:150',
@@ -312,7 +312,7 @@ class InventarioController extends Controller
         $stockAnterior = $item->cantidad;
         $cantidad = (int) $validated['cantidad'];
         $tipo = $validated['tipo'];
-        $responsable = $validated['responsable'] ?: (Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Jhon Ramírez Ortiz');
+        $responsable = $validated['responsable'] ?: (Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Usuario del sistema');
 
         if ($tipo === 'Entrada') {
             $stockNuevo = $stockAnterior + $cantidad;
@@ -324,8 +324,6 @@ class InventarioController extends Controller
                 ], 422);
             }
             $stockNuevo = $stockAnterior - $cantidad;
-        } else { // Ajuste
-            $stockNuevo = $cantidad;
         }
 
         $item->cantidad = $stockNuevo;

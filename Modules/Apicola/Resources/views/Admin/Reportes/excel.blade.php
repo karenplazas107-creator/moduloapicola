@@ -136,7 +136,7 @@
 <body>
 
 @php
-    $totalCols = ($tipo === 'inventario') ? 9 : 7;
+    $totalCols = ($tipo === 'inventario') ? 9 : (($tipo === 'bajas') ? 6 : 7);
 @endphp
 
 <table style="border-collapse: collapse; width: 100%;">
@@ -156,6 +156,8 @@
                 SENA APÍCOLA - REPORTE OFICIAL DE INSPECCIONES DE COLMENAS
             @elseif($tipo === 'colmenas')
                 SENA APÍCOLA - REPORTE OFICIAL DE ESTADO DE COLMENAS
+            @elseif($tipo === 'bajas')
+                SENA APÍCOLA - HISTORIAL DE BAJAS (DESACTIVACIONES Y ELIMINACIONES)
             @else
                 SENA APÍCOLA - REPORTE OFICIAL DE INVENTARIO
             @endif
@@ -346,6 +348,40 @@
             <td class="td-center" style="font-weight: bold; mso-number-format: '0';">{{ count($data) }}</td>
         </tr>
 
+    @elseif($tipo === 'bajas')
+        <tr>
+            <th class="th-col" style="width: 130px;">Fecha y hora</th>
+            <th class="th-col" style="width: 130px;">Tipo</th>
+            <th class="th-col" style="width: 200px;">Elemento</th>
+            <th class="th-col" style="width: 120px;">Acción</th>
+            <th class="th-col" style="width: 340px;">Motivo</th>
+            <th class="th-col" style="width: 180px;">Registrado por</th>
+        </tr>
+
+        @forelse($data as $row)
+            <tr>
+                <td class="td-cell td-center">{{ $row['fecha'] ?? '' }}</td>
+                <td class="td-cell td-center">{{ $row['tipo'] ?? '' }}</td>
+                <td class="td-cell td-left">{{ $row['elemento'] ?? '' }}</td>
+                <td class="td-cell td-center">{{ $row['accion'] ?? '' }}</td>
+                <td class="td-cell td-left">{{ $row['motivo'] ?? '' }}</td>
+                <td class="td-cell td-left">{{ strtoupper($row['usuario'] ?? '') }}</td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6" class="td-cell td-center" style="font-style: italic; color: #757575;">
+                    No se encontraron bajas para los filtros aplicados.
+                </td>
+            </tr>
+        @endforelse
+
+        @for($i = count($data); $i < 6; $i++)
+            <tr>
+                <td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td>
+                <td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td><td class="td-cell">&nbsp;</td>
+            </tr>
+        @endfor
+
     @else
         <!-- Inventario -->
         <tr>
@@ -499,6 +535,23 @@
         <tr>
             <td class="td-resumen-label">Total de apiarios cubiertos</td>
             <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_unique(array_column($data, 'apiario'))) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+
+    @elseif($tipo === 'bajas')
+        <tr>
+            <td class="td-resumen-label">Total de bajas</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count($data) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+        <tr>
+            <td class="td-resumen-label">Desactivaciones</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_filter($data, fn($r) => ($r['accion'] ?? '') === 'Desactivación')) }}</td>
+            <td colspan="{{ $totalCols - 2 }}"></td>
+        </tr>
+        <tr>
+            <td class="td-resumen-label">Eliminaciones</td>
+            <td class="td-resumen-val" style="mso-number-format: '0';">{{ count(array_filter($data, fn($r) => ($r['accion'] ?? '') === 'Eliminación')) }}</td>
             <td colspan="{{ $totalCols - 2 }}"></td>
         </tr>
 

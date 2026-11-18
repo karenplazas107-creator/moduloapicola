@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Modules\Apicola\Entities\Apiario;
+use Modules\Apicola\Entities\Bodega;
+use Modules\Apicola\Entities\MotivoBaja;
 use Modules\Apicola\Entities\Colmena;
 use Modules\Apicola\Entities\Inspeccion;
 use Modules\Apicola\Entities\Inventario;
@@ -39,7 +41,11 @@ class ReporteController extends Controller
         // 5. Cargar datos reales según tipo y filtros
         $previewData = $this->getReportData($tipoReporte, $apiarioFiltro, $desde, $hasta, $estadoFiltro);
 
+        // Listas para los filtros que cambian según el tipo de reporte
+        $bodegas = Bodega::nombres();
+
         return view('apicola::Admin.Reportes.index', compact(
+            'bodegas',
             'apiarios',
             'desde',
             'hasta',
@@ -239,6 +245,17 @@ class ReporteController extends Controller
                     'fecha' => Carbon::now()->format('d/m/Y')
                 ]
             ],
+            'bajas' => [
+                [
+                    'id' => 5,
+                    'titulo' => 'Historial de Bajas (desactivaciones y eliminaciones)',
+                    'formato' => 'PDF',
+                    'registros' => DB::table('apicola_motivos_baja')->count(),
+                    'autor' => Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera'),
+                    'tipo' => 'bajas',
+                    'fecha' => Carbon::now()->format('d/m/Y')
+                ]
+            ],
             'inventario' => [
                 [
                     'id' => 3,
@@ -264,6 +281,8 @@ class ReporteController extends Controller
             return $this->getInspeccionData($apiario, $desde, $hasta, $estado);
         } elseif ($tipo === 'colmenas') {
             return $this->getEstadoColmenasData($apiario, $desde, $hasta, $estado);
+        } elseif ($tipo === 'bajas') {
+            return $this->getBajasData($apiario, $desde, $hasta, $estado);
         } else {
             return $this->getInventarioData($apiario, $estado);
         }
@@ -410,6 +429,55 @@ class ReporteController extends Controller
                         'responsable' => $responsable,
                     ];
                 }
+            }
+        } catch (\Exception $e) {
+            // Silencio
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Historial de bajas: toda desactivación o eliminación con su motivo, fecha y quién la hizo.
+     * Aquí el filtro "apiario" es el tipo de elemento y el filtro "estado" es la acción.
+     */
+    private function getBajasData($tipoElemento, $desde, $hasta, $accion)
+    {
+        $rows = [];
+
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('apicola_motivos_baja')) {
+                return $rows;
+            }
+
+            $query = DB::table('apicola_motivos_baja');
+
+            if ($desde && $hasta) {
+                $query->whereBetween('created_at', [Carbon::parse($desde)->startOfDay(), Carbon::parse($hasta)->endOfDay()]);
+            }
+            if ($tipoElemento !== 'all') {
+                $query->where('entidad', $tipoElemento);
+            }
+            if ($accion !== 'all') {
+                $query->where('accion', $accion);
+            }
+
+            $registros = $query->orderByDesc('created_at')->orderByDesc('id')->get();
+
+            $usuarios = \App\Models\User::whereIn('id', $registros->pluck('user_id')->filter()->unique())->get()->keyBy('id');
+
+            foreach ($registros as $r) {
+                $u = $usuarios[$r->user_id] ?? null;
+                $quien = $u ? (trim((string) $u->full_name) ?: $u->nickname) : 'No registrado';
+
+                $rows[] = [
+                    'fecha' => Carbon::parse($r->created_at)->format('d/m/Y H:i'),
+                    'tipo' => MotivoBaja::etiquetaTipo($r->entidad),
+                    'elemento' => $r->entidad_nombre ?: '-',
+                    'accion' => $r->accion === 'eliminar' ? 'Eliminación' : 'Desactivación',
+                    'motivo' => $r->motivo,
+                    'usuario' => $quien,
+                ];
             }
         } catch (\Exception $e) {
             // Silencio

@@ -66,17 +66,6 @@
         </div>
     </div>
 
-    <!-- Gráfica: miel por mes (producción + miel cosechada en inspecciones) -->
-    <div class="prod-related-card" id="cardGraficaMiel" style="margin-top: 0; margin-bottom: 1.5rem;">
-        <div class="prod-related-title">
-            <span><i class="fas fa-chart-column" style="color:#047857;"></i> Miel por mes</span>
-            <span id="graficaSubtitulo" style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Últimos 12 meses</span>
-        </div>
-        <div style="position: relative; width: 100%; height: 250px;">
-            <canvas id="mielMesChart"></canvas>
-        </div>
-    </div>
-
     <!-- Sección: Historial de producción -->
     <div class="ap-list-section">
         <div class="ap-list-top-bar" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
@@ -139,6 +128,17 @@
             <div class="ap-table-footer-row">
                 <div id="produccionesSummaryText">0 producciones registradas</div>
                 <div id="mielHarvestSummaryText" style="font-weight: 700; color: #0f172a;">Total cosechado: 0,0 kg</div>
+            </div>
+        </div>
+
+        <!-- Gráfica: miel por mes (producción + miel cosechada en inspecciones) -->
+        <div class="prod-related-card" id="cardGraficaMiel" style="margin-top: 1.25rem;">
+            <div class="prod-related-title">
+                <span><i class="fas fa-chart-column" style="color:#047857;"></i> Miel por mes</span>
+                <span id="graficaSubtitulo" style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Últimos 12 meses</span>
+            </div>
+            <div style="position: relative; width: 100%; height: 250px;">
+                <canvas id="mielMesChart"></canvas>
             </div>
         </div>
 

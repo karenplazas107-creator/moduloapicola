@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Modules\Apicola\Entities\Apiario;
+use Modules\Apicola\Entities\Colmena;
+use Modules\Apicola\Entities\Produccion;
 
 class ApicolaController extends Controller
 {
@@ -14,180 +18,100 @@ class ApicolaController extends Controller
      */
     public function dashboard()
     {
-        // 1. Apiarios (Activos vs Totales)
-        $totalApiarios = DB::table('apiario')->count();
-        $apiariosActivos = DB::table('apiario')->where('estado', 'Activo')->count();
-        if ($totalApiarios === 0) {
-            $totalApiarios = 5;
-            $apiariosActivos = 5;
-        }
+        $inicioMes = Carbon::now()->startOfMonth();
 
-        // 2. Colmenas (En producción vs Totales)
-        $totalColmenas = DB::table('colmenas')->count();
-        $colmenasProduccion = DB::table('colmenas')->where('estado', 'Produccion')->count();
-        if ($totalColmenas === 0) {
-            $totalColmenas = 48;
-            $colmenasProduccion = 42;
-        } else if ($colmenasProduccion === 0) {
-            $colmenasProduccion = $totalColmenas;
-        }
+        // 1. Apiarios activos (y cuántos se registraron este mes)
+        $totalApiarios = Apiario::activos()->count();
+        $apiariosNuevosMes = Apiario::activos()->where('created_at', '>=', $inicioMes)->count();
 
-        // 3. Producción de miel (kg)
-        // La miel sale de Producción y de las inspecciones (a veces también se cosecha en una inspección)
-        $mielSum = \Modules\Apicola\Entities\Produccion::mielTotal();
-        $mielMes = $mielSum > 0 ? round($mielSum, 1) : 125;
+        // 2. Colmenas (las que están activas) y cuántas se registraron este mes
+        $totalColmenas = Colmena::where('status', '!=', 'Inactiva')->count();
+        $colmenasProduccion = Colmena::where('status', 'Activa')->count();
+        $colmenasNuevasMes = Colmena::where('status', '!=', 'Inactiva')->where('created_at', '>=', $inicioMes)->count();
 
-        // 4. Inventarios con stock bajo
-        $totalInventarios = DB::table('apicola_inventarios')->count();
-        $stockBajo = DB::table('apicola_inventarios')->whereRaw('cantidad <= stock_minimo')->count();
-        if ($totalInventarios === 0) {
-            $stockBajo = 8;
-        }
+        // 3. Producción de miel (kg): sale de Producción y de las inspecciones (a veces también se cosecha en una inspección)
+        $mielTotal = round(Produccion::mielTotal(), 1);
+        $mielDelMes = round(Produccion::mielTotal($inicioMes->toDateString(), Carbon::now()->endOfMonth()->toDateString()), 1);
 
-        // 5. Historial de producción de miel últimos meses
-        $porMes = \Modules\Apicola\Entities\Produccion::mielPorMes(6);
+        // 4. Inventario con stock bajo
+        $totalInventarios = DB::table('apicola_inventarios')->where('estado', 'Activo')->whereNull('deleted_at')->count();
+        $stockBajo = DB::table('apicola_inventarios')->where('estado', 'Activo')->whereNull('deleted_at')->whereRaw('cantidad <= stock_minimo')->count();
+
+        // 5. Historial de producción de miel de los últimos meses
+        $porMes = Produccion::mielPorMes(6);
         $chartLabels = $porMes['labels'];
         $chartData = $porMes['total'];
 
-        // 6. Actividad Reciente (combinando inspecciones, colmenas, inventario y usuarios)
+        // 6. Actividad reciente: solo lo que realmente se ha registrado, con su hora real
         $actividades = [];
-
-        // Colmenas recientes
-        $ultimasColmenas = DB::table('colmenas')
-            ->leftJoin('apiario', 'colmenas.id_apiario', '=', 'apiario.id_apiarios')
-            ->select('colmenas.codigo', 'apiario.nombre_apiario', 'colmenas.created_at')
-            ->latest('colmenas.created_at')
-            ->take(2)
-            ->get();
-
-        foreach ($ultimasColmenas as $col) {
-            $actividades[] = [
-                'tipo' => 'colmena',
-                'icono' => 'fas fa-cubes-stacked',
-                'color' => '#059669',
-                'bg' => '#ecfdf5',
-                'titulo' => 'Nueva colmena registrada',
-                'detalle' => ($col->nombre_apiario ?? 'Apiario 1') . ' - Colmena ' . ($col->codigo ?? 'C-05'),
-                'tiempo' => 'Hoy 10:32',
-                'timestamp' => $col->created_at ?? now()
-            ];
-        }
-
-        // Cosechas recientes
-        $ultimasCosechas = DB::table('registro_inspeccion')
-            ->leftJoin('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
-            ->select('registro_inspeccion.miel_cosechada', 'colmenas.codigo', 'registro_inspeccion.created_at')
-            ->latest('registro_inspeccion.created_at')
-            ->take(2)
-            ->get();
-
-        foreach ($ultimasCosechas as $cos) {
-            $kg = (float) $cos->miel_cosechada > 0 ? (float) $cos->miel_cosechada : 20;
-            $actividades[] = [
-                'tipo' => 'cosecha',
-                'icono' => 'fas fa-jar',
-                'color' => '#d97706',
-                'bg' => '#fffbeb',
-                'titulo' => 'Cosecha de miel registrada',
-                'detalle' => $kg . ' kg - Colmena ' . ($cos->codigo ?? 'Col-01'),
-                'tiempo' => 'Hoy 09:15',
-                'timestamp' => $cos->created_at ?? now()
-            ];
-        }
-
-        // Movimientos de inventario recientes
-        $ultimosMovs = DB::table('apicola_inventario_movimientos')
-            ->leftJoin('apicola_inventarios', 'apicola_inventario_movimientos.inventario_id', '=', 'apicola_inventarios.id')
-            ->select('apicola_inventario_movimientos.*', 'apicola_inventarios.nombre as item_nombre', 'apicola_inventarios.bodega')
-            ->latest('apicola_inventario_movimientos.created_at')
-            ->take(2)
-            ->get();
-
-        foreach ($ultimosMovs as $mov) {
-            $actividades[] = [
-                'tipo' => 'inventario',
-                'icono' => 'fas fa-box-archive',
-                'color' => '#0d9488',
-                'bg' => '#f0fdfa',
-                'titulo' => ($mov->tipo === 'Salida' ? 'Salida' : 'Entrada') . ' de inventario',
-                'detalle' => ($mov->bodega ?? 'Bodega Principal') . ' - ' . ($mov->item_nombre ?? 'Insumos'),
-                'tiempo' => 'Ayer 16:40',
-                'timestamp' => $mov->created_at ?? now()
-            ];
-        }
-
-        // Usuarios recientes
-        $ultimosUsuarios = DB::table('users')
-            ->latest('created_at')
-            ->take(1)
-            ->get();
-
-        foreach ($ultimosUsuarios as $u) {
-            $actividades[] = [
-                'tipo' => 'usuario',
-                'icono' => 'fas fa-user-check',
-                'color' => '#0284c7',
-                'bg' => '#f0f9ff',
-                'titulo' => 'Usuario nuevo registrado',
-                'detalle' => 'Aprendiz - ' . ($u->name ?? $u->email ?? 'Juan Pérez'),
-                'tiempo' => 'Ayer 14:20',
-                'timestamp' => $u->created_at ?? now()
-            ];
-        }
-
-        // Fallbacks para asegurar siempre 4 elementos visuales elegantes como en el mockup
-        if (count($actividades) < 4) {
-            $fallbacks = [
-                [
-                    'tipo' => 'colmena',
-                    'icono' => 'fas fa-cubes-stacked',
-                    'color' => '#059669',
-                    'bg' => '#ecfdf5',
-                    'titulo' => 'Nueva colmena registrada',
-                    'detalle' => 'Apiario 1 - Colmena C-05',
-                    'tiempo' => 'Hoy 10:32',
-                ],
-                [
-                    'tipo' => 'cosecha',
-                    'icono' => 'fas fa-jar',
-                    'color' => '#d97706',
-                    'bg' => '#fffbeb',
-                    'titulo' => 'Cosecha de miel registrada',
-                    'detalle' => '20 kg - Apiario 2',
-                    'tiempo' => 'Hoy 09:15',
-                ],
-                [
-                    'tipo' => 'inventario',
-                    'icono' => 'fas fa-box-archive',
-                    'color' => '#0d9488',
-                    'bg' => '#f0fdfa',
-                    'titulo' => 'Salida de inventario',
-                    'detalle' => 'Bodega 2 - Trajes',
-                    'tiempo' => 'Ayer 16:40',
-                ],
-                [
-                    'tipo' => 'usuario',
-                    'icono' => 'fas fa-user-check',
-                    'color' => '#0284c7',
-                    'bg' => '#f0f9ff',
-                    'titulo' => 'Usuario nuevo',
-                    'detalle' => 'Aprendiz - Juan Pérez',
-                    'tiempo' => 'Ayer 14:20',
-                ]
-            ];
-            foreach ($fallbacks as $fb) {
-                if (count($actividades) < 4) {
-                    $actividades[] = $fb;
-                }
+        $agregar = function (string $tipo, string $icono, string $color, string $bg, string $titulo, string $detalle, $fecha) use (&$actividades) {
+            if (!$fecha) {
+                return;
             }
+            $momento = Carbon::parse($fecha);
+            $actividades[] = [
+                'tipo' => $tipo,
+                'icono' => $icono,
+                'color' => $color,
+                'bg' => $bg,
+                'titulo' => $titulo,
+                'detalle' => $detalle,
+                'tiempo' => $momento->locale('es')->diffForHumans(),
+                'timestamp' => $momento->timestamp,
+            ];
+        };
+
+        foreach (Colmena::latest()->take(3)->get() as $col) {
+            $agregar('colmena', 'fas fa-cubes-stacked', '#059669', '#ecfdf5', 'Nueva colmena registrada',
+                ($col->apiario_name ?: 'Sin apiario') . ' - ' . $col->code, $col->created_at);
         }
+
+        $inspecciones = DB::table('registro_inspeccion')
+            ->leftJoin('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+            ->whereNull('registro_inspeccion.deleted_at')
+            ->select('registro_inspeccion.miel_cosechada', 'registro_inspeccion.numero_registro', 'colmenas.codigo', 'registro_inspeccion.created_at')
+            ->orderByDesc('registro_inspeccion.created_at')
+            ->take(3)
+            ->get();
+        foreach ($inspecciones as $ins) {
+            $agregar('inspeccion', 'fas fa-clipboard-check', '#0d9488', '#f0fdfa', 'Inspección registrada',
+                ($ins->numero_registro ?: 'Inspección') . ' - Colmena ' . ($ins->codigo ?? ''), $ins->created_at);
+        }
+
+        $producciones = DB::table('apicola_producciones')
+            ->leftJoin('apicola_colmenas', 'apicola_producciones.colmena_id', '=', 'apicola_colmenas.id')
+            ->where('apicola_producciones.estado', 'Activa')
+            ->select('apicola_producciones.miel_kg', 'apicola_colmenas.code', 'apicola_producciones.created_at')
+            ->orderByDesc('apicola_producciones.created_at')
+            ->take(3)
+            ->get();
+        foreach ($producciones as $pro) {
+            $agregar('cosecha', 'fas fa-jar', '#d97706', '#fffbeb', 'Cosecha de miel registrada',
+                rtrim(rtrim(number_format((float) $pro->miel_kg, 2, '.', ''), '0'), '.') . ' kg - Colmena ' . ($pro->code ?? ''), $pro->created_at);
+        }
+
+        $movimientos = DB::table('apicola_movimientos')
+            ->whereNull('deleted_at')
+            ->orderByDesc('created_at')
+            ->take(3)
+            ->get();
+        foreach ($movimientos as $mov) {
+            $agregar('inventario', 'fas fa-box-archive', '#0d9488', '#f0fdfa',
+                ($mov->tipo === 'Salida' ? 'Salida' : 'Entrada') . ' de inventario',
+                'Comprobante ' . $mov->numero_comprobante . ' - ' . $mov->total_unidades . ' unidades', $mov->created_at);
+        }
+
+        usort($actividades, fn ($a, $b) => $b['timestamp'] <=> $a['timestamp']);
+        $actividades = array_slice($actividades, 0, 5);
 
         return view('apicola::Admin.dashboard', compact(
             'totalApiarios',
-            'apiariosActivos',
+            'apiariosNuevosMes',
             'totalColmenas',
             'colmenasProduccion',
-            'mielMes',
+            'colmenasNuevasMes',
+            'mielTotal',
+            'mielDelMes',
             'totalInventarios',
             'stockBajo',
             'chartLabels',

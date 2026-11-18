@@ -22,7 +22,7 @@
                 {{ strtoupper(substr(Auth::user()?->nickname ?? 'AP', 0, 2)) }}
             </div>
             <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Jhon Ramírez Ortiz') }}</span>
+                <span class="ap-user-chip-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Usuario del sistema') }}</span>
                 <span class="ap-user-chip-role">Rol: Aprendiz Apícola</span>
             </div>
         </div>
@@ -152,7 +152,7 @@
                         </div>
                         <div>
                             <span class="ap-field-label">RESPONSABLE</span>
-                            <span id="colmenaDetailResp" style="font-size:0.86rem; color:#334155;">Jhon Ramírez Ortiz</span>
+                            <span id="colmenaDetailResp" style="font-size:0.86rem; color:#334155;">-</span>
                         </div>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">

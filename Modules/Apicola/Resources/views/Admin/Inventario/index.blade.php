@@ -26,7 +26,7 @@
             </div>
             <div>
                 <div class="inv-user-name">
-                    {{ Auth::user()?->full_name ?? 'Jhon Ramírez Ortiz' }}
+                    {{ Auth::user()?->full_name ?? 'Usuario del sistema' }}
                 </div>
                 <div class="inv-user-role">
                     Rol: Apicultor
@@ -381,15 +381,12 @@
                     <!-- Tipo de movimiento -->
                     <div class="ap-field-group">
                         <label class="ap-label-text">TIPO DE MOVIMIENTO</label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                             <button type="button" id="btnTipoEntrada" class="tipo-pill-btn active" onclick="setTipoMovimiento('Entrada')">
                                 Entrada (+)
                             </button>
                             <button type="button" id="btnTipoSalida" class="tipo-pill-btn" onclick="setTipoMovimiento('Salida')">
                                 Salida (-)
-                            </button>
-                            <button type="button" id="btnTipoAjuste" class="tipo-pill-btn" onclick="setTipoMovimiento('Ajuste')">
-                                Ajuste (=)
                             </button>
                         </div>
                     </div>
@@ -415,7 +412,7 @@
                     <!-- Responsable -->
                     <div class="ap-field-group">
                         <label class="ap-label-text" for="movResponsable">RESPONSABLE</label>
-                        <input type="text" id="movResponsable" class="ap-form-control" value="{{ Auth::user()?->full_name ?? 'Jhon Ramírez Ortiz' }}" required>
+                        <input type="text" id="movResponsable" class="ap-form-control" value="{{ Auth::user()?->full_name ?? 'Usuario del sistema' }}" required>
                     </div>
 
                     <div class="ap-modal-actions">

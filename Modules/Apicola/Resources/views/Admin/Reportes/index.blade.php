@@ -86,6 +86,17 @@
                             </div>
                         </div>
 
+                        <!-- Opción: Historial de bajas -->
+                        <div class="rep-type-card {{ $tipoReporte === 'bajas' ? 'active' : '' }}" onclick="seleccionarTipoReporte('bajas', this)">
+                            <div class="rep-type-icon">
+                                <i class="fas fa-clock-rotate-left"></i>
+                            </div>
+                            <div class="rep-type-body">
+                                <span class="rep-type-name">Historial de bajas</span>
+                                <span class="rep-type-desc">Desactivaciones y eliminaciones con su motivo, fecha y responsable.</span>
+                            </div>
+                        </div>
+
                         <!-- Opción 3: Inventario -->
                         <div class="rep-type-card {{ $tipoReporte === 'inventario' ? 'active' : '' }}" onclick="seleccionarTipoReporte('inventario', this)">
                             <div class="rep-type-icon">
@@ -314,6 +325,8 @@
     window.ReportesConfig = {
         tipoReporte: '{{ $tipoReporte }}',
         previewData: @json($previewData),
+        bodegas: @json($bodegas),
+        tiposBaja: @json(\Modules\Apicola\Entities\MotivoBaja::TIPOS),
         ultimosReportes: @json($ultimosReportes),
         previewUrl: "{{ route('apicola.admin.reportes.preview') }}",
         excelUrl: "{{ route('apicola.admin.reportes.excel') }}",
