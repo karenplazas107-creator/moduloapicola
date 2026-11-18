@@ -55,10 +55,10 @@
                 senaNote: "En el Centro La Angostura contamos con 1 único apiario con 20 colmenas activas a cargo del apicultor Sergio Barrera, donde los aprendices realizan prácticas reales de manejo técnico, multiplicación, nutrición y cosecha de miel.",
                 galleryHeading: "Condiciones Técnicas del Apiario Central:",
                 gallery: [
-                    { name: "20 Colmenas", epoca: "Activas", tipo: "Tipo Langstroth", icon: "fa-boxes-stacked", color: "#10b981" },
-                    { name: "Orientación Este", epoca: "Sol Matinal", tipo: "Salidas Tempranas", icon: "fa-compass", color: "#f59e0b" },
-                    { name: "Aislamiento > 200m", epoca: "Bioseguro", tipo: "Comunidad Protegida", icon: "fa-shield-halved", color: "#0284c7" },
-                    { name: "Bebederos Limpios", epoca: "Permanente", tipo: "Termorregulación 35°C", icon: "fa-droplet", color: "#8b5cf6" }
+                    { name: "20 Colmenas", epoca: "Activas", tipo: "Tipo Langstroth", icon: "fa-boxes-stacked", color: "#2e7d32" },
+                    { name: "Orientación Este", epoca: "Sol Matinal", tipo: "Salidas Tempranas", icon: "fa-compass", color: "#2e7d32" },
+                    { name: "Aislamiento > 200m", epoca: "Bioseguro", tipo: "Comunidad Protegida", icon: "fa-shield-halved", color: "#2e7d32" },
+                    { name: "Bebederos Limpios", epoca: "Permanente", tipo: "Termorregulación 35°C", icon: "fa-droplet", color: "#2e7d32" }
                 ],
                 points: [
                     { icon: "fa-cubes-stacked", title: "20 Colmenas Tecnificadas", desc: "Población de 20 colmenas tipo Langstroth sobre bases individuales con trampas antihormigas a cargo de Sergio Barrera." },
@@ -257,6 +257,8 @@
 
             // Mostrar el contenedor con animación
             const detailWrapper = document.getElementById('apFeatureDetailWrapper');
+            // Diseño sobrio en tonos verdes solo para el panel de Apiario
+            detailWrapper.classList.toggle('ap-theme-apiario', featureKey === 'apiarios');
             detailWrapper.classList.remove('is-open');
             void detailWrapper.offsetWidth; // Reflow
             detailWrapper.classList.add('is-open');

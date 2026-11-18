@@ -9,6 +9,13 @@
 @endsection
 
 @section('styles')
+    <style>
+        .mov-chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .mov-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; background: #ffffff; font-size: 0.86rem; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.15s ease; user-select: none; }
+        .mov-chip:hover { border-color: #86c9a3; }
+        .mov-chip input { accent-color: #286043; margin: 0; }
+        .mov-chip.is-checked { border-color: #286043; background: #ecf6f0; color: #1d4a32; }
+    </style>
     <link rel="stylesheet" href="{{ asset('modules/apicola/css/movimientos.css') }}">
 @endsection
 
@@ -67,6 +74,12 @@
                             </button>
                         </div>
 
+                        <!-- Motivo del movimiento (cambia según sea Entrada o Salida) -->
+                        <div class="mov-form-group">
+                            <label class="mov-form-label">Motivo <span style="color:#dc2626;">*</span></label>
+                            <div id="motivoMovimientoGroup" class="mov-chip-group"></div>
+                        </div>
+
                         <!-- Fila 1: Fecha y Bodega -->
                         <div class="mov-grid-2">
                             <div class="mov-form-group">
@@ -94,7 +107,15 @@
                             </div>
                         </div>
 
-                        <!-- Fila 2: Producto -->
+                        <!-- Fila 2: Tipo de producto y Producto -->
+                        <div class="mov-form-group">
+                            <label class="mov-form-label">Tipo de producto</label>
+                            <div class="mov-chip-group" id="tipoProductoGroup">
+                                <label class="mov-chip is-checked"><input type="radio" name="tipoProducto" value="Herramienta" checked onchange="window.MovimientosApp.setTipoProducto(this.value)"> Herramienta</label>
+                                <label class="mov-chip"><input type="radio" name="tipoProducto" value="Insumo" onchange="window.MovimientosApp.setTipoProducto(this.value)"> Insumo</label>
+                            </div>
+                        </div>
+
                         <div class="mov-form-group">
                             <label class="mov-form-label" for="selectProducto">Producto</label>
                             <select id="selectProducto" class="mov-input-ctrl">

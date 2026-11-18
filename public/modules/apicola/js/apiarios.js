@@ -197,6 +197,10 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
 
         setApiarioEstado('Activo');
 
+        // Reubicar colmenas solo aplica al editar un apiario existente
+        const seccionMover = document.getElementById('seccionMoverColmenas');
+        if (seccionMover) seccionMover.style.display = 'none';
+
         document.getElementById('modalApiarioBackdrop').classList.add('is-open');
 
         setTimeout(() => {
@@ -246,6 +250,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         }
 
         document.getElementById('modalApiarioColmenas').value = item.colmenas || 0;
+        renderMoverColmenas(item);
         
         const latVal = item.lat || 2.614811;
         const lngVal = item.lng || -75.360875;
@@ -577,6 +582,118 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         }).catch(() => {});
     }
 
+    // ==================== REUBICAR COLMENAS EN OTRO APIARIO ====================
+    function renderMoverColmenas(item) {
+        const seccion = document.getElementById('seccionMoverColmenas');
+        const lista = document.getElementById('listaMoverColmenas');
+        const select = document.getElementById('selectDestinoMoverColmenas');
+        const chkTodas = document.getElementById('chkMoverTodas');
+        if (!seccion || !lista || !select) return;
+
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const colmenas = Array.isArray(item.colmenasLista) ? item.colmenasLista : [];
+        if (chkTodas) chkTodas.checked = false;
+
+        seccion.dataset.apiarioId = item.id;
+        seccion.style.display = 'block';
+
+        if (colmenas.length === 0) {
+            lista.innerHTML = '<p style="margin: 4px 0; font-size: 0.82rem; color: #64748b; font-style: italic;">Este apiario no tiene colmenas asociadas.</p>';
+        } else {
+            lista.innerHTML = colmenas.map(c => `
+                <label class="ap-mover-chip" id="lblMoverCol_${c.id}">
+                    <input type="checkbox" name="moverColmenas" value="${c.id}" onchange="this.parentElement.classList.toggle('is-checked', this.checked)">
+                    <span>${esc(c.code)}${c.estado && c.estado !== 'Activa' ? ' · ' + esc(c.estado) : ''}</span>
+                </label>
+            `).join('');
+        }
+
+        const otros = apiariosList.filter(a => a.id != item.id);
+        select.innerHTML = '<option value="" disabled selected>Apiario de destino...</option>'
+            + otros.map(a => `<option value="${a.id}">${esc(a.nombre)}${a.estado !== 'Activo' ? ' (Inactivo)' : ''}</option>`).join('');
+        select.disabled = otros.length === 0 || colmenas.length === 0;
+
+        const btn = document.getElementById('btnMoverColmenas');
+        if (btn) btn.disabled = otros.length === 0 || colmenas.length === 0;
+    }
+
+    function toggleTodasMoverColmenas(marcar) {
+        document.querySelectorAll('input[name="moverColmenas"]').forEach(cb => {
+            cb.checked = marcar;
+            const lbl = cb.closest('.ap-mover-chip');
+            if (lbl) lbl.classList.toggle('is-checked', marcar);
+        });
+    }
+
+    async function moverColmenasSeleccionadas() {
+        const seccion = document.getElementById('seccionMoverColmenas');
+        const origenId = seccion ? seccion.dataset.apiarioId : null;
+        const destinoId = document.getElementById('selectDestinoMoverColmenas')?.value;
+        const ids = Array.from(document.querySelectorAll('input[name="moverColmenas"]:checked')).map(cb => parseInt(cb.value));
+
+        if (!origenId) return;
+        if (ids.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Selecciona colmenas', text: 'Marca al menos una colmena para moverla.', confirmButtonColor: '#286043' });
+            return;
+        }
+        if (!destinoId) {
+            Swal.fire({ icon: 'warning', title: 'Falta el destino', text: 'Elige el apiario al que se moverán las colmenas.', confirmButtonColor: '#286043' });
+            return;
+        }
+
+        const destino = apiariosList.find(a => a.id == destinoId);
+        const confirmacion = await Swal.fire({
+            icon: 'question',
+            title: '¿Mover colmenas?',
+            text: `Se moverán ${ids.length} colmena(s) al apiario "${destino ? destino.nombre : ''}".`,
+            showCancelButton: true,
+            confirmButtonColor: '#047857',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, mover',
+            cancelButtonText: 'Cancelar'
+        });
+        if (!confirmacion.isConfirmed) return;
+
+        const btn = document.getElementById('btnMoverColmenas');
+        if (btn) btn.disabled = true;
+
+        try {
+            const csrfToken = getCsrfToken();
+            const response = await fetch(`${window.ApiariosConfig?.baseUrl || "/apicola/apiarios"}/${origenId}/mover-colmenas`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ colmena_ids: ids, destino_id: parseInt(destinoId) })
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'No se pudieron mover las colmenas.');
+            }
+
+            [result.origen, result.destino].forEach(nuevo => {
+                const idx = apiariosList.findIndex(a => a.id == nuevo.id);
+                if (idx !== -1) apiariosList[idx] = nuevo;
+            });
+
+            const actualizado = apiariosList.find(a => a.id == origenId);
+            if (actualizado) {
+                document.getElementById('modalApiarioColmenas').value = actualizado.colmenas || 0;
+                renderMoverColmenas(actualizado);
+            }
+            renderApiariosTable();
+            updateMetricCards();
+            renderApiarioMarkersGeneral();
+            showToast(result.message);
+        } catch (error) {
+            console.error('Error al mover colmenas:', error);
+            Swal.fire({ icon: 'error', title: 'No se pudo mover', text: error.message, confirmButtonColor: '#286043' });
+            if (btn) btn.disabled = false;
+        }
+    }
+
     function confirmarOtroResponsableApiario() {
         const inputOtro = document.getElementById('modalApiarioOtroRespInput');
         const select = document.getElementById('modalApiarioRespSelect');
@@ -858,6 +975,20 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
             return;
         }
 
+        // Si el apiario pasa de Activo a Inactivo desde el formulario, hay que indicar el motivo
+        let motivo = null;
+        if (id) {
+            const previo = apiariosList.find(a => a.id == id);
+            if (previo && previo.estado === 'Activo' && estado === 'Inactivo') {
+                motivo = await pedirMotivoBaja({
+                    titulo: '¿Desactivar apiario?',
+                    texto: `Vas a desactivar el apiario <b>${String(nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                    confirmar: 'Sí, desactivar'
+                });
+                if (!motivo) return;
+            }
+        }
+
         const btnSave = document.getElementById('btnSaveApiario');
         const originalText = btnSave.innerHTML;
         btnSave.disabled = true;
@@ -877,6 +1008,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                 longitud: lng,
                 estado: estado,
                 colmenas: colmenas,
+                motivo: motivo,
                 _token: csrfToken
             };
 
@@ -932,6 +1064,17 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         const apiario = apiariosList.find(a => a.id == id);
         if (!apiario) return;
 
+        // Para desactivar un apiario hay que indicar el motivo
+        let motivo = null;
+        if (apiario.estado === 'Activo') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar apiario?',
+                texto: `Vas a desactivar el apiario <b>${String(apiario.nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        }
+
         const csrfToken = getCsrfToken();
         try {
             const response = await fetch(`${window.ApiariosConfig?.baseUrl || "/apicola/apiarios"}/${id}/toggle-status`, {
@@ -941,7 +1084,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ _token: csrfToken })
+                body: JSON.stringify({ _token: csrfToken, motivo })
             });
 
             const result = await response.json();
@@ -962,18 +1105,12 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     }
 
     async function eliminarApiario(id, nombre) {
-        const result = await Swal.fire({
-            title: '¿Eliminar apiario?',
-            text: `¿Estás seguro de que deseas eliminar permanentemente el apiario "${nombre}"? Esta acción no se puede deshacer.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Eliminar apiario?',
+            texto: `Vas a eliminar permanentemente el apiario <b>${String(nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>. Esta acción no se puede deshacer.`,
+            confirmar: 'Sí, eliminar'
         });
-
-        if (!result.isConfirmed) return;
+        if (!motivo) return;
 
         const csrfToken = getCsrfToken();
         try {
@@ -985,7 +1122,7 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                     'X-HTTP-Method-Override': 'DELETE',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ _token: csrfToken, _method: 'DELETE' })
+                body: JSON.stringify({ _token: csrfToken, _method: 'DELETE', motivo })
             });
 
             const resData = await response.json();
@@ -1074,6 +1211,8 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     window.updateModalMarkerLabel = updateModalMarkerLabel;
     window.handleApiarioRespSelect = handleApiarioRespSelect;
     window.confirmarOtroResponsableApiario = confirmarOtroResponsableApiario;
+    window.toggleTodasMoverColmenas = toggleTodasMoverColmenas;
+    window.moverColmenasSeleccionadas = moverColmenasSeleccionadas;
     window.validarTextoSinNumeros = validarTextoSinNumeros;
     window.validarCoordenada = validarCoordenada;
 

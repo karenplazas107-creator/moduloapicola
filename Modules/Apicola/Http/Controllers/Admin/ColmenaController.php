@@ -2,6 +2,7 @@
 
 namespace Modules\Apicola\Http\Controllers\Admin;
 
+use Modules\Apicola\Entities\MotivoBaja;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Apicola\Entities\Colmena;
@@ -183,6 +184,11 @@ class ColmenaController extends Controller
 
         $validated['responsable'] = Responsable::registrar($validated['responsable']);
 
+        // Si la colmena pasa a Inactiva desde el formulario, el motivo es obligatorio
+        $motivoBaja = ($validated['status'] === 'Inactiva' && $colmena->status !== 'Inactiva')
+            ? MotivoBaja::exigir($request)
+            : null;
+
         if (empty($validated['last_visit_date'])) {
             $validated['last_visit_date'] = $colmena->last_visit_date ?? $validated['installation_date'];
         }
@@ -201,6 +207,9 @@ class ColmenaController extends Controller
 
         $colmena->update($validated);
         $this->syncToColmenasTable($colmena);
+        if ($motivoBaja) {
+            MotivoBaja::registrar('colmena', $colmena->id, $colmena->code, 'desactivar', $motivoBaja);
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -216,12 +225,18 @@ class ColmenaController extends Controller
     /**
      * Toggle status or deactivate/activate colmena.
      */
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         $colmena = Colmena::findOrFail($id);
 
+        // Para desactivar es obligatorio indicar el motivo
+        $motivo = $colmena->status !== 'Inactiva' ? MotivoBaja::exigir($request) : null;
+
         $colmena->status = ($colmena->status === 'Inactiva') ? 'Activa' : 'Inactiva';
         $colmena->save();
+        if ($motivo) {
+            MotivoBaja::registrar('colmena', $colmena->id, $colmena->code, 'desactivar', $motivo);
+        }
         $this->syncToColmenasTable($colmena);
 
         return response()->json([
@@ -237,9 +252,11 @@ class ColmenaController extends Controller
     public function destroy(Request $request, $id)
     {
         $colmena = Colmena::findOrFail($id);
+        $motivo = MotivoBaja::exigir($request);
         $code = $colmena->code;
         $colmena->status = 'Inactiva';
         $colmena->save();
+        MotivoBaja::registrar('colmena', $colmena->id, $code, 'desactivar', $motivo);
         $this->syncToColmenasTable($colmena, false);
 
         if ($request->wantsJson() || $request->ajax()) {

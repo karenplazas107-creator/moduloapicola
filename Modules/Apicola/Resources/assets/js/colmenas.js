@@ -528,6 +528,20 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
             tipoAbeja = customVal;
         }
 
+        // Si la colmena pasa a Inactiva desde el formulario, hay que indicar el motivo
+        let motivo = null;
+        if (id) {
+            const previo = colmenasList.find(c => c.id == id);
+            if (previo && previo.estado !== 'Inactiva' && estado === 'Inactiva') {
+                motivo = await pedirMotivoBaja({
+                    titulo: '¿Desactivar colmena?',
+                    texto: `Vas a desactivar la colmena <b>${String(code).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                    confirmar: 'Sí, desactivar'
+                });
+                if (!motivo) return;
+            }
+        }
+
         const btnSave = document.getElementById('btnSaveColmena');
         const prevBtnText = btnSave.innerHTML;
         btnSave.disabled = true;
@@ -545,6 +559,7 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
                 installation_date: rawFecha,
                 last_visit_date: rawFecha,
                 status: estado,
+                motivo: motivo,
                 notes: id ? undefined : 'Colmena registrada a través del panel administrativo.'
             };
 
@@ -664,6 +679,17 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
         const item = colmenasList.find(c => c.id === id);
         if (!item) return;
 
+        // Para desactivar una colmena hay que indicar el motivo
+        let motivo = null;
+        if (item.estado !== 'Inactiva') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar colmena?',
+                texto: `Vas a desactivar la colmena <b>${String(item.code).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        }
+
         try {
             const response = await fetch(`${window.ColmenasConfig?.baseUrl || "/apicola/colmenas"}/${id}/toggle-status`, {
                 method: 'POST',
@@ -671,7 +697,8 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.ColmenasConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await response.json();
@@ -690,9 +717,12 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
 
     // ==================== DESACTIVAR COLMENA ====================
     async function desactivarColmena(id, code) {
-        if (!confirm(`¿Estás seguro de que deseas desactivar la colmena "${code}"?`)) {
-            return;
-        }
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Desactivar colmena?',
+            texto: `Vas a desactivar la colmena <b>${String(code).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+            confirmar: 'Sí, desactivar'
+        });
+        if (!motivo) return;
 
         try {
             const response = await fetch(`${window.ColmenasConfig?.baseUrl || "/apicola/colmenas"}/${id}`, {
@@ -701,7 +731,8 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.ColmenasConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await response.json();

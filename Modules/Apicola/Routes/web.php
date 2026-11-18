@@ -57,6 +57,7 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::match(['put', 'post'], 'apiarios/{id}', [ApiarioController::class, 'update'])->name('apicola.admin.apiarios.update');
     Route::delete('apiarios/{id}', [ApiarioController::class, 'destroy'])->name('apicola.admin.apiarios.destroy');
     Route::post('apiarios/{id}/toggle-status', [ApiarioController::class, 'toggleStatus'])->name('apicola.admin.apiarios.toggle-status');
+    Route::post('apiarios/{id}/mover-colmenas', [ApiarioController::class, 'moverColmenas'])->name('apicola.admin.apiarios.mover-colmenas');
 
     // Responsables compartidos (apiarios, colmenas e inspecciones)
     Route::get('responsables', [\Modules\Apicola\Http\Controllers\Admin\ResponsableController::class, 'index'])->name('apicola.admin.responsables.index');

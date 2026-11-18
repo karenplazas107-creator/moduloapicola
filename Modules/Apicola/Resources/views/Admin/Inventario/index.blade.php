@@ -186,15 +186,7 @@
                     <div class="ap-field-group">
                         <label class="ap-label-text" for="selectElemento">ELEMENTO</label>
                         <select id="selectElemento" class="ap-form-control" onchange="toggleRegistrarNuevo(this.value)" required>
-                            <option value="Traje apícola">Traje apícola</option>
-                            <option value="Ahumador">Ahumador</option>
-                            <option value="Palanca apícola">Palanca apícola</option>
-                            <option value="Alza">Alza</option>
-                            @foreach($elementosUnicos as $elem)
-                                @if(!in_array($elem->nombre, ['Traje apícola', 'Ahumador', 'Palanca apícola', 'Alza']))
-                                    <option value="{{ $elem->nombre }}">{{ $elem->nombre }}</option>
-                                @endif
-                            @endforeach
+                            {{-- Las opciones se cargan según el tipo elegido (Herramienta / Insumo) --}}
                             <option value="__nuevo__">+ Registrar uno nuevo...</option>
                         </select>
                     </div>
@@ -253,7 +245,7 @@
                     <div class="modal-grid-2 ap-field-group">
                         <div>
                             <label class="ap-label-text" for="inputCantidadInicial">CANTIDAD INICIAL</label>
-                            <input type="number" id="inputCantidadInicial" class="ap-form-control" min="0" value="0" required>
+                            <input type="number" id="inputCantidadInicial" class="ap-form-control" min="1" value="1" required>
                         </div>
                         <div>
                             <label class="ap-label-text" for="inputStockMinimo">STOCK MÍNIMO</label>
@@ -509,6 +501,7 @@
 <script>
     window.InventarioConfig = {
         inventarioData: @json($items),
+        elementosPorTipo: @json($elementosPorTipo ?? []),
         storeUrl: "{{ route('apicola.admin.inventario.store') }}",
         baseUrl: "{{ url('apicola/inventario') }}",
         csrfToken: "{{ csrf_token() }}"

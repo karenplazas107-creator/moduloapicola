@@ -277,11 +277,34 @@
                                 </label>
                             @endforeach
                         @else
-                            <p id="msgSinEnfermedades" style="font-size: 0.85rem; color: #64748b; font-style: italic; margin: 6px 0;">No hay enfermedades registradas en el sistema. Puede registrarlas desde el botón superior "Enfermedades".</p>
+                            <p id="msgSinEnfermedades" style="font-size: 0.85rem; color: #64748b; font-style: italic; margin: 6px 0; width: 100%;">No hay enfermedades registradas en el sistema. Use "Registrar" para agregar la primera.</p>
                         @endif
+
+                        <!-- Registrar una nueva enfermedad (queda en el catálogo y marcada en esta visita) -->
+                        <label class="ap-checkbox-card" id="lblEnfRegistrar" onclick="toggleSeccionNuevaEnfermedad(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
+                            <span>➕ Registrar</span>
+                        </label>
                     </div>
 
-                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó alguna patología en la colmena. Para agregar más opciones use el botón superior "Enfermedades".</p>
+                    <div id="containerNuevaEnfermedad" style="display: none; margin-top: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 12px; border-radius: 12px; border: 1.5px solid #bbf7d0;">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #166534; margin-bottom: 5px; text-transform: uppercase;">
+                            <i class="fas fa-virus"></i> Nombre de la nueva enfermedad:
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="inputNuevaEnfermedadTexto" class="ap-field-input" maxlength="100" placeholder="Ej: Nosema, Polilla de la cera, Micosis..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.88rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosVisita(this, 'errorNuevaEnfermedad')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevaEnfermedad();}">
+                            <button type="button" onclick="confirmarNuevaEnfermedad()" style="background: #047857; color: #ffffff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.84rem; font-weight: 800; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-plus"></i> Agregar
+                            </button>
+                        </div>
+                        <span id="errorNuevaEnfermedad" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                            <i class="fas fa-circle-exclamation"></i> Enfermedad inválida: no se permiten números, solo letras.
+                        </span>
+                        <span style="display: block; font-size: 0.72rem; color: #15803d; margin-top: 5px;">
+                            Quedará marcada en esta visita y guardada en el catálogo de enfermedades.
+                        </span>
+                    </div>
+
+                    <p class="ap-field-hint" style="margin-bottom: 1.25rem;">Marque solo si detectó alguna patología en la colmena, o use "Registrar" para agregar una nueva.</p>
 
                     <!-- Sección: Labores Realizadas -->
                     <div class="ap-form-section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -313,7 +336,7 @@
 
                         <!-- Botón para registrar otra labor (Idéntico a Enfermedades) -->
                         <label class="ap-checkbox-card" id="lblLabOtra" onclick="toggleSeccionNuevaLabor(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
-                            <span>➕ Otra / Registrar...</span>
+                            <span>➕ Registrar</span>
                         </label>
                     </div>
 

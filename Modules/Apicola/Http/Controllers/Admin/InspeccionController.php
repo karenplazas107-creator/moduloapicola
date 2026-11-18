@@ -2,6 +2,7 @@
 
 namespace Modules\Apicola\Http\Controllers\Admin;
 
+use Modules\Apicola\Entities\MotivoBaja;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -197,6 +198,11 @@ class InspeccionController extends Controller
      */
     public function toggleStatus(Request $request, $id)
     {
+        // Para desactivar es obligatorio indicar el motivo
+        $reg0 = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+        $estado0 = $reg0 ? ($reg0->estado ?? ($reg0->deleted_at ? 'Inactiva' : 'Activa')) : 'Inactiva';
+        $motivo = $estado0 !== 'Inactiva' ? MotivoBaja::exigir($request) : null;
+
         try {
             $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
             if (!$registro) {
@@ -212,6 +218,9 @@ class InspeccionController extends Controller
                 'deleted_at' => $deletedAt,
                 'updated_at' => now(),
             ]);
+            if ($motivo) {
+                MotivoBaja::registrar('inspeccion', $id, $registro->numero_registro, 'desactivar', $motivo);
+            }
 
             return response()->json([
                 'success' => true,
@@ -231,6 +240,8 @@ class InspeccionController extends Controller
      */
     public function destroy(Request $request, $id)
     {
+        $motivo = MotivoBaja::exigir($request);
+
         try {
             $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
             if (!$registro) {
@@ -244,6 +255,7 @@ class InspeccionController extends Controller
             ]);
 
             $numero = $registro->numero_registro ?: 'REG-' . $id;
+            MotivoBaja::registrar('inspeccion', $id, $numero, 'desactivar', $motivo);
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
@@ -353,8 +365,10 @@ class InspeccionController extends Controller
     /**
      * Eliminar una enfermedad del catálogo.
      */
-    public function destroyEnfermedad($id)
+    public function destroyEnfermedad(Request $request, $id)
     {
+        $motivo = MotivoBaja::exigir($request);
+
         try {
             $enf = DB::table('apicola_enfermedades')->where('id', $id)->first();
             if (!$enf) {
@@ -365,6 +379,7 @@ class InspeccionController extends Controller
             }
 
             DB::table('apicola_enfermedades')->where('id', $id)->delete();
+            MotivoBaja::registrar('enfermedad', $id, $enf->nombre, 'eliminar', $motivo);
             $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
 
             return response()->json([

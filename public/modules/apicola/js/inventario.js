@@ -150,11 +150,10 @@
         validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevo'), 'errorNombreElemento');
         validarTextoSinNumerosInventario(document.getElementById('inputNombreNuevaBodega'), 'errorNombreNuevaBodega');
         seleccionarTipo('Herramienta');
-        document.getElementById('selectElemento').value = 'Traje apícola';
-        toggleRegistrarNuevo('Traje apícola');
+        toggleRegistrarNuevo(document.getElementById('selectElemento').value);
         document.getElementById('selectBodega').value = 'Bodega central';
         toggleRegistrarNuevaBodega('Bodega central');
-        document.getElementById('inputCantidadInicial').value = 0;
+        document.getElementById('inputCantidadInicial').value = 1;
         document.getElementById('inputStockMinimo').value = 5;
         document.getElementById('modalAgregarBackdrop').classList.add('is-open');
     }
@@ -175,6 +174,20 @@
             btnInsumo.classList.add('active');
             btnHerramienta.classList.remove('active');
         }
+
+        // El selector de elementos solo muestra los que corresponden al tipo elegido
+        poblarElementosPorTipo(tipo);
+    }
+
+    function poblarElementosPorTipo(tipo) {
+        const select = document.getElementById('selectElemento');
+        if (!select) return;
+        const lista = (window.InventarioConfig?.elementosPorTipo || {})[tipo] || [];
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        select.innerHTML = lista.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')
+            + '<option value="__nuevo__">+ Registrar uno nuevo...</option>';
+        if (lista.length > 0) select.value = lista[0];
+        toggleRegistrarNuevo(select.value);
     }
 
     function toggleRegistrarNuevo(val) {
@@ -252,6 +265,11 @@
 
         const bodega = isNuevaBodega ? nombreNuevaBodega : bodegaSelect;
         const cantidadInicial = parseInt(document.getElementById('inputCantidadInicial').value) || 0;
+        if (cantidadInicial < 1) {
+            alert('La cantidad inicial debe ser mínimo 1.');
+            document.getElementById('inputCantidadInicial').focus();
+            return;
+        }
         const stockMinimo = parseInt(document.getElementById('inputStockMinimo').value) || 0;
 
         const payload = {
@@ -446,7 +464,20 @@
         const stockMinimo = parseInt(document.getElementById('editStockMinimo').value) || 0;
         const estado = document.getElementById('editSelectEstado').value;
 
+        // Si el elemento pasa de Activo a Inactivo hay que indicar el motivo
+        const previo = inventarioData.find(i => i.id == id);
+        let motivo = null;
+        if (previo && previo.estado !== 'Inactivo' && estado === 'Inactivo') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar elemento?',
+                texto: `Vas a desactivar <b>${String(nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del inventario.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        }
+
         const payload = {
+            motivo: motivo,
             nombre: nombre,
             categoria: tipo,
             bodega: bodega,
@@ -661,6 +692,18 @@
     }
 
     async function toggleInventarioStatus(id) {
+        // Para desactivar un elemento hay que indicar el motivo
+        const actual = inventarioData.find(i => i.id === id);
+        let motivo = null;
+        if (actual && actual.estado !== 'Inactivo') {
+            motivo = await pedirMotivoBaja({
+                titulo: `¿Desactivar ${String(actual.categoria || 'elemento').toLowerCase()}?`,
+                texto: `Vas a desactivar <b>${String(actual.nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del inventario.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        }
+
         try {
             const resp = await fetch(`${window.InventarioConfig?.baseUrl || "/apicola/inventario"}/${id}/toggle-status`, {
                 method: 'POST',
@@ -668,7 +711,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.InventarioConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const data = await resp.json();
@@ -691,9 +735,12 @@
     }
 
     async function desactivarInventarioItem(id, codigo, nombre) {
-        if (!confirm(`¿Estás seguro de que deseas desactivar "${codigo} - ${nombre}" del inventario?`)) {
-            return;
-        }
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Desactivar elemento?',
+            texto: `Vas a desactivar <b>${String(codigo).replace(/&/g,'&amp;').replace(/</g,'&lt;')} - ${String(nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del inventario.`,
+            confirmar: 'Sí, desactivar'
+        });
+        if (!motivo) return;
 
         try {
             const resp = await fetch(`${window.InventarioConfig?.baseUrl || "/apicola/inventario"}/${id}`, {
@@ -702,7 +749,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.InventarioConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const data = await resp.json();

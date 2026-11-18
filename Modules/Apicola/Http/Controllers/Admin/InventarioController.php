@@ -2,6 +2,7 @@
 
 namespace Modules\Apicola\Http\Controllers\Admin;
 
+use Modules\Apicola\Entities\MotivoBaja;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Apicola\Entities\Inventario;
@@ -67,6 +68,9 @@ class InventarioController extends Controller
             ->unique('nombre')
             ->values();
 
+        // Catálogo de elementos separado por tipo (Herramienta / Insumo)
+        $elementosPorTipo = Inventario::catalogoPorTipo();
+
         // Categorías únicas
         $categorias = Inventario::select('categoria')
             ->distinct()
@@ -90,7 +94,7 @@ class InventarioController extends Controller
             ]);
         }
 
-        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos', 'bodegasUnicas'));
+        return view('apicola::Admin.Inventario.index', compact('items', 'metrics', 'categorias', 'elementosUnicos', 'bodegasUnicas', 'elementosPorTipo'));
     }
 
     /**
@@ -159,7 +163,13 @@ class InventarioController extends Controller
             $codigo = sprintf('INV-%03d', $nextNum);
         }
 
-        $cantidad = max(0, intval($request->input('cantidad_inicial', $request->input('cantidad', 0))));
+        $cantidad = intval($request->input('cantidad_inicial', $request->input('cantidad', 0)));
+        if ($cantidad < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La cantidad inicial debe ser mínimo 1.',
+            ], 422);
+        }
         $stockMinimo = max(0, intval($request->input('stock_minimo', 5)));
         $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Jhon Ramírez Ortiz';
 
@@ -240,7 +250,15 @@ class InventarioController extends Controller
             $validated['bodega'] = trim($request->input('nombre_nueva_bodega'));
         }
 
+        // Si el elemento pasa de Activo a Inactivo, el motivo es obligatorio
+        $motivo = (($validated['estado'] ?? $item->estado) === 'Inactivo' && $item->estado !== 'Inactivo')
+            ? MotivoBaja::exigir($request)
+            : null;
+
         $item->update($validated);
+        if ($motivo) {
+            MotivoBaja::registrar('inventario', $item->id, $item->nombre, 'desactivar', $motivo);
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -256,11 +274,16 @@ class InventarioController extends Controller
     /**
      * Alterna el estado (Activo / Inactivo) de un elemento sin eliminarlo.
      */
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         $item = Inventario::findOrFail($id);
+        // Para desactivar es obligatorio indicar el motivo
+        $motivo = $item->estado !== 'Inactivo' ? MotivoBaja::exigir($request) : null;
         $item->estado = ($item->estado === 'Inactivo') ? 'Activo' : 'Inactivo';
         $item->save();
+        if ($motivo) {
+            MotivoBaja::registrar('inventario', $item->id, $item->nombre, 'desactivar', $motivo);
+        }
 
         return response()->json([
             'success' => true,
@@ -333,10 +356,12 @@ class InventarioController extends Controller
     public function destroy(Request $request, $id)
     {
         $item = Inventario::findOrFail($id);
+        $motivo = MotivoBaja::exigir($request);
         $nombre = $item->nombre;
         $codigo = $item->codigo;
         $item->estado = 'Inactivo';
         $item->save();
+        MotivoBaja::registrar('inventario', $item->id, $nombre, 'desactivar', $motivo);
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -434,10 +459,27 @@ class InventarioController extends Controller
             'productos.*.cantidad' => 'required|integer|min:1',
             'productos.*.inventario_id' => 'nullable|integer',
             'productos.*.observaciones' => 'nullable|string|max:255',
+            'productos.*.categoria' => 'nullable|in:Herramienta,Insumo',
             'observaciones' => 'nullable|string|max:500',
+            'motivo' => 'required|string|max:100',
+        ], [
+            'motivo.required' => 'Selecciona el motivo del movimiento.',
         ]);
 
         $tipo = $validated['tipo'];
+
+        // El motivo debe corresponder al tipo de movimiento
+        $motivosPermitidos = [
+            'Entrada' => ['Compra', 'Traslado entre inventarios'],
+            'Salida' => ['Dañado', 'Traslado entre inventarios', 'Fecha de caducidad', 'Devolución'],
+        ];
+        if (!in_array($validated['motivo'], $motivosPermitidos[$tipo], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => "El motivo '{$validated['motivo']}' no es válido para una {$tipo}.",
+            ], 422);
+        }
+        $motivo = $validated['motivo'];
         $bodega = $validated['bodega'];
         $fecha = Carbon::parse($validated['fecha']);
         $responsable = Auth::user()?->full_name ?? Auth::user()?->nickname ?? 'Karen Michelle Plazas Rojas';
@@ -496,19 +538,21 @@ class InventarioController extends Controller
             $movimiento = Movimiento::create([
                 'numero_comprobante' => $numeroComprobante,
                 'tipo' => $tipo,
+                'motivo' => $motivo,
                 'bodega' => $bodega,
                 'fecha' => $fecha,
                 'total_productos' => count($validated['productos']),
                 'total_unidades' => $totalUnidades,
                 'responsable' => $responsable,
                 'user_id' => Auth::id(),
-                'observaciones' => $validated['observaciones'] ?? ($tipo . ' de bodega'),
+                'observaciones' => 'Motivo: ' . $motivo . (!empty($validated['observaciones']) ? ' — ' . $validated['observaciones'] : ''),
             ]);
 
             foreach ($validated['productos'] as $prod) {
                 $nombre = trim($prod['nombre']);
                 $cantidad = (int)$prod['cantidad'];
-                $obs = !empty($prod['observaciones']) ? trim($prod['observaciones']) : ($tipo . ' de bodega');
+                $obsLibre = !empty($prod['observaciones']) && trim($prod['observaciones']) !== ($tipo . ' de bodega') ? trim($prod['observaciones']) : '';
+                $obs = $motivo . ($obsLibre !== '' ? ' — ' . $obsLibre : '');
 
                 $item = null;
                 if (!empty($prod['inventario_id'])) {
@@ -523,7 +567,7 @@ class InventarioController extends Controller
                     $item = Inventario::create([
                         'nombre' => $nombre,
                         'codigo' => $codigo,
-                        'categoria' => 'Herramienta',
+                        'categoria' => $prod['categoria'] ?? 'Herramienta',
                         'bodega' => $bodega,
                         'unidad_medida' => 'unidad',
                         'cantidad' => 0,

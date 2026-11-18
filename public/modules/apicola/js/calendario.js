@@ -272,9 +272,28 @@
         const anio = parseInt(document.getElementById('modalPlantaAnio').value) || 2026;
         const estado = document.getElementById('modalPlantaEstado').value;
 
+        // Si la planta pasa de Activa a Inactiva desde el formulario, hay que indicar el motivo
+        let motivo = null;
+        if (id) {
+            const previa = plantasList.find(p => p.id == id);
+            if (previa && previa.estado === 'Activa' && estado === 'Inactiva') {
+                motivo = await pedirMotivoBaja({
+                    titulo: '¿Desactivar planta?',
+                    texto: `Vas a desactivar <b>${String(nombreComun).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del calendario floral.`,
+                    confirmar: 'Sí, desactivar'
+                });
+                if (!motivo) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = originalText;
+                    return;
+                }
+            }
+        }
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
         const payload = {
+            motivo: motivo,
             nombre_comun: nombreComun,
             nombre_cientifico: nombreCientifico,
             aporte: aporte,
@@ -329,6 +348,17 @@
         const planta = plantasList.find(p => p.id === id);
         if (!planta) return;
 
+        // Para desactivar una planta hay que indicar el motivo
+        let motivo = null;
+        if (planta.estado === 'Activa') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar planta?',
+                texto: `Vas a desactivar <b>${String(planta.nombreComun).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del calendario floral.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        }
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
         try {
@@ -338,7 +368,8 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await res.json();
@@ -357,9 +388,12 @@
 
     // Desactivar una planta del calendario floral (cambio de estado a Inactiva)
     async function desactivarPlanta(id, nombreComun) {
-        if (!confirm(`¿Estás seguro de que deseas desactivar la planta "${nombreComun}" del calendario floral?`)) {
-            return;
-        }
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Desactivar planta?',
+            texto: `Vas a desactivar <b>${String(nombreComun).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b> del calendario floral.`,
+            confirmar: 'Sí, desactivar'
+        });
+        if (!motivo) return;
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
@@ -370,7 +404,8 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await res.json();

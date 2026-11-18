@@ -461,26 +461,28 @@
         });
     }
 
-    function renderVisitaEnfermedadesCheckboxes(lista) {
+    function renderVisitaEnfermedadesCheckboxes(lista, marcar) {
         const container = document.getElementById('containerEnfermedades');
         if (!container) return;
 
-        // Guardar las que actualmente están marcadas
+        // Conservar las que actualmente están marcadas (y las que se pidan marcar ahora)
         const currentlyChecked = new Set();
         container.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
-            currentlyChecked.add(cb.value);
+            currentlyChecked.add(cb.value.toLowerCase());
+        });
+        (marcar || []).forEach(n => currentlyChecked.add(String(n).toLowerCase()));
+
+        const nombres = (lista || []).map(enf => typeof enf === 'string' ? enf : (enf.nombre || '')).filter(Boolean);
+
+        // Conservar también las marcadas que no estén en el catálogo (p. ej. de una visita antigua)
+        container.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
+            if (!nombres.some(n => n.toLowerCase() === cb.value.toLowerCase())) nombres.push(cb.value);
         });
 
-        if (!lista || lista.length === 0) {
-            container.innerHTML = '<p id="msgSinEnfermedades" style="font-size: 0.85rem; color: #64748b; font-style: italic; margin: 6px 0;">No hay enfermedades registradas en el sistema. Puede registrarlas desde el botón superior "Enfermedades".</p>';
-            return;
-        }
-
-        container.innerHTML = lista.map(enf => {
-            const nombre = typeof enf === 'string' ? enf : (enf.nombre || '');
+        const cards = nombres.map(nombre => {
             const slug = nombre.toLowerCase().replace(/[^a-z0-9]/g, '_');
             const enfId = 'lblEnf_' + slug;
-            const isChecked = currentlyChecked.has(nombre);
+            const isChecked = currentlyChecked.has(nombre.toLowerCase());
 
             return `
                 <label class="ap-checkbox-card ${isChecked ? 'is-checked' : ''}" id="${enfId}">
@@ -489,6 +491,125 @@
                 </label>
             `;
         }).join('');
+
+        const botonRegistrar = `
+            <label class="ap-checkbox-card" id="lblEnfRegistrar" onclick="toggleSeccionNuevaEnfermedad(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
+                <span>➕ Registrar</span>
+            </label>`;
+
+        container.innerHTML = cards + botonRegistrar;
+    }
+
+    // ==================== REGISTRAR UNA NUEVA ENFERMEDAD DESDE EL CHECKLIST DE LA VISITA ====================
+    function toggleSeccionNuevaEnfermedad(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const container = document.getElementById('containerNuevaEnfermedad');
+        const input = document.getElementById('inputNuevaEnfermedadTexto');
+        const errorSpan = document.getElementById('errorNuevaEnfermedad');
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#cbd5e1';
+        if (!container) return;
+
+        if (container.style.display === 'none' || !container.style.display) {
+            container.style.display = 'block';
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    // Agrega (o marca) una enfermedad en el checklist sin pasar por el servidor
+    function agregarNuevaEnfermedad(nombre, marcada) {
+        const valor = String(nombre || '').trim();
+        if (!valor) return;
+        const container = document.getElementById('containerEnfermedades');
+        if (!container) return;
+
+        const existente = Array.from(container.querySelectorAll('input[name="enfermedades"]'))
+            .find(cb => cb.value.toLowerCase() === valor.toLowerCase());
+        if (existente) {
+            existente.checked = !!marcada;
+            const lbl = existente.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.toggle('is-checked', !!marcada);
+            return;
+        }
+
+        const lista = (enfermedadesCatalogo || []).slice();
+        renderVisitaEnfermedadesCheckboxes(lista.concat([valor]), marcada ? [valor] : []);
+    }
+
+    // Registra la enfermedad en el catálogo (queda guardada para todas las visitas) y la marca en esta visita
+    function confirmarNuevaEnfermedad() {
+        const input = document.getElementById('inputNuevaEnfermedadTexto');
+        const errorSpan = document.getElementById('errorNuevaEnfermedad');
+        const valor = (input ? input.value : '').trim();
+
+        const avisar = (icon, title, text) => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon, title, text, confirmButtonColor: '#286043' });
+            } else {
+                alert(text);
+            }
+        };
+
+        if (!valor) {
+            avisar('warning', 'Nombre requerido', 'Por favor escribe el nombre de la enfermedad.');
+            if (input) input.focus();
+            return;
+        }
+        if (/\d/.test(valor) || valor.length < 2) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            if (input) input.style.borderColor = '#dc2626';
+            avisar('error', 'Enfermedad inválida', 'No se permiten números en el nombre de la enfermedad. Solo se permiten letras.');
+            if (input) input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#10b981';
+
+        const url = window.InspeccionConfig?.enfermedadesUrl;
+        const csrf = window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre: valor })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(({ status, body }) => {
+            if (status === 201 || body.success) {
+                if (Array.isArray(body.data)) enfermedadesCatalogo = body.data;
+                const guardada = (body.enfermedad && body.enfermedad.nombre) ? body.enfermedad.nombre : valor;
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo, [guardada]);
+
+                const container = document.getElementById('containerNuevaEnfermedad');
+                if (container) container.style.display = 'none';
+                if (input) input.value = '';
+                showToast(body.message || 'Enfermedad registrada y marcada en esta visita.');
+            } else if (status === 422 && /ya se encuentra registrada/i.test(body.message || '')) {
+                // Ya existía: simplemente se marca en la visita
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo, [valor]);
+                const container = document.getElementById('containerNuevaEnfermedad');
+                if (container) container.style.display = 'none';
+                if (input) input.value = '';
+                showToast(body.message);
+            } else {
+                avisar('warning', 'Atención', body.message || 'No fue posible registrar la enfermedad.');
+            }
+        })
+        .catch(() => avisar('error', 'Error de conexión', 'Ocurrió un problema al guardar la enfermedad.'));
     }
 
     // ==================== MANEJO DE OTRAS LABORES (ESTILO IDÉNTICO A OTRA ENFERMEDAD) ====================
@@ -1313,9 +1434,12 @@
 
     // Desactivar visita (sin eliminar de la base de datos)
     async function desactivarVisita(id, regNumber) {
-        if (!confirm(`¿Estás seguro de que deseas desactivar la visita "${regNumber}"?`)) {
-            return;
-        }
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Desactivar visita?',
+            texto: `Vas a desactivar la visita <b>${String(regNumber).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+            confirmar: 'Sí, desactivar'
+        });
+        if (!motivo) return;
 
         try {
             const response = await fetch(`${window.InspeccionConfig?.baseUrl || "/apicola/inspecciones"}/${id}`, {
@@ -1324,7 +1448,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await response.json();
@@ -1333,6 +1458,8 @@
             }
         } catch (err) {
             console.warn('Persistencia en backend:', err.message);
+            showToast(err.message || 'No se pudo desactivar la visita.');
+            return;
         }
 
         const item = inspeccionesList.find(v => v.id === id);
@@ -1357,7 +1484,16 @@
         const nuevoEstado = (item.estado === 'Inactiva') ? 'Activa' : 'Inactiva';
         const accionStr = (nuevoEstado === 'Activa') ? 'activar' : 'desactivar';
 
-        if (!confirm(`¿Estás seguro de que deseas ${accionStr} la visita "${regNumber}"?`)) {
+        // Para desactivar hay que indicar el motivo; reactivar solo pide confirmación
+        let motivo = null;
+        if (nuevoEstado === 'Inactiva') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar visita?',
+                texto: `Vas a desactivar la visita <b>${String(regNumber).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        } else if (!confirm(`¿Estás seguro de que deseas ${accionStr} la visita "${regNumber}"?`)) {
             return;
         }
 
@@ -1368,7 +1504,8 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': (window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
                     'Accept': 'application/json'
-                }
+                },
+                body: JSON.stringify({ motivo })
             });
 
             const result = await response.json();
@@ -1472,6 +1609,9 @@
     window.toggleSeccionNuevaLabor = toggleSeccionNuevaLabor;
     window.confirmarNuevaLabor = confirmarNuevaLabor;
     window.agregarNuevaLabor = agregarNuevaLabor;
+    window.toggleSeccionNuevaEnfermedad = toggleSeccionNuevaEnfermedad;
+    window.confirmarNuevaEnfermedad = confirmarNuevaEnfermedad;
+    window.agregarNuevaEnfermedad = agregarNuevaEnfermedad;
     window.handleVisitaRespSelect = handleVisitaRespSelect;
     window.confirmarOtroResponsableVisita = confirmarOtroResponsableVisita;
     window.validarTextoSinNumerosVisita = validarTextoSinNumerosVisita;

@@ -67,4 +67,30 @@ class Inventario extends Model
     {
         return $query->whereColumn('cantidad', '<=', 'stock_minimo');
     }
+    /**
+     * Catálogo de elementos agrupado por tipo (Herramienta / Insumo): los elementos base del
+     * apiario más los ya registrados en el inventario según su propio tipo.
+     */
+    public static function catalogoPorTipo(): array
+    {
+        $base = [
+            'Herramienta' => ['Traje apícola', 'Ahumador', 'Palanca apícola', 'Cepillo apícola', 'Guantes de cuero', 'Pala', 'Alza'],
+            'Insumo' => ['Cera estampada', 'Cuadros', 'Azúcar', 'Jarabe de alimentación', 'Frascos para miel', 'Ácido oxálico'],
+        ];
+
+        $catalogo = [];
+        foreach ($base as $tipo => $nombres) {
+            $registrados = static::where('categoria', $tipo)->orderBy('nombre')->pluck('nombre')->all();
+            $unicos = [];
+            foreach (array_merge($nombres, $registrados) as $n) {
+                $n = trim((string) $n);
+                if ($n !== '' && !isset($unicos[mb_strtolower($n)])) {
+                    $unicos[mb_strtolower($n)] = $n;
+                }
+            }
+            $catalogo[$tipo] = array_values($unicos);
+        }
+
+        return $catalogo;
+    }
 }

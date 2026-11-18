@@ -2,6 +2,7 @@
 
 namespace Modules\Apicola\Http\Controllers\Admin;
 
+use Modules\Apicola\Entities\MotivoBaja;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +139,12 @@ class CalendarioController extends Controller
             'meses' => 'nullable|array',
         ]);
 
+        // Si la planta pasa de Activa a Inactiva desde el formulario, el motivo es obligatorio
+        $especieActual = CalendarioFloral::with('especie')->find($id)?->especie;
+        $motivo = ($validated['estado'] === 'Inactiva' && $especieActual && $especieActual->estado !== 'Inactiva')
+            ? MotivoBaja::exigir($request)
+            : null;
+
         try {
             DB::beginTransaction();
 
@@ -164,6 +171,9 @@ class CalendarioController extends Controller
                     'aporte' => $validated['aporte'] ?? 'Néctar y polen',
                     'estado' => $validated['estado'],
                 ]);
+                if ($motivo) {
+                    MotivoBaja::registrar('calendario', $id, trim($validated['nombre_comun']), 'desactivar', $motivo);
+                }
             }
 
             DB::commit();
@@ -195,8 +205,12 @@ class CalendarioController extends Controller
     /**
      * Alterna el estado (Activa / Inactiva) de la planta en la base de datos.
      */
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
+        // Para desactivar es obligatorio indicar el motivo
+        $desactivaCal = optional(CalendarioFloral::with('especie')->find($id)?->especie)->estado === 'Activa';
+        $motivo = $desactivaCal ? MotivoBaja::exigir($request) : null;
+
         try {
             $calendario = CalendarioFloral::with('especie')->findOrFail($id);
             if (!$calendario->especie) {
@@ -206,6 +220,9 @@ class CalendarioController extends Controller
             $current = $calendario->especie->estado;
             $newStatus = ($current === 'Activa') ? 'Inactiva' : 'Activa';
             $calendario->especie->update(['estado' => $newStatus]);
+            if ($motivo) {
+                MotivoBaja::registrar('calendario', $id, $calendario->especie->nombre_comun, 'desactivar', $motivo);
+            }
 
             return response()->json([
                 'success' => true,
@@ -223,8 +240,10 @@ class CalendarioController extends Controller
     /**
      * Desactiva la planta melífera del calendario floral (cambia su estado a Inactiva).
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $motivo = MotivoBaja::exigir($request);
+
         try {
             DB::beginTransaction();
 
@@ -235,6 +254,7 @@ class CalendarioController extends Controller
             }
 
             DB::commit();
+            MotivoBaja::registrar('calendario', $id, $calendario->especie->nombre_comun ?? null, 'desactivar', $motivo);
 
             return response()->json([
                 'success' => true,

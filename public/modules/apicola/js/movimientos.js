@@ -10,6 +10,14 @@
     let comprobanteActual = config.comprobanteActual || null;
     let historial = config.historial || [];
     let tipoActual = 'Salida'; // Por defecto según diseño
+    let tipoProductoActual = 'Herramienta'; // Herramienta o Insumo
+    let motivoActual = '';
+
+    // Motivos disponibles según el tipo de movimiento
+    const MOTIVOS = {
+        Entrada: ['Compra', 'Traslado entre inventarios'],
+        Salida: ['Dañado', 'Traslado entre inventarios', 'Fecha de caducidad', 'Devolución']
+    };
     let draftProducts = []; // Lista de productos acumulados para el movimiento
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -21,8 +29,38 @@
     // =========================================================================
     // CONTROL DEL TIPO (ENTRADA / SALIDA)
     // =========================================================================
+    function renderMotivos() {
+        const group = document.getElementById('motivoMovimientoGroup');
+        if (!group) return;
+        const lista = MOTIVOS[tipoActual] || [];
+        if (!lista.includes(motivoActual)) motivoActual = '';
+        group.innerHTML = lista.map(m => `
+            <label class="mov-chip ${m === motivoActual ? 'is-checked' : ''}">
+                <input type="radio" name="motivoMovimiento" value="${m}" ${m === motivoActual ? 'checked' : ''} onchange="window.MovimientosApp.setMotivo(this.value)"> ${m}
+            </label>
+        `).join('');
+    }
+
+    function setMotivo(valor) {
+        motivoActual = valor;
+        document.querySelectorAll('#motivoMovimientoGroup .mov-chip').forEach(chip => {
+            const radio = chip.querySelector('input');
+            chip.classList.toggle('is-checked', !!radio && radio.value === valor);
+        });
+    }
+
+    function setTipoProducto(tipo) {
+        tipoProductoActual = tipo;
+        document.querySelectorAll('#tipoProductoGroup .mov-chip').forEach(chip => {
+            const radio = chip.querySelector('input');
+            chip.classList.toggle('is-checked', !!radio && radio.value === tipo);
+        });
+        initProductoSelector();
+    }
+
     function setTipo(tipo) {
         tipoActual = tipo;
+        renderMotivos();
         const btnEntrada = document.getElementById('btnToggleEntrada');
         const btnSalida = document.getElementById('btnToggleSalida');
         const sumBadge = document.getElementById('sumTipoBadge');
@@ -146,13 +184,15 @@
         const bodega = getBodegaActual().toLowerCase();
         sel.innerHTML = '<option value="">Selecciona un producto</option>';
 
-        // Filtrar productos por bodega seleccionada o mostrar todos si es nueva
+        // Filtrar productos por bodega seleccionada (si es una bodega nueva no hay productos todavía)
         const prods = productos.filter(p => {
             const b = (p.bodega || '').toLowerCase();
             return b.includes(bodega) || bodega.includes(b);
         });
 
-        const listToDisplay = prods.length > 0 ? prods : productos;
+        // Solo se muestran los productos del tipo elegido (Herramienta / Insumo)
+        const prodsTipo = prods.filter(p => (p.categoria || 'Herramienta') === tipoProductoActual);
+        const listToDisplay = prodsTipo;
 
         listToDisplay.forEach(p => {
             const opt = document.createElement('option');
@@ -260,6 +300,7 @@
             id: Date.now() + Math.random(),
             inventario_id: prodId,
             nombre: nombre,
+            categoria: tipoProductoActual,
             cantidad: cantidad,
             observaciones: obs || `${tipoActual} de bodega`,
             stockDisponible: stockDisponible,
@@ -318,6 +359,13 @@
     function limpiarFormulario() {
         document.getElementById('formMovimiento').reset();
         document.getElementById('inputFecha').value = new Date().toISOString().split('T')[0];
+        motivoActual = '';
+        tipoProductoActual = 'Herramienta';
+        document.querySelectorAll('#tipoProductoGroup .mov-chip').forEach(chip => {
+            const radio = chip.querySelector('input');
+            if (radio) radio.checked = radio.value === 'Herramienta';
+            chip.classList.toggle('is-checked', !!radio && radio.value === 'Herramienta');
+        });
         setTipo('Salida');
         handleBodegaChange(document.getElementById('selectBodega').value);
         draftProducts = [];
@@ -334,6 +382,16 @@
 
         if (selProducto && selProducto.value && inputCantidad && parseInt(inputCantidad.value) > 0) {
             agregarProductoADraft();
+        }
+
+        if (!motivoActual) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selecciona el motivo',
+                text: `Indica el motivo de la ${tipoActual.toLowerCase()} marcando una de las opciones.`,
+                confirmButtonColor: '#286043'
+            });
+            return;
         }
 
         if (draftProducts.length === 0) {
@@ -380,10 +438,12 @@
             fecha: fecha,
             bodega: bodega,
             tipo: tipo,
-            observaciones: `${tipo} de bodega`,
+            motivo: motivoActual,
+            observaciones: '',
             productos: draftProducts.map(p => ({
                 inventario_id: p.inventario_id,
                 nombre: p.nombre,
+                categoria: p.categoria || 'Herramienta',
                 cantidad: p.cantidad,
                 observaciones: p.observaciones || `${tipo} de bodega`
             }))
@@ -430,6 +490,8 @@
             document.getElementById('inputCantidad').value = '';
             document.getElementById('inputObservaciones').value = '';
             document.getElementById('selectProducto').value = '';
+            motivoActual = '';
+            renderMotivos();
 
         } catch (err) {
             console.error(err);
@@ -860,6 +922,8 @@
     // Exponer al scope global para eventos del DOM
     window.MovimientosApp = {
         setTipo,
+        setMotivo,
+        setTipoProducto,
         handleFechaChange,
         handleBodegaChange,
         agregarProductoADraft,

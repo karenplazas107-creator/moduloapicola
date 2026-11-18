@@ -187,6 +187,36 @@
                         <p class="ap-field-hint" style="font-size:0.75rem; color:#64748b; margin-top:3px;">
                             <i class="fas fa-info-circle"></i> Las colmenas se asocian y gestionan desde el módulo de <strong>Colmenas</strong>.
                         </p>
+
+                        <!-- Reubicar colmenas en otro apiario (solo al editar) -->
+                        <style>
+                            .ap-mover-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; background: #ffffff; font-size: 0.84rem; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.15s ease; }
+                            .ap-mover-chip:hover { border-color: #86efac; }
+                            .ap-mover-chip.is-checked { border-color: #047857; background: #ecfdf5; color: #065f46; }
+                            .ap-mover-chip input { accent-color: #047857; margin: 0; }
+                        </style>
+                        <div id="seccionMoverColmenas" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                                <span style="font-size: 0.76rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em;">
+                                    <i class="fas fa-right-left" style="color: #047857;"></i> Mover colmenas a otro apiario
+                                </span>
+                                <label style="font-size: 0.78rem; color: #475569; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                    <input type="checkbox" id="chkMoverTodas" onchange="toggleTodasMoverColmenas(this.checked)"> Seleccionar todas
+                                </label>
+                            </div>
+
+                            <div id="listaMoverColmenas" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <select id="selectDestinoMoverColmenas" class="ap-field-input" style="flex: 1; min-width: 180px;"></select>
+                                <button type="button" id="btnMoverColmenas" onclick="moverColmenasSeleccionadas()" class="ap-btn-solid-green" style="padding: 8px 16px; font-weight: 800; border-radius: 10px; white-space: nowrap;">
+                                    <i class="fas fa-right-left"></i> Mover seleccionadas
+                                </button>
+                            </div>
+                            <p class="ap-field-hint" style="font-size: 0.74rem; color: #64748b; margin: 6px 0 0;">
+                                Marca las colmenas y elige el apiario de destino. El cambio se aplica al instante.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- 5. Ubicación Geográfica -->

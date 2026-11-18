@@ -16,6 +16,7 @@ class Movimiento extends Model
     protected $fillable = [
         'numero_comprobante',
         'tipo',
+        'motivo',
         'bodega',
         'fecha',
         'total_productos',
