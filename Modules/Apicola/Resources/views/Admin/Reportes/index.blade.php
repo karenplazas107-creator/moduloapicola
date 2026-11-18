@@ -174,9 +174,9 @@
             <!-- Tarjeta Central de Detalle del Reporte -->
             <div class="rep-detail-card">
                 <div class="rep-detail-header">
-                    <h2 class="rep-detail-title" id="infoReporteTitulo">Producción de miel</h2>
+                    <h2 class="rep-detail-title" id="infoReporteTitulo">Producción</h2>
                     <p class="rep-detail-subtitle" id="infoReporteDesc">
-                        Suma los kilogramos registrados en las visitas vigentes. Las visitas anuladas no se cuentan.
+                        Suma la miel registrada en el submódulo Producción. Los registros desactivados no se cuentan.
                     </p>
                 </div>
 
@@ -187,8 +187,8 @@
                         <!-- Chips dinámicos según el tipo de reporte -->
                         <span class="rep-column-chip">Apiario</span>
                         <span class="rep-column-chip">Colmena</span>
-                        <span class="rep-column-chip">Última visita</span>
-                        <span class="rep-column-chip">Visitas</span>
+                        <span class="rep-column-chip">Última cosecha</span>
+                        <span class="rep-column-chip">Cosechas</span>
                         <span class="rep-column-chip">Miel (kg)</span>
                         <span class="rep-column-chip">Responsable</span>
                         <span class="rep-column-chip">Estado</span>

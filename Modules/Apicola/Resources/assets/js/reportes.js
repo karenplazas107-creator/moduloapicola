@@ -56,9 +56,9 @@
                         <td style="white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.82rem;">${item.registro || '-'}</td>
                         <td style="white-space: nowrap;"><span class="rep-colmena-badge">${item.colmena || '-'}</span></td>
                         <td style="white-space: nowrap;"><span class="rep-status-badge ${statusClass}">${item.estado || 'Bueno'}</span></td>
-                        <td style="white-space: nowrap;">${item.reina || '-'}</td>
-                        <td>${item.enfermedades ? item.enfermedades : '<span style="color:#64748b;">Ninguna</span>'}</td>
-                        <td style="white-space: nowrap;">${item.responsable || '-'}</td>
+                        <td class="rep-wrap">${item.reina || '-'}</td>
+                        <td class="rep-wrap">${item.enfermedades ? item.enfermedades : '<span style="color:#64748b;">Ninguna</span>'}</td>
+                        <td class="rep-wrap">${item.responsable || '-'}</td>
                     </tr>
                 `;
             }
@@ -131,6 +131,16 @@
     // Al cargar la página, dibujar tabla inicial
     document.addEventListener('DOMContentLoaded', function() {
         renderTabla(currentTipo, currentData);
+
+        // Si la página abre con un tipo distinto al de la vista inicial, el panel debe coincidir
+        const confInicial = configReportes[currentTipo];
+        if (confInicial && currentTipo !== 'miel') {
+            document.getElementById('infoReporteTitulo').textContent = confInicial.titulo;
+            document.getElementById('infoReporteDesc').textContent = confInicial.desc;
+            document.getElementById('labelApiarioFiltro').textContent = confInicial.labelApiario;
+            document.getElementById('labelEstadoFiltro').textContent = confInicial.labelEstado;
+            document.getElementById('chipsColumnas').innerHTML = confInicial.columnas.map(col => `<span class="rep-column-chip">${col}</span>`).join('');
+        }
     });
 
     // Cambiar tipo de reporte (Miel, Colmenas, Inventario)
