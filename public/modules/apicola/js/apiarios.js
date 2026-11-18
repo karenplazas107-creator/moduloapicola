@@ -95,7 +95,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                             ? `<button type="button" class="ap-action-btn deactivate" style="color: #f59e0b;" onclick="toggleApiarioStatus(${item.id})" title="Desactivar apiario"><i class="fas fa-ban"></i></button>`
                             : `<button type="button" class="ap-action-btn activate" style="color: #059669;" onclick="toggleApiarioStatus(${item.id})" title="Activar apiario"><i class="fas fa-circle-check"></i></button>`
                         }
-                        <button type="button" class="ap-action-btn delete" style="color: #ef4444;" onclick="eliminarApiario(${item.id}, '${item.nombre}')" title="Eliminar apiario"><i class="fas fa-trash-can"></i></button>
                     </div>
                 </td>
             `;
@@ -440,9 +439,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
                     <div style="display:flex; gap:6px; margin-top:8px;">
                         <button type="button" onclick="openEditApiarioModal(${a.id})" style="flex:1; font-size:0.72rem; font-weight:700; padding:5px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; cursor:pointer;">
                             <i class="fas fa-pen-to-square"></i> Editar
-                        </button>
-                        <button type="button" onclick="eliminarApiario(${a.id}, '${a.nombre}')" style="flex:1; font-size:0.72rem; font-weight:700; padding:5px 6px; border-radius:6px; border:1px solid #fecaca; background:#fef2f2; color:#dc2626; cursor:pointer;">
-                            <i class="fas fa-trash-can"></i> Eliminar
                         </button>
                     </div>
                 </div>
@@ -1104,69 +1100,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
         }
     }
 
-    async function eliminarApiario(id, nombre) {
-        const motivo = await pedirMotivoBaja({
-            titulo: '¿Eliminar apiario?',
-            texto: `Vas a eliminar permanentemente el apiario <b>${String(nombre).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>. Esta acción no se puede deshacer.`,
-            confirmar: 'Sí, eliminar'
-        });
-        if (!motivo) return;
-
-        const csrfToken = getCsrfToken();
-        try {
-            const response = await fetch(`${window.ApiariosConfig?.baseUrl || "/apicola/apiarios"}/${id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-HTTP-Method-Override': 'DELETE',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ _token: csrfToken, _method: 'DELETE', motivo })
-            });
-
-            const resData = await response.json();
-            if (!response.ok || !resData.success) {
-                throw new Error(resData.message || 'Error al eliminar el apiario.');
-            }
-
-            // Remover de la lista en memoria
-            const idx = apiariosList.findIndex(a => a.id == id);
-            if (idx !== -1) {
-                apiariosList.splice(idx, 1);
-            }
-
-            if (resData.metrics) {
-                document.getElementById('metricTotalApiarios').textContent = resData.metrics.total ?? apiariosList.length;
-                document.getElementById('metricActivos').textContent = resData.metrics.activos ?? apiariosList.filter(a => a.estado === 'Activo').length;
-                document.getElementById('metricInactivos').textContent = resData.metrics.inactivos ?? apiariosList.filter(a => a.estado === 'Inactivo').length;
-                document.getElementById('metricColmenas').textContent = resData.metrics.colmenas ?? 0;
-                document.getElementById('apTotalCount').textContent = resData.metrics.total ?? apiariosList.length;
-            } else {
-                updateMetricCards();
-            }
-
-            renderApiariosTable();
-            renderApiarioMarkersGeneral();
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Apiario eliminado',
-                text: resData.message || `El apiario "${nombre}" fue eliminado exitosamente.`,
-                confirmButtonColor: '#286043',
-                timer: 2000
-            });
-        } catch (error) {
-            console.error('Error al eliminar apiario:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'No se pudo eliminar',
-                text: error.message,
-                confirmButtonColor: '#286043'
-            });
-        }
-    }
-
     function openDetailModal(id) {
         const apiario = apiariosList.find(a => a.id == id);
         if (!apiario) return;
@@ -1201,7 +1134,6 @@ let apiariosList = window.ApiariosConfig?.apiariosList || [];
     window.setApiarioEstado = setApiarioEstado;
     window.filterApiarios = filterApiarios;
     window.toggleApiarioStatus = toggleApiarioStatus;
-    window.eliminarApiario = eliminarApiario;
     window.openDetailModal = openDetailModal;
     window.closeDetailModal = closeDetailModal;
     window.openGeneralMapModal = openGeneralMapModal;

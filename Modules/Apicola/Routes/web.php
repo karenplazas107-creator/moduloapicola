@@ -55,7 +55,6 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::get('apiarios', [ApiarioController::class, 'index'])->name('apicola.admin.apiarios.index');
     Route::post('apiarios', [ApiarioController::class, 'store'])->name('apicola.admin.apiarios.store');
     Route::match(['put', 'post'], 'apiarios/{id}', [ApiarioController::class, 'update'])->name('apicola.admin.apiarios.update');
-    Route::delete('apiarios/{id}', [ApiarioController::class, 'destroy'])->name('apicola.admin.apiarios.destroy');
     Route::post('apiarios/{id}/toggle-status', [ApiarioController::class, 'toggleStatus'])->name('apicola.admin.apiarios.toggle-status');
     Route::post('apiarios/{id}/mover-colmenas', [ApiarioController::class, 'moverColmenas'])->name('apicola.admin.apiarios.mover-colmenas');
 

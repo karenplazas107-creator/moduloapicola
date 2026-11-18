@@ -163,66 +163,6 @@
                 </div>
             </div>
 
-            <!-- 2. TARJETA: RESUMEN DE MOVIMIENTO Y PRODUCTOS A REGISTRAR -->
-            <div class="mov-summary-card">
-                <h3 class="mov-summary-heading">Resumen de movimiento</h3>
-
-                <!-- Badges de Resumen (Tipo, Fecha, Bodega) -->
-                <div class="mov-summary-badges-row">
-                    <div class="mov-summary-mini-card">
-                        <div class="mov-summary-mini-label">Tipo de movimiento</div>
-                        <div class="mov-summary-mini-val">
-                            <span class="mov-summary-pill-tipo" id="sumTipoBadge">
-                                <i class="fa-solid fa-arrow-right-arrow-left"></i> Salida
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="mov-summary-mini-card">
-                        <div class="mov-summary-mini-label">Fecha</div>
-                        <div class="mov-summary-mini-val">
-                            <i class="fa-regular fa-calendar" style="color: var(--mov-primary);"></i>
-                            <span id="sumFechaText">{{ date('d/m/Y') }}</span>
-                        </div>
-                    </div>
-
-                    <div class="mov-summary-mini-card">
-                        <div class="mov-summary-mini-label">Bodega</div>
-                        <div class="mov-summary-mini-val">
-                            <i class="fa-solid fa-house-chimney" style="color: var(--mov-primary);"></i>
-                            <span id="sumBodegaText">Bodega Central</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Subtítulo: Productos a registrar -->
-                <h4 style="font-size: 0.95rem; font-weight: 800; color: #111827; margin: 0 0 10px 0;">
-                    Productos a registrar
-                </h4>
-
-                <!-- Tabla de productos agregados al movimiento -->
-                <div class="mov-draft-table-wrap">
-                    <table class="mov-draft-table">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th style="width: 110px; text-align: center;">Cantidad</th>
-                                <th style="width: 80px; text-align: center;">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="draftTableBody">
-                            <!-- Filas dinámicas administradas por JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Botón + Agregar producto -->
-                <div>
-                    <button type="button" class="mov-btn-add-draft" onclick="window.MovimientosApp.agregarProductoADraft()">
-                        <i class="fa-solid fa-plus"></i> Agregar producto
-                    </button>
-                </div>
-            </div>
 
         </div>
 

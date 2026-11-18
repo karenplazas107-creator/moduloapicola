@@ -380,8 +380,10 @@
         const selProducto = document.getElementById('selectProducto');
         const inputCantidad = document.getElementById('inputCantidad');
 
+        // Sin tarjeta de resumen: el producto del formulario se agrega directamente al movimiento
         if (selProducto && selProducto.value && inputCantidad && parseInt(inputCantidad.value) > 0) {
             agregarProductoADraft();
+            if (draftProducts.length === 0) return; // la validación ya mostró el aviso
         }
 
         if (!motivoActual) {
@@ -398,7 +400,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'Sin productos',
-                text: 'Agrega al menos un producto con su cantidad usando el botón "+ Agregar producto".',
+                text: 'Selecciona un producto y escribe la cantidad para registrar el movimiento.',
                 confirmButtonColor: '#286043'
             });
             return;

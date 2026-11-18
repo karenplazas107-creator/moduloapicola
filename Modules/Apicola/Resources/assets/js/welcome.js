@@ -257,8 +257,8 @@
 
             // Mostrar el contenedor con animación
             const detailWrapper = document.getElementById('apFeatureDetailWrapper');
-            // Diseño sobrio en tonos verdes solo para el panel de Apiario
-            detailWrapper.classList.toggle('ap-theme-apiario', featureKey === 'apiarios');
+            // Misma estructura y tonos verdes para todos los paneles (Apiario, Miel, Colmenas, Calendario e Inventario)
+            detailWrapper.classList.add('ap-theme-apiario');
             detailWrapper.classList.remove('is-open');
             void detailWrapper.offsetWidth; // Reflow
             detailWrapper.classList.add('is-open');

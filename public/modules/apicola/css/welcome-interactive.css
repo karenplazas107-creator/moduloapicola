@@ -514,8 +514,6 @@
             --ap-green-deep: #1b5e20;
             --ap-line: #e2e8f0;
             --ap-paper: #ffffff;
-            --ap-serif: var(--ap-font, 'Nunito', 'Open Sans', sans-serif);
-            font-variant-numeric: lining-nums;
         }
 
         .ap-theme-apiario .ap-detail-box {
@@ -558,10 +556,6 @@
             border: none;
             padding: 0;
             border-radius: 0;
-            font-size: 0.82rem;
-            font-weight: 800;
-            letter-spacing: 0;
-            text-transform: none;
         }
         .ap-theme-apiario .ap-badge-pedagogico { color: var(--ap-green); }
         .ap-theme-apiario .ap-topic-badge { color: #64748b; }
@@ -600,23 +594,14 @@
             background: transparent;
             border: 1px solid var(--ap-green);
             color: var(--ap-green);
-            font-size: 1.25rem;
             box-shadow: none;
         }
         .ap-theme-apiario .ap-detail-titles h2 {
-            font-family: var(--ap-serif);
-            font-size: 2.2rem;
-            font-weight: 800;
-            letter-spacing: 0;
             color: var(--ap-ink);
-            line-height: 1.1;
         }
         .ap-theme-apiario .ap-detail-titles h4 {
-            font-size: 0.95rem;
-            font-weight: 600;
             color: #166534;
             margin-top: 6px;
-            letter-spacing: 0;
         }
 
         /* Fotografía panorámica */
@@ -637,36 +622,17 @@
             border-radius: 0;
             box-shadow: none;
             backdrop-filter: none;
-            font-size: 0.78rem;
-            font-weight: 800;
-            letter-spacing: 0;
             color: #e2e8f0;
         }
         .ap-theme-apiario .ap-photo-tag i { display: none; }
         .ap-theme-apiario .ap-photo-caption {
-            font-family: var(--ap-serif);
-            font-weight: 600;
-            font-size: 1rem;
             text-shadow: none;
         }
 
-        /* Introducción con capitular */
         .ap-theme-apiario .ap-detail-lead {
-            font-size: 1rem;
-            line-height: 1.85;
             color: #334155;
             margin: 0 0 2.5rem;
         }
-        .ap-theme-apiario .ap-detail-lead::first-letter {
-            font-family: var(--ap-serif);
-            font-size: 3.2rem;
-            font-weight: 800;
-            line-height: 0.85;
-            float: left;
-            padding: 0.3rem 0.55rem 0 0;
-            color: var(--ap-green);
-        }
-
         /* "¿Por qué es fundamental?" como cita destacada */
         .ap-theme-apiario .ap-detail-importance-card {
             background: none;
@@ -678,33 +644,22 @@
             margin: 0 0 2.5rem;
         }
         .ap-theme-apiario .ap-importance-tit {
-            font-size: 0.82rem;
-            font-weight: 800;
-            letter-spacing: 0;
-            text-transform: none;
             color: var(--ap-green);
             margin-bottom: 12px;
         }
         .ap-theme-apiario .ap-importance-tit i { display: none; }
         .ap-theme-apiario .ap-importance-text {
-            font-family: var(--ap-serif);
-            font-weight: 500;
-            font-size: 1.05rem;
-            line-height: 1.8;
             color: #334155;
         }
 
         /* Títulos de sección con filete */
         .ap-theme-apiario .ap-gallery-heading,
         .ap-theme-apiario .ap-right-heading {
-            font-size: 0.82rem;
-            font-weight: 800;
-            letter-spacing: 0;
-            text-transform: none;
-            color: var(--ap-green);
+            color: #064e3b;
             gap: 18px;
             margin-bottom: 1.1rem;
         }
+        .ap-theme-apiario .ap-right-heading { color: #0f172a; }
         .ap-theme-apiario .ap-gallery-heading i,
         .ap-theme-apiario .ap-right-heading i { display: none; }
         .ap-theme-apiario .ap-gallery-heading::after,
@@ -744,13 +699,9 @@
             background: transparent !important;
             border: 1px solid #b7cdb8;
             color: var(--ap-green) !important;
-            font-size: 0.85rem;
         }
         .ap-theme-apiario .ap-gallery-info { overflow: visible; }
         .ap-theme-apiario .ap-gallery-info strong {
-            font-family: var(--ap-serif);
-            font-size: 1.02rem;
-            font-weight: 800;
             color: var(--ap-ink);
             white-space: normal;
         }
@@ -763,15 +714,9 @@
         .ap-theme-apiario .ap-gallery-tag-epoca {
             background: none;
             padding: 0;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0;
-            text-transform: none;
             color: var(--ap-green);
         }
         .ap-theme-apiario .ap-gallery-tag-tipo {
-            font-size: 0.8rem;
-            font-weight: 400;
             color: #64748b;
             white-space: normal;
         }
@@ -799,24 +744,16 @@
         .ap-theme-apiario .ap-point-card::before {
             counter-increment: apPt;
             content: counter(apPt, decimal-leading-zero);
-            font-family: var(--ap-serif);
-            font-size: 1.7rem;
-            line-height: 1;
+            font-size: 1.2rem;
             font-weight: 800;
             color: #b4c9b5;
             min-width: 2.6rem;
         }
         .ap-theme-apiario .ap-point-info strong {
-            font-family: var(--ap-serif);
-            font-size: 1.02rem;
-            font-weight: 800;
             color: var(--ap-ink);
-            letter-spacing: 0;
             margin-bottom: 6px;
         }
         .ap-theme-apiario .ap-point-info p {
-            font-size: 0.88rem;
-            line-height: 1.65;
             color: #475569;
         }
 
@@ -829,12 +766,9 @@
             gap: 22px;
             margin: 0;
             box-shadow: none;
-            font-size: 0.92rem;
-            line-height: 1.7;
             color: #e2e8f0;
         }
         .ap-theme-apiario .ap-sena-badge-foot i {
-            font-size: 1.3rem;
             color: #a9cfab;
             width: 52px;
             height: 52px;
@@ -846,9 +780,6 @@
         }
         .ap-theme-apiario .ap-sena-badge-foot strong {
             display: block;
-            font-family: var(--ap-serif);
-            font-size: 1.02rem;
-            font-weight: 800;
             color: #ffffff;
             margin-bottom: 2px;
         }
@@ -857,7 +788,7 @@
             .ap-theme-apiario .ap-detail-box { grid-template-columns: 1fr; padding: 1.75rem 1.5rem 2rem; }
             .ap-theme-apiario .ap-detail-lead,
             .ap-theme-apiario .ap-detail-importance-card { grid-column: 1 / -1; }
-            .ap-theme-apiario .ap-detail-titles h2 { font-size: 1.7rem; }
+
             .ap-theme-apiario .ap-detail-photo-card { height: 220px; }
             .ap-theme-apiario .ap-gallery-grid { grid-template-columns: repeat(2, 1fr); row-gap: 1.25rem; }
             .ap-theme-apiario .ap-gallery-card:nth-child(odd) { border-left: none !important; padding-left: 0; }
