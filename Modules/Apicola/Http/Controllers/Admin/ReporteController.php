@@ -161,13 +161,8 @@ class ReporteController extends Controller
         $apiariosTotal = 0;
 
         try {
-            if (\Illuminate\Support\Facades\Schema::hasTable('apicola_producciones')) {
-                $prod = DB::table('apicola_producciones')->where('estado', 'Activa');
-                if ($desde && $hasta) {
-                    $prod->whereBetween('fecha', [$desde, $hasta]);
-                }
-                $mielTotal = (float) $prod->sum('miel_kg');
-            }
+            // Miel = Producción + miel registrada dentro de las inspecciones
+            $mielTotal = Produccion::mielTotal($desde, $hasta);
 
             if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
                 $query = DB::table('registro_inspeccion')->whereNull('deleted_at');
@@ -215,7 +210,8 @@ class ReporteController extends Controller
                     'id' => 1,
                     'titulo' => 'Reporte Oficial de Producción de Miel',
                     'formato' => 'PDF',
-                    'registros' => DB::table('apicola_producciones')->where('estado', 'Activa')->count(),
+                    'registros' => DB::table('apicola_producciones')->where('estado', 'Activa')->count()
+                        + DB::table('registro_inspeccion')->whereNull('deleted_at')->where('miel_cosechada', '>', 0)->count(),
                     'autor' => Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera'),
                     'tipo' => 'miel',
                     'fecha' => Carbon::now()->format('d/m/Y')
@@ -274,48 +270,70 @@ class ReporteController extends Controller
     }
 
     /**
-     * Producción de miel por colmena, desde el submódulo Producción (tabla apicola_producciones).
-     * Cada fila resume las cosechas vigentes de una colmena en el período.
+     * Miel por colmena: suma lo registrado en Producción y lo cosechado durante inspecciones.
+     * "Cosechas" cuenta ambos tipos de registro.
      */
     private function getProduccionMielData($apiario, $desde, $hasta, $estado)
     {
-        $rows = [];
+        $porColmena = [];
 
         try {
+            $colmenas = DB::table('apicola_colmenas')->whereNull('deleted_at')->get()->keyBy('code');
+
+            // 1) Registros del submódulo Producción
             if (\Illuminate\Support\Facades\Schema::hasTable('apicola_producciones')) {
-                $query = DB::table('apicola_producciones')
+                $q = DB::table('apicola_producciones')
                     ->join('apicola_colmenas', 'apicola_producciones.colmena_id', '=', 'apicola_colmenas.id')
                     ->where('apicola_producciones.estado', 'Activa')
-                    ->select(
-                        'apicola_producciones.*',
-                        'apicola_colmenas.code as colmena_codigo',
-                        'apicola_colmenas.apiario_name',
-                        'apicola_colmenas.status as colmena_status'
-                    );
-
+                    ->select('apicola_producciones.fecha', 'apicola_producciones.miel_kg', 'apicola_producciones.responsable', 'apicola_colmenas.code as codigo');
                 if ($desde && $hasta) {
-                    $query->whereBetween('apicola_producciones.fecha', [$desde, $hasta]);
+                    $q->whereBetween('apicola_producciones.fecha', [$desde, $hasta]);
                 }
+                foreach ($q->get() as $r) {
+                    $porColmena[$r->codigo][] = ['fecha' => $r->fecha, 'kg' => (float) $r->miel_kg, 'responsable' => $r->responsable, 'origen' => 'produccion'];
+                }
+            }
 
-                $records = $query->orderBy('apicola_producciones.fecha', 'desc')->orderBy('apicola_producciones.id', 'desc')->get();
-
-                foreach ($records->groupBy('colmena_codigo') as $code => $items) {
-                    $first = $items->first(); // la cosecha más reciente
-
-                    $rows[] = [
-                        'apiario' => $first->apiario_name ?: 'Apiario SENA La Angostura',
-                        'colmena' => $code,
-                        'ultima_visita' => Carbon::parse($first->fecha)->format('d/m/Y'),
-                        'visitas' => $items->count(),   // número de cosechas
-                        'miel_kg' => (float) $items->sum('miel_kg'),
-                        'responsable' => $first->responsable ?: 'Sergio Barrera',
-                        'estado' => $first->colmena_status ?: 'Activa',
-                    ];
+            // 2) Miel cosechada durante inspecciones (solo las que registraron miel)
+            if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
+                $q = DB::table('registro_inspeccion')
+                    ->join('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+                    ->whereNull('registro_inspeccion.deleted_at')
+                    ->where('registro_inspeccion.miel_cosechada', '>', 0)
+                    ->select('registro_inspeccion.fecha', 'registro_inspeccion.miel_cosechada', 'registro_inspeccion.observaciones', 'colmenas.codigo');
+                if ($desde && $hasta) {
+                    $q->whereBetween('registro_inspeccion.fecha', [$desde, $hasta]);
+                }
+                foreach ($q->get() as $r) {
+                    $resp = null;
+                    if (!empty($r->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $r->observaciones, $m)) {
+                        $resp = trim($m[1]);
+                    }
+                    $porColmena[$r->codigo][] = ['fecha' => $r->fecha, 'kg' => (float) $r->miel_cosechada, 'responsable' => $resp, 'origen' => 'inspeccion'];
                 }
             }
         } catch (\Exception $e) {
-            // Silencio de excepción
+            $colmenas = collect();
         }
+
+        $rows = [];
+        foreach ($porColmena as $code => $registros) {
+            usort($registros, fn ($a, $b) => strcmp($b['fecha'], $a['fecha']));
+            $ultimo = $registros[0];
+            $col = $colmenas[$code] ?? null;
+
+            $rows[] = [
+                'apiario' => $col->apiario_name ?? 'Apiario SENA La Angostura',
+                'colmena' => $code,
+                'ultima_visita' => Carbon::parse($ultimo['fecha'])->format('d/m/Y'),   // última cosecha
+                'visitas' => count($registros),                                         // cosechas (producción + inspecciones)
+                'miel_kg' => round(array_sum(array_column($registros, 'kg')), 2),
+                'responsable' => $ultimo['responsable'] ?: ($col->responsable ?? 'Sergio Barrera'),
+                'estado' => $col->status ?? 'Activa',
+            ];
+        }
+
+        usort($rows, fn ($a, $b) => strcmp($a['colmena'], $b['colmena']));
 
         if ($apiario !== 'all') {
             $rows = array_filter($rows, function ($item) use ($apiario) {

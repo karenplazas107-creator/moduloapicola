@@ -130,7 +130,7 @@
                         <i class="fas fa-chart-column"></i>
                         <span>Producción de miel</span>
                     </div>
-                    <a href="{{ route('apicola.admin.inspecciones.index') }}" class="ap-dash-header-link">
+                    <a href="{{ route('apicola.admin.producciones.index') }}" class="ap-dash-header-link">
                         Últimos 6 meses <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>

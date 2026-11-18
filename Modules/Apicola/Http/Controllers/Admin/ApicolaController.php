@@ -33,7 +33,8 @@ class ApicolaController extends Controller
         }
 
         // 3. Producción de miel (kg)
-        $mielSum = (float) DB::table('registro_inspeccion')->sum('miel_cosechada');
+        // La miel sale de Producción y de las inspecciones (a veces también se cosecha en una inspección)
+        $mielSum = \Modules\Apicola\Entities\Produccion::mielTotal();
         $mielMes = $mielSum > 0 ? round($mielSum, 1) : 125;
 
         // 4. Inventarios con stock bajo
@@ -44,8 +45,9 @@ class ApicolaController extends Controller
         }
 
         // 5. Historial de producción de miel últimos meses
-        $chartLabels = ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'];
-        $chartData = [60, 84, 98, 115, 96, $mielMes];
+        $porMes = \Modules\Apicola\Entities\Produccion::mielPorMes(6);
+        $chartLabels = $porMes['labels'];
+        $chartData = $porMes['total'];
 
         // 6. Actividad Reciente (combinando inspecciones, colmenas, inventario y usuarios)
         $actividades = [];

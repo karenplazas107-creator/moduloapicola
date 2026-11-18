@@ -153,8 +153,9 @@
                             <label class="ap-field-label" for="modalProduccionColmena">COLMENA</label>
                             <select id="modalProduccionColmena" class="ap-field-input" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
                                 @foreach($colmenas as $colm)
-                                    <option value="{{ $colm->code }}" {{ $colm->status === 'Inactiva' ? 'disabled' : '' }}>
-                                        {{ $colm->code }}{{ $colm->status === 'Inactiva' ? ' (Inactiva)' : '' }}
+                                    @php $bloqueo = $colm->motivoNoRegistrable(); @endphp
+                                    <option value="{{ $colm->code }}" {{ $bloqueo ? 'disabled' : '' }}>
+                                        {{ $colm->code }}{{ $colm->status === 'Inactiva' ? ' (Inactiva)' : ($bloqueo ? ' (apiario desactivado)' : '') }}
                                     </option>
                                 @endforeach
                             </select>

@@ -133,12 +133,22 @@
                 </div>`).join('');
         }
 
+        // Miel total de la colmena = producción vigente + miel cosechada durante inspecciones
+        const kgProd = producciones
+            .filter(p => p.colmena === activeColmena && p.estado !== 'Inactiva')
+            .reduce((t, p) => t + (parseFloat(p.mielKg) || 0), 0);
+        const kgInsp = resumen ? (parseFloat(resumen.kg) || 0) : 0;
+
         box.innerHTML = `
             <div class="prod-related-title">
                 <span><i class="fas fa-clipboard-check" style="color:#047857;"></i> Inspecciones de la colmena ${esc(activeColmena)} (${resumen ? resumen.total : 0})</span>
                 <a class="prod-related-link" href="${link}">Ver inspecciones <i class="fas fa-arrow-right"></i></a>
             </div>
-            ${filas}`;
+            ${filas}
+            <div class="prod-related-row" style="font-weight:800; color:#0f172a;">
+                <span>Miel total de la colmena (producción ${fmtKg(kgProd)} kg + inspecciones ${fmtKg(kgInsp)} kg)</span>
+                <span>${fmtKg(kgProd + kgInsp)} kg</span>
+            </div>`;
     }
 
     // ---------------------------------------------------------------- responsable (lista compartida)
@@ -308,6 +318,7 @@
             closeProduccionModal();
             renderProduccionesTable();
             updateMetrics();
+            renderRelatedInspecciones();
             showToast(result.message);
         } catch (err) {
             Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: err.message, confirmButtonColor: '#286043' });

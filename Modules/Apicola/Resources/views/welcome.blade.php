@@ -183,7 +183,14 @@
                     <i class="fas fa-map-marked-alt"></i>
                 </div>
                 <h3>Apiario</h3>
-                <p>Manejo y control técnico de 20 colmenas a cargo del apicultor Sergio Barrera.</p>
+                @php
+                    $nAp = (int) ($stats['apiarios'] ?? 0);
+                    $nCol = (int) ($stats['colmenas'] ?? 0);
+                    $palabras = [1 => 'un', 2 => 'dos', 3 => 'tres', 4 => 'cuatro', 5 => 'cinco', 6 => 'seis', 7 => 'siete', 8 => 'ocho', 9 => 'nueve', 10 => 'diez'];
+                    $apTxt = $nAp === 1 ? 'un apiario' : (($palabras[$nAp] ?? $nAp) . ' apiarios');
+                    $colTxt = $nCol . ($nCol === 1 ? ' colmena' : ' colmenas');
+                @endphp
+                <p>Manejo y control técnico de {{ $colTxt }}{{ $nAp > 1 ? ' en ' . $apTxt : '' }} a cargo del apicultor Sergio Barrera.</p>
             </div>
 
             {{-- Feature 2: Producción de Miel --}}
@@ -201,7 +208,7 @@
                     <i class="fas fa-hive"></i>
                 </div>
                 <h3>Colmenas</h3>
-                <p>Registro, control y seguimiento de las 20 colmenas activas.</p>
+                <p>Registro, control y seguimiento {{ $nCol === 1 ? 'de la colmena activa' : 'de las ' . $nCol . ' colmenas activas' }}.</p>
             </div>
 
             {{-- Feature 4: Calendario floral --}}
@@ -328,6 +335,7 @@
     </section>
 
     {{-- ==================== SCRIPTS ==================== --}}
+    <script>window.ApicolaStats = @json($stats ?? ['apiarios' => 1, 'colmenas' => 0]);</script>
     <script src="{{ asset('modules/apicola/js/welcome.js') }}?v={{ time() }}"></script>
 </body>
 </html>

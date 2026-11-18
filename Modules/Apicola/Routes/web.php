@@ -29,7 +29,13 @@ Route::get('apicola', function () {
             return redirect()->route('apicola.admin.dashboard');
         }
     }
-    return view('apicola::welcome');
+    // Cifras de la portada: se calculan solas a partir de lo registrado en el sistema
+    $stats = [
+        'apiarios' => \Modules\Apicola\Entities\Apiario::activos()->count(),
+        'colmenas' => \Modules\Apicola\Entities\Colmena::where('status', '!=', 'Inactiva')->count(),
+    ];
+
+    return view('apicola::welcome', compact('stats'));
 })->name('apicola.welcome');
 
 // Ruta de redirección directa tras autenticación
@@ -78,6 +84,7 @@ Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function 
     Route::get('inspecciones', [InspeccionController::class, 'index'])->name('apicola.admin.inspecciones.index');
     Route::get('colmenas/{code}/inspecciones', [InspeccionController::class, 'byColmena'])->name('apicola.admin.colmenas.inspecciones');
     Route::post('inspecciones', [InspeccionController::class, 'store'])->name('apicola.admin.inspecciones.store');
+    Route::put('inspecciones/{id}', [InspeccionController::class, 'update'])->name('apicola.admin.inspecciones.update');
     Route::delete('inspecciones/{id}', [InspeccionController::class, 'destroy'])->name('apicola.admin.inspecciones.destroy');
     Route::post('inspecciones/{id}/toggle-status', [InspeccionController::class, 'toggleStatus'])->name('apicola.admin.inspecciones.toggle-status');
     Route::get('enfermedades', [InspeccionController::class, 'getEnfermedades'])->name('apicola.admin.enfermedades.index');

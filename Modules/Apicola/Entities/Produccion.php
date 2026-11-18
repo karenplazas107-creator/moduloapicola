@@ -60,4 +60,87 @@ class Produccion extends Model
 
         return $resumen;
     }
+
+    /**
+     * Miel cosechada = la registrada en Producción + la registrada dentro de las inspecciones
+     * (a veces también se cosecha miel durante una inspección). Solo cuentan registros vigentes.
+     */
+    public static function mielTotal(?string $desde = null, ?string $hasta = null): float
+    {
+        $total = 0.0;
+
+        $prod = \Illuminate\Support\Facades\DB::table('apicola_producciones')->where('estado', 'Activa');
+        if ($desde && $hasta) {
+            $prod->whereBetween('fecha', [$desde, $hasta]);
+        }
+        $total += (float) $prod->sum('miel_kg');
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('registro_inspeccion')) {
+            $insp = \Illuminate\Support\Facades\DB::table('registro_inspeccion')->whereNull('deleted_at');
+            if ($desde && $hasta) {
+                $insp->whereBetween('fecha', [$desde, $hasta]);
+            }
+            $total += (float) $insp->sum('miel_cosechada');
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Miel por mes de los últimos N meses (producción + inspecciones), para las gráficas.
+     */
+    public static function mielPorMes(int $meses = 6, ?int $colmenaId = null): array
+    {
+        $nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        $labels = [];
+        $produccion = [];
+        $inspeccion = [];
+
+        $codigo = $colmenaId ? \Illuminate\Support\Facades\DB::table('apicola_colmenas')->where('id', $colmenaId)->value('code') : null;
+        $idLegacy = $codigo ? \Illuminate\Support\Facades\DB::table('colmenas')->where('codigo', $codigo)->value('id_colmenas') : null;
+
+        for ($i = $meses - 1; $i >= 0; $i--) {
+            $inicio = \Carbon\Carbon::now()->startOfMonth()->subMonths($i);
+            $fin = (clone $inicio)->endOfMonth();
+            $labels[] = $nombres[$inicio->month - 1] . ' ' . $inicio->format('y');
+
+            $q = \Illuminate\Support\Facades\DB::table('apicola_producciones')
+                ->where('estado', 'Activa')
+                ->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
+            if ($colmenaId) {
+                $q->where('colmena_id', $colmenaId);
+            }
+            $produccion[] = round((float) $q->sum('miel_kg'), 2);
+
+            $qi = \Illuminate\Support\Facades\DB::table('registro_inspeccion')
+                ->whereNull('deleted_at')
+                ->whereBetween('fecha', [$inicio->toDateString(), $fin->toDateString()]);
+            if ($colmenaId) {
+                $qi->where('id_colmena', $idLegacy ?: 0);
+            }
+            $inspeccion[] = round((float) $qi->sum('miel_cosechada'), 2);
+        }
+
+        return [
+            'labels' => $labels,
+            'produccion' => $produccion,
+            'inspeccion' => $inspeccion,
+            'total' => array_map(fn ($a, $b) => round($a + $b, 2), $produccion, $inspeccion),
+        ];
+    }
+
+    /**
+     * Miel (kg) registrada en inspecciones vigentes, por código de colmena.
+     */
+    public static function mielInspeccionesPorColmena(): array
+    {
+        return \Illuminate\Support\Facades\DB::table('registro_inspeccion')
+            ->join('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+            ->whereNull('registro_inspeccion.deleted_at')
+            ->groupBy('colmenas.codigo')
+            ->selectRaw('colmenas.codigo as codigo, SUM(registro_inspeccion.miel_cosechada) as kg')
+            ->pluck('kg', 'codigo')
+            ->map(fn ($v) => round((float) $v, 2))
+            ->all();
+    }
 }

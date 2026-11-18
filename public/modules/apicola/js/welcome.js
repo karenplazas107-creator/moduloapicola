@@ -40,6 +40,20 @@
             observer.observe(card);
         });
 
+        // Cifras de la portada: se calculan solas con lo registrado en el sistema
+        const apStats = window.ApicolaStats || { apiarios: 1, colmenas: 0 };
+        const nAp = Math.max(parseInt(apStats.apiarios) || 0, 0);
+        const nCol = Math.max(parseInt(apStats.colmenas) || 0, 0);
+        const palabras = ['cero', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez'];
+        const numPalabra = (n) => (n >= 0 && n <= 10) ? palabras[n] : String(n);
+        const colmenasTxt = `${nCol} ${nCol === 1 ? 'colmena' : 'colmenas'}`;            // "6 colmenas" / "1 colmena"
+        const tecnificadas = nCol === 1 ? 'tecnificada' : 'tecnificadas';
+        const activas = nCol === 1 ? 'activa' : 'activas';
+        const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+        const apiariosTitulo = nAp === 1 ? '1 único apiario tecnificado'
+            : (nAp === 0 ? 'Sin apiarios activos' : capitalizar(`${numPalabra(nAp)} apiarios tecnificados`));
+        const apiariosCon = nAp === 1 ? '1 único apiario' : `${numPalabra(nAp)} apiarios`;
+
         // Datos pedagógicos completos para las 5 áreas apícolas
         const apFeaturesData = {
             apiarios: {
@@ -49,19 +63,19 @@
                 photoTag: "Centro La Angostura • Apiario Central",
                 photoDesc: "Georreferenciación y radio de pecoreo de 3 km a la redonda",
                 title: "¿Qué es el Apiario SENA?",
-                subtitle: "1 único apiario tecnificado con 20 colmenas a cargo de Sergio Barrera",
-                lead: "Un apiario (o colmenar) es el espacio físico debidamente acondicionado donde se ubica y maneja el conjunto de colmenas de abejas melíferas (<em>Apis mellifera</em>). En el Centro de Formación Agroindustrial La Angostura disponemos de <strong>un único apiario centralizado</strong>, diseñado bajo rigurosos parámetros técnicos y de bioseguridad, el cual alberga actualmente <strong>20 colmenas tecnificadas</strong> a cargo del apicultor <strong>Sergio Barrera</strong>.",
-                importance: "Concentrar las 20 colmenas en un apiario técnicamente planificado permite estandarizar las inspecciones sanitarias, garantizar una distancia de bioseguridad reglamentaria (> 200 m de caminos y corrales), optimizar las fuentes de néctar del centro y amortiguar el calor del Huila con microclima adecuado.",
-                senaNote: "En el Centro La Angostura contamos con 1 único apiario con 20 colmenas activas a cargo del apicultor Sergio Barrera, donde los aprendices realizan prácticas reales de manejo técnico, multiplicación, nutrición y cosecha de miel.",
+                subtitle: `${apiariosTitulo} con ${colmenasTxt} a cargo de Sergio Barrera`,
+                lead: `Un apiario (o colmenar) es el espacio físico debidamente acondicionado donde se ubica y maneja el conjunto de colmenas de abejas melíferas (<em>Apis mellifera</em>). En el Centro de Formación Agroindustrial La Angostura disponemos de <strong>${nAp === 1 ? "un único apiario centralizado" : numPalabra(nAp) + " apiarios"}</strong>, diseñado${nAp === 1 ? "" : "s"} bajo rigurosos parámetros técnicos y de bioseguridad, ${nAp === 1 ? "el cual alberga" : "los cuales albergan"} actualmente <strong>${colmenasTxt} ${tecnificadas}</strong> a cargo del apicultor <strong>Sergio Barrera</strong>.`,
+                importance: `Concentrar ${nCol === 1 ? "la colmena" : "las " + nCol + " colmenas"} en ${nAp === 1 ? "un apiario técnicamente planificado" : "apiarios técnicamente planificados"} permite estandarizar las inspecciones sanitarias, garantizar una distancia de bioseguridad reglamentaria (> 200 m de caminos y corrales), optimizar las fuentes de néctar del centro y amortiguar el calor del Huila con microclima adecuado.`,
+                senaNote: `En el Centro La Angostura contamos con ${apiariosCon} con ${colmenasTxt} ${activas} a cargo del apicultor Sergio Barrera, donde los aprendices realizan prácticas reales de manejo técnico, multiplicación, nutrición y cosecha de miel.`,
                 galleryHeading: "Condiciones Técnicas del Apiario Central:",
                 gallery: [
-                    { name: "20 Colmenas", epoca: "Activas", tipo: "Tipo Langstroth", icon: "fa-boxes-stacked", color: "#2e7d32" },
+                    { name: `${nCol} ${nCol === 1 ? "Colmena" : "Colmenas"}`, epoca: nCol === 1 ? "Activa" : "Activas", tipo: "Tipo Langstroth", icon: "fa-boxes-stacked", color: "#2e7d32" },
                     { name: "Orientación Este", epoca: "Sol Matinal", tipo: "Salidas Tempranas", icon: "fa-compass", color: "#2e7d32" },
                     { name: "Aislamiento > 200m", epoca: "Bioseguro", tipo: "Comunidad Protegida", icon: "fa-shield-halved", color: "#2e7d32" },
                     { name: "Bebederos Limpios", epoca: "Permanente", tipo: "Termorregulación 35°C", icon: "fa-droplet", color: "#2e7d32" }
                 ],
                 points: [
-                    { icon: "fa-cubes-stacked", title: "20 Colmenas Tecnificadas", desc: "Población de 20 colmenas tipo Langstroth sobre bases individuales con trampas antihormigas a cargo de Sergio Barrera." },
+                    { icon: "fa-cubes-stacked", title: `${nCol} ${nCol === 1 ? "Colmena Tecnificada" : "Colmenas Tecnificadas"}`, desc: `Población de ${colmenasTxt} tipo Langstroth sobre bases individuales con trampas antihormigas a cargo de Sergio Barrera.` },
                     { icon: "fa-compass", title: "Orientación y Piqueras", desc: "Orientadas al Este para aprovechar la luz matutina e impulsar las salidas tempranas de pecoreo." },
                     { icon: "fa-droplet", title: "Fuentes de Agua Limpia", desc: "Bebederos limpios e hidratación permanente para que las abejas termorregulen el nido a 35°C." },
                     { icon: "fa-shield-halved", title: "Bioseguridad y Barreras", desc: "Aislamiento superior a 200 metros y barreras vegetales vivas que obligan a las abejas a ganar altura." }
@@ -96,13 +110,13 @@
                 badge: "Manejo Técnico de Colmenas",
                 icon: "fa-hive",
                 photo: "/modules/apicola/img/colmenas_langstroth.jpg",
-                photoTag: "Colmenas Langstroth • Más de 20 tecnificadas",
+                photoTag: `Colmenas Langstroth • ${colmenasTxt} ${tecnificadas}`,
                 photoDesc: "Estructura modular con cámara de cría y alzas melarias",
                 title: "¿Cómo se manejan las Colmenas en el SENA?",
-                subtitle: "Monitoreo integral de más de 20 colmenas tecnificadas",
-                lead: "La colmena tecnificada (modelo Langstroth) es una estructura modular de cuadros móviles que respeta el 'espacio abeja' (6 a 9 mm). En nuestro apiario del SENA, cada una de las <strong>más de 20 colmenas</strong> alberga poblaciones que superan los 50.000 individuos perfectamente jerarquizados: la reina fértil, miles de obreras y los zánganos.",
-                importance: "El seguimiento cuadro por cuadro a cada una de las más de 20 colmenas permite monitorear el vigor reproductivo de la reina, calcular las reservas de miel y polen, planificar la alimentación de sostén y mantener la sanidad del colmenar.",
-                senaNote: "Con más de 20 colmenas activas en el apiario del SENA, los aprendices aprenden lectura de cuadros, monitoreo sanitario y registros digitales de producción.",
+                subtitle: `Monitoreo integral de ${colmenasTxt} ${tecnificadas}`,
+                lead: `La colmena tecnificada (modelo Langstroth) es una estructura modular de cuadros móviles que respeta el 'espacio abeja' (6 a 9 mm). En nuestro apiario del SENA, ${nCol === 1 ? "la <strong>colmena</strong> alberga" : "cada una de las <strong>" + nCol + " colmenas</strong> alberga"} poblaciones que superan los 50.000 individuos perfectamente jerarquizados: la reina fértil, miles de obreras y los zánganos.`,
+                importance: `El seguimiento cuadro por cuadro a ${nCol === 1 ? "la colmena" : "cada una de las " + nCol + " colmenas"} permite monitorear el vigor reproductivo de la reina, calcular las reservas de miel y polen, planificar la alimentación de sostén y mantener la sanidad del colmenar.`,
+                senaNote: `Con ${colmenasTxt} ${activas} en ${nAp > 1 ? "los apiarios" : "el apiario"} del SENA, los aprendices aprenden lectura de cuadros, monitoreo sanitario y registros digitales de producción.`,
                 galleryHeading: "Arquitectura Modular de la Colmena:",
                 gallery: [
                     { name: "Cámara de Cría", epoca: "Nivel 1", tipo: "Postura Reina", icon: "fa-crown", color: "#10b981" },

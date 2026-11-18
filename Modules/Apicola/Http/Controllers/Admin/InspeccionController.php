@@ -112,11 +112,11 @@ class InspeccionController extends Controller
     }
 
     /**
-     * Almacenar una nueva inspección / visita en registro_inspeccion y enfermedades_registro.
+     * Reglas de validación compartidas por crear y editar una inspección.
      */
-    public function store(Request $request)
+    private function validarInspeccion(Request $request): array
     {
-        $validated = $request->validate([
+        return $request->validate([
             'registration_number' => 'required|string|max:50',
             'colmena_code' => 'required|string|max:50',
             'date' => 'required|date',
@@ -135,24 +135,55 @@ class InspeccionController extends Controller
             'responsable.regex' => 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
             'feed_supplied.regex' => 'No se permiten números en la alimentación suministrada. Solo se permiten letras.',
         ]);
+    }
 
-        $user = auth()->user();
-
-        // 1. Obtener id_colmena de la tabla colmenas
-        $colmenaDb = DB::table('colmenas')->where('codigo', $request->input('colmena_code'))->first();
-        if (!$colmenaDb) {
-            $colmenaDb = DB::table('colmenas')->first();
+    /**
+     * Busca la colmena por código y verifica que se pueda inspeccionar (activa y en un apiario activo).
+     * Devuelve [colmena, idLegacy] o una respuesta de error.
+     */
+    private function resolverColmena(string $code)
+    {
+        $colmena = \Modules\Apicola\Entities\Colmena::with('apiario')->where('code', $code)->first();
+        if (!$colmena) {
+            return response()->json(['success' => false, 'message' => "La colmena \"{$code}\" no existe. Escribe un código registrado."], 422);
         }
-        $idColmena = $colmenaDb ? $colmenaDb->id_colmenas : 1;
 
-        // Formatear notas con el responsable si no hay columna responsable
+        if ($motivo = $colmena->motivoNoRegistrable()) {
+            return response()->json(['success' => false, 'message' => $motivo], 422);
+        }
+
+        $legacy = DB::table('colmenas')->where('codigo', $colmena->code)->first();
+        if (!$legacy) {
+            return response()->json(['success' => false, 'message' => "La colmena {$colmena->code} no está sincronizada. Edítala y guárdala de nuevo."], 422);
+        }
+
+        return [$colmena, $legacy->id_colmenas];
+    }
+
+    private function guardarEnfermedades(int $idRegistro, array $enfermedades): void
+    {
+        DB::table('enfermedades_registro')->where('id_registro', $idRegistro)->delete();
+
+        foreach ($enfermedades as $enf) {
+            if (!empty($enf)) {
+                DB::table('enfermedades_registro')->insert([
+                    'id_registro' => $idRegistro,
+                    'nombre_enfermedad' => $enf,
+                    'estado' => 'Detectada',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+    }
+
+    private function datosInspeccion(Request $request, $idColmena): array
+    {
         $notas = $request->input('notes');
         $responsableText = \Modules\Apicola\Entities\Responsable::registrar($request->input('responsable'));
         $observacionesFinal = $responsableText ? "Responsable: {$responsableText}" . ($notas ? " | {$notas}" : "") : $notas;
 
-        // 2. Insertar en registro_inspeccion vinculando el usuario administrador
-        $idRegistro = DB::table('registro_inspeccion')->insertGetId([
-            'user_id' => $user?->id,
+        return [
             'id_colmena' => $idColmena,
             'numero_registro' => $request->input('registration_number'),
             'fecha' => $request->input('date'),
@@ -164,35 +195,80 @@ class InspeccionController extends Controller
             'color_reina' => $request->input('queen_color') ?? 'Sin marcar',
             'alimentacion_suministrada' => $request->input('feed_supplied'),
             'observaciones' => $observacionesFinal,
-            'estado' => 'Activa',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        ];
+    }
 
-        // 3. Insertar enfermedades detectadas en enfermedades_registro
-        if ($request->has('diseases') && is_array($request->input('diseases'))) {
-            foreach ($request->input('diseases') as $enf) {
-                if (!empty($enf)) {
-                    DB::table('enfermedades_registro')->insert([
-                        'id_registro' => $idRegistro,
-                        'nombre_enfermedad' => $enf,
-                        'estado' => 'Detectada',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
+    /**
+     * Almacenar una nueva inspección en registro_inspeccion y enfermedades_registro.
+     * No se permiten inspecciones en colmenas inactivas ni de apiarios desactivados.
+     */
+    public function store(Request $request)
+    {
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
         }
+        [$colmena, $idColmena] = $resuelto;
+
+        $idRegistro = DB::table('registro_inspeccion')->insertGetId(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            [
+                'user_id' => auth()->user()?->id,
+                'estado' => 'Activa',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ));
+
+        $this->guardarEnfermedades($idRegistro, (array) $request->input('diseases', []));
+        \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($colmena->code);
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Visita registrada con éxito en registro_inspeccion.',
+                'message' => 'Inspección registrada con éxito.',
                 'id_registro' => $idRegistro
             ], 201);
         }
 
-        return redirect()->back()->with('success', 'Visita registrada con éxito.');
+        return redirect()->back()->with('success', 'Inspección registrada con éxito.');
+    }
+
+    /**
+     * Edita una inspección existente (antes los cambios solo se veían en pantalla y no se guardaban).
+     */
+    public function update(Request $request, $id)
+    {
+        $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+        if (!$registro) {
+            return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
+        }
+
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
+        }
+        [$colmena, $idColmena] = $resuelto;
+
+        $codigoAnterior = DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo');
+
+        DB::table('registro_inspeccion')->where('id_registro', $id)->update(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            ['updated_at' => now()]
+        ));
+
+        $this->guardarEnfermedades((int) $id, (array) $request->input('diseases', []));
+
+        \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($colmena->code);
+        if ($codigoAnterior && $codigoAnterior !== $colmena->code) {
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($codigoAnterior);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Inspección actualizada con éxito.', 'id_registro' => (int) $id]);
     }
 
     /**
@@ -223,6 +299,7 @@ class InspeccionController extends Controller
             if ($motivo) {
                 MotivoBaja::registrar('inspeccion', $id, $registro->numero_registro, 'desactivar', $motivo);
             }
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita(DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo'));
 
             return response()->json([
                 'success' => true,
@@ -258,6 +335,7 @@ class InspeccionController extends Controller
 
             $numero = $registro->numero_registro ?: 'REG-' . $id;
             MotivoBaja::registrar('inspeccion', $id, $numero, 'desactivar', $motivo);
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita(DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo'));
 
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([

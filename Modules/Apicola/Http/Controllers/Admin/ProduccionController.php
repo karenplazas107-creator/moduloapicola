@@ -27,7 +27,7 @@ class ProduccionController extends Controller
 
     private function render(?string $selected)
     {
-        $colmenas = Colmena::orderBy('code', 'asc')->get();
+        $colmenas = Colmena::with('apiario')->orderBy('code', 'asc')->get();
         if ($selected === null) {
             $selected = $colmenas->first()->code ?? '';
         }
@@ -81,6 +81,8 @@ class ProduccionController extends Controller
     {
         $resumen = [];
         try {
+            $kgInspeccion = Produccion::mielInspeccionesPorColmena();
+
             $rows = DB::table('registro_inspeccion')
                 ->join('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
                 ->whereNull('registro_inspeccion.deleted_at')
@@ -92,6 +94,7 @@ class ProduccionController extends Controller
             foreach ($rows as $r) {
                 $code = $r->codigo;
                 $resumen[$code]['total'] = ($resumen[$code]['total'] ?? 0) + 1;
+                $resumen[$code]['kg'] = $kgInspeccion[$code] ?? 0;
                 if (count($resumen[$code]['lista'] ?? []) < 5) {
                     $resumen[$code]['lista'][] = [
                         'regNumber' => $r->numero_registro ?: 'REG-' . str_pad($r->id_registro, 4, '0', STR_PAD_LEFT),
@@ -129,11 +132,9 @@ class ProduccionController extends Controller
         $v = $this->reglas($request);
         $colmena = Colmena::where('code', $v['colmena_code'])->firstOrFail();
 
-        if ($colmena->status === 'Inactiva') {
-            return response()->json([
-                'success' => false,
-                'message' => "La colmena {$colmena->code} está inactiva: no se pueden registrar producciones.",
-            ], 422);
+        // No se registra producción en colmenas inactivas ni en apiarios desactivados
+        if ($motivoBloqueo = $colmena->motivoNoRegistrable()) {
+            return response()->json(['success' => false, 'message' => $motivoBloqueo], 422);
         }
 
         $produccion = Produccion::create([
@@ -159,6 +160,11 @@ class ProduccionController extends Controller
         $produccion = Produccion::findOrFail($id);
         $v = $this->reglas($request);
         $colmena = Colmena::where('code', $v['colmena_code'])->firstOrFail();
+
+        // Al cambiar de colmena se aplican las mismas reglas que al crear
+        if ($colmena->id !== $produccion->colmena_id && ($motivoBloqueo = $colmena->motivoNoRegistrable())) {
+            return response()->json(['success' => false, 'message' => $motivoBloqueo], 422);
+        }
 
         $produccion->update([
             'colmena_id' => $colmena->id,
