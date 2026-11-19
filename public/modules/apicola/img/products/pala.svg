@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="48" height="48">
+  <g transform="rotate(-30 32 32)">
+    <!-- Handle -->
+    <rect x="30" y="8" width="4" height="34" rx="2" fill="#8d6e63"/>
+    <!-- Top D-grip -->
+    <path d="M28 6 H36 V12 H28 Z" fill="#455a64" rx="1"/>
+    <ellipse cx="32" cy="9" rx="2" ry="1.5" fill="#ffffff"/>
+    <!-- Shovel blade -->
+    <path d="M24 40 L40 40 L38 56 Q32 62 26 56 Z" fill="#546e7a"/>
+    <path d="M26 42 L38 42 L36 53 Q32 58 28 53 Z" fill="#78909c"/>
+    <line x1="32" y1="42" x2="32" y2="54" stroke="#37474f" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>
+

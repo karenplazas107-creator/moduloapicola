@@ -1,0 +1,392 @@
+<?php
+
+namespace Modules\Apicola\Http\Controllers\Admin;
+
+use Modules\Apicola\Entities\MotivoBaja;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Modules\Apicola\Entities\Inspeccion;
+use Modules\Apicola\Entities\Colmena;
+
+class InspeccionController extends Controller
+{
+    use \Modules\Apicola\Http\Controllers\Concerns\GuardaInspecciones;
+
+    /**
+     * Muestra la vista de Registro e Inspección de colmenas.
+     */
+    public function index(Request $request)
+    {
+        $colmenas = Colmena::orderBy('code', 'asc')->get();
+        $firstCode = $colmenas->first() ? ($colmenas->first()->code ?? $colmenas->first()->codigo ?? '') : '';
+        $selectedColmena = $request->get('colmena', $firstCode);
+        $visitasInit = $this->getVisitasFromDb();
+
+        $enfermedades = DB::table('apicola_enfermedades')
+            ->where('estado', 'Activa')
+            ->orderBy('nombre', 'asc')
+            ->get();
+        $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
+        $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
+        $produccionResumen = \Modules\Apicola\Entities\Produccion::resumenPorColmena();
+
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos', 'produccionResumen'));
+    }
+
+    /**
+     * Inspecciones de una colmena específica por código.
+     */
+    public function byColmena($code)
+    {
+        $colmenas = Colmena::orderBy('code', 'asc')->get();
+        $selectedColmena = $code;
+        $visitasInit = $this->getVisitasFromDb();
+
+        $enfermedades = DB::table('apicola_enfermedades')
+            ->where('estado', 'Activa')
+            ->orderBy('nombre', 'asc')
+            ->get();
+        $enfermedadesDisponibles = $enfermedades->pluck('nombre')->toArray();
+        $responsablesSugeridos = \Modules\Apicola\Entities\Responsable::todos();
+        $produccionResumen = \Modules\Apicola\Entities\Produccion::resumenPorColmena();
+
+        return view('apicola::Admin.Colmenas.inspeccion', compact('selectedColmena', 'colmenas', 'visitasInit', 'enfermedadesDisponibles', 'enfermedades', 'responsablesSugeridos', 'produccionResumen'));
+    }
+
+    /**
+     * Cargar todas las inspecciones desde la tabla física registro_inspeccion y sus enfermedades.
+     * El Administrador puede ver todo lo registrado en el sistema.
+     */
+    private function getVisitasFromDb()
+    {
+        try {
+            $visitasDb = DB::table('registro_inspeccion')
+                ->leftJoin('colmenas', 'registro_inspeccion.id_colmena', '=', 'colmenas.id_colmenas')
+                ->select('registro_inspeccion.*', 'colmenas.codigo as colmena_codigo')
+                ->orderBy('registro_inspeccion.fecha', 'desc')
+                ->get();
+
+            $enfermedades = DB::table('enfermedades_registro')->get()->groupBy('id_registro');
+
+            // Mapa de usuarios para mostrar nombres reales de aprendices y administradores
+            $usersMap = DB::table('users')
+                ->leftJoin('people', 'users.person_id', '=', 'people.id')
+                ->select('users.id', 'users.nickname', 'people.first_name', 'people.first_last_name')
+                ->get()
+                ->keyBy('id');
+
+            return $visitasDb->map(function ($r) use ($enfermedades, $usersMap) {
+                $enfs = $enfermedades->has($r->id_registro) 
+                    ? $enfermedades[$r->id_registro]->pluck('nombre_enfermedad')->toArray() 
+                    : [];
+
+                $responsable = 'Sergio Barrera';
+                if (!empty($r->observaciones) && preg_match('/Responsable:\s*([^|]+)/', $r->observaciones, $m)) {
+                    $responsable = trim($m[1]);
+                } elseif (!empty($r->user_id) && isset($usersMap[$r->user_id])) {
+                    $u = $usersMap[$r->user_id];
+                    $responsable = trim(($u->first_name ?? '') . ' ' . ($u->first_last_name ?? '')) ?: $u->nickname;
+                }
+
+                return [
+                    'id' => (int)$r->id_registro,
+                    'regNumber' => $r->numero_registro ?: 'REG-' . str_pad($r->id_registro, 4, '0', STR_PAD_LEFT),
+                    'colmena' => $r->colmena_codigo ?: 'Col-01',
+                    'fecha' => \Carbon\Carbon::parse($r->fecha)->format('d/m/Y'),
+                    'estadoGeneral' => $r->estado_colmena ?: 'Bueno',
+                    'presenciaMiel' => $r->presencia_miel ? 'Bueno' : 'Regular',
+                    'mielKg' => (float)$r->miel_cosechada,
+                    'reinaVista' => (bool)$r->reina_vista,
+                    'reinaMarcada' => (bool)$r->reina_marcada,
+                    'colorMarca' => $r->color_reina ?: 'Sin marcar',
+                    'responsable' => $responsable,
+                    'enfermedades' => $enfs,
+                    'labores' => [],
+                    'alimenSuministrada' => $r->alimentacion_suministrada ?: '',
+                    'notas' => $r->observaciones ?: '',
+                    'estado' => !empty($r->estado) ? $r->estado : (!empty($r->deleted_at) ? 'Inactiva' : 'Activa'),
+                ];
+            });
+        } catch (\Exception $e) {
+            return collect();
+        }
+    }
+
+    /**
+     * Almacenar una nueva inspección en registro_inspeccion y enfermedades_registro.
+     * No se permiten inspecciones en colmenas inactivas ni de apiarios desactivados.
+     */
+    public function store(Request $request)
+    {
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
+        }
+        [$colmena, $idColmena] = $resuelto;
+
+        $idRegistro = DB::table('registro_inspeccion')->insertGetId(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            [
+                'user_id' => auth()->user()?->id,
+                'estado' => 'Activa',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ));
+
+        $this->guardarEnfermedades($idRegistro, (array) $request->input('diseases', []));
+        \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($colmena->code);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Inspección registrada con éxito.',
+                'id_registro' => $idRegistro
+            ], 201);
+        }
+
+        return redirect()->back()->with('success', 'Inspección registrada con éxito.');
+    }
+
+    /**
+     * Edita una inspección existente (antes los cambios solo se veían en pantalla y no se guardaban).
+     */
+    public function update(Request $request, $id)
+    {
+        $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+        if (!$registro) {
+            return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
+        }
+
+        $this->validarInspeccion($request);
+
+        $resuelto = $this->resolverColmena($request->input('colmena_code'));
+        if ($resuelto instanceof \Illuminate\Http\JsonResponse) {
+            return $resuelto;
+        }
+        [$colmena, $idColmena] = $resuelto;
+
+        $codigoAnterior = DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo');
+
+        DB::table('registro_inspeccion')->where('id_registro', $id)->update(array_merge(
+            $this->datosInspeccion($request, $idColmena),
+            ['updated_at' => now()]
+        ));
+
+        $this->guardarEnfermedades((int) $id, (array) $request->input('diseases', []));
+
+        \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($colmena->code);
+        if ($codigoAnterior && $codigoAnterior !== $colmena->code) {
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita($codigoAnterior);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Inspección actualizada con éxito.', 'id_registro' => (int) $id]);
+    }
+
+    /**
+     * Alterna el estado de una inspección / visita (Activa / Inactiva).
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        // Para desactivar es obligatorio indicar el motivo
+        $reg0 = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+        $estado0 = $reg0 ? ($reg0->estado ?? ($reg0->deleted_at ? 'Inactiva' : 'Activa')) : 'Inactiva';
+        $motivo = $estado0 !== 'Inactiva' ? MotivoBaja::exigir($request) : null;
+
+        try {
+            $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+            if (!$registro) {
+                return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
+            }
+
+            $currentEstado = $registro->estado ?? ($registro->deleted_at ? 'Inactiva' : 'Activa');
+            $nuevoEstado = ($currentEstado === 'Inactiva') ? 'Activa' : 'Inactiva';
+            $deletedAt = ($nuevoEstado === 'Inactiva') ? now() : null;
+
+            DB::table('registro_inspeccion')->where('id_registro', $id)->update([
+                'estado' => $nuevoEstado,
+                'deleted_at' => $deletedAt,
+                'updated_at' => now(),
+            ]);
+            if ($motivo) {
+                MotivoBaja::registrar('inspeccion', $id, $registro->numero_registro, 'desactivar', $motivo);
+            }
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita(DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo'));
+
+            return response()->json([
+                'success' => true,
+                'nuevo_estado' => $nuevoEstado,
+                'message' => "Visita \"{$registro->numero_registro}\" marcada como {$nuevoEstado}.",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar estado de la inspección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Desactiva una inspección / visita sin eliminarla de la base de datos.
+     */
+    public function destroy(Request $request, $id)
+    {
+        $motivo = MotivoBaja::exigir($request);
+
+        try {
+            $registro = DB::table('registro_inspeccion')->where('id_registro', $id)->first();
+            if (!$registro) {
+                return response()->json(['success' => false, 'message' => 'Inspección no encontrada.'], 404);
+            }
+
+            DB::table('registro_inspeccion')->where('id_registro', $id)->update([
+                'estado' => 'Inactiva',
+                'deleted_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $numero = $registro->numero_registro ?: 'REG-' . $id;
+            MotivoBaja::registrar('inspeccion', $id, $numero, 'desactivar', $motivo);
+            \Modules\Apicola\Entities\Colmena::recalcularUltimaVisita(DB::table('colmenas')->where('id_colmenas', $registro->id_colmena)->value('codigo'));
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'nuevo_estado' => 'Inactiva',
+                    'message' => "Visita \"{$numero}\" desactivada con éxito.",
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Visita \"{$numero}\" desactivada con éxito.");
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al desactivar la inspección: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener listado de enfermedades registradas en formato JSON.
+     */
+    public function getEnfermedades()
+    {
+        try {
+            $enfermedades = DB::table('apicola_enfermedades')
+                ->where('estado', 'Activa')
+                ->orderBy('nombre', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $enfermedades
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener enfermedades: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Registrar una nueva enfermedad en el catálogo oficial apícola.
+     */
+    public function storeEnfermedad(Request $request)
+    {
+        $validated = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:150',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.]+$/'
+            ]
+        ], [
+            'nombre.required' => 'El nombre de la enfermedad es obligatorio.',
+            'nombre.regex' => 'Enfermedad inválida: no se permiten números, solo letras.',
+            'nombre.min' => 'El nombre debe tener al menos 2 letras.',
+        ]);
+
+        $nombreLimpio = trim($request->input('nombre'));
+        $nombreFormateado = mb_convert_case($nombreLimpio, MB_CASE_TITLE, 'UTF-8');
+
+        // Verificar si ya existe (insensible a mayúsculas/minúsculas)
+        $existe = DB::table('apicola_enfermedades')
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombreLimpio, 'UTF-8')])
+            ->first();
+
+        if ($existe) {
+            if ($existe->estado !== 'Activa') {
+                DB::table('apicola_enfermedades')->where('id', $existe->id)->update([
+                    'estado' => 'Activa',
+                    'updated_at' => now()
+                ]);
+                $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+                return response()->json([
+                    'success' => true,
+                    'message' => "La enfermedad \"{$existe->nombre}\" fue reactivada exitosamente.",
+                    'enfermedad' => $existe,
+                    'data' => $all
+                ]);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => "La enfermedad \"{$existe->nombre}\" ya se encuentra registrada."
+            ], 422);
+        }
+
+        $id = DB::table('apicola_enfermedades')->insertGetId([
+            'nombre' => $nombreFormateado,
+            'estado' => 'Activa',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        $nueva = DB::table('apicola_enfermedades')->where('id', $id)->first();
+        $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Enfermedad registrada exitosa.',
+            'enfermedad' => $nueva,
+            'data' => $all
+        ], 201);
+    }
+
+    /**
+     * Eliminar una enfermedad del catálogo.
+     */
+    public function destroyEnfermedad(Request $request, $id)
+    {
+        $motivo = MotivoBaja::exigir($request);
+
+        try {
+            $enf = DB::table('apicola_enfermedades')->where('id', $id)->first();
+            if (!$enf) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Enfermedad no encontrada.'
+                ], 404);
+            }
+
+            DB::table('apicola_enfermedades')->where('id', $id)->delete();
+            MotivoBaja::registrar('enfermedad', $id, $enf->nombre, 'eliminar', $motivo);
+            $all = DB::table('apicola_enfermedades')->where('estado', 'Activa')->orderBy('nombre', 'asc')->get();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Enfermedad \"{$enf->nombre}\" eliminada correctamente.",
+                'data' => $all
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la enfermedad: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}

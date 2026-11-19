@@ -1,0 +1,325 @@
+<?php
+
+namespace Modules\Apicola\Http\Controllers\Admin;
+
+use Modules\Apicola\Entities\MotivoBaja;
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Modules\Apicola\Entities\Colmena;
+use Modules\Apicola\Entities\Apiario;
+use Modules\Apicola\Entities\Responsable;
+
+class ColmenaController extends Controller
+{
+    /** Los códigos son COL-001 (colmena) o NUC-001 (núcleo). */
+    private const FORMATO_CODIGO = '/^(COL|NUC)-\d{3}$/';
+    private const MENSAJE_CODIGO = 'El código debe tener el formato COL-001 (colmena) o NUC-001 (núcleo).';
+
+    /**
+     * Display a listing of colmenas.
+     */
+    public function index(Request $request)
+    {
+        $query = Colmena::query();
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('responsable', 'like', "%{$search}%")
+                  ->orWhere('apiario_name', 'like', "%{$search}%")
+                  ->orWhere('tipo_abeja', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('apiario') && $request->apiario !== 'all') {
+            $query->where('apiario_name', $request->apiario);
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $colmenas = $query->orderBy('code', 'asc')->get();
+
+        $metrics = [
+            'total' => Colmena::count(),
+            'activas' => Colmena::activas()->count(),
+            'en_revision' => Colmena::enRevision()->count(),
+            'inactivas' => Colmena::inactivas()->count(),
+        ];
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => $colmenas,
+                'metrics' => $metrics
+            ]);
+        }
+
+        // Todos los apiarios registrados (los inactivos se marcan en el selector)
+        $apiarios = Apiario::orderBy('nombre_apiario')->get();
+
+        $tiposAbejaBase = ['Apis mellifera', 'Melipona eburnea', 'Tetragonisca angustula', 'Scaptotrigona pectoralis'];
+        $tiposAbejaDb = Colmena::whereNotNull('tipo_abeja')->where('tipo_abeja', '!=', '')->distinct()->pluck('tipo_abeja')->toArray();
+        $tiposAbeja = array_values(array_unique(array_filter(array_merge($tiposAbejaBase, $tiposAbejaDb))));
+
+        // Personas y usuarios registrados en el sistema ERP para sugerencias de responsables
+        $usuariosDb = \Illuminate\Support\Facades\DB::table('users')
+            ->leftJoin('people', 'users.person_id', '=', 'people.id')
+            ->select('users.nickname', 'people.first_name', 'people.first_last_name')
+            ->get()
+            ->map(function ($u) {
+                $nombreCompleto = trim(($u->first_name ?? '') . ' ' . ($u->first_last_name ?? ''));
+                return $nombreCompleto ?: $u->nickname;
+            })
+            ->filter();
+
+        $responsablesColmenas = Colmena::whereNotNull('responsable')->where('responsable', '!=', '')->distinct()->pluck('responsable');
+        $responsablesApiarios = Apiario::whereNotNull('responsable')->where('responsable', '!=', '')->distinct()->pluck('responsable');
+
+        $currentUser = auth()->check() && auth()->user()->person
+            ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name)
+            : (auth()->check() ? auth()->user()->nickname : '');
+
+        $responsablesSugeridos = Responsable::todos();
+
+        return view('apicola::Admin.Colmenas.index', compact('colmenas', 'metrics', 'apiarios', 'tiposAbeja', 'responsablesSugeridos'));
+    }
+
+    /**
+     * Store a newly created colmena in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'regex:' . self::FORMATO_CODIGO, 'unique:apicola_colmenas,code'],
+            'apiario_name' => 'required|string|max:150',
+            'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
+            'tipo_abeja' => 'nullable|string|max:150',
+            'installation_date' => 'required|date',
+            'last_visit_date' => 'nullable|date',
+            'status' => 'required|in:Activa,En revisión,Inactiva',
+            'notes' => 'nullable|string',
+        ], [
+            'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+            'code.regex' => self::MENSAJE_CODIGO,
+            'code.unique' => 'Ya existe una colmena o núcleo con ese código.',
+        ]);
+
+        $validated['responsable'] = Responsable::registrar($validated['responsable']);
+
+        if (empty($validated['last_visit_date'])) {
+            $validated['last_visit_date'] = $validated['installation_date'];
+        }
+
+        if (empty($validated['tipo_abeja'])) {
+            $validated['tipo_abeja'] = 'Apis mellifera';
+        }
+
+        $apiario = Apiario::where('nombre_apiario', trim($validated['apiario_name']))
+            ->orWhere('id_apiarios', $request->input('apiario_id'))
+            ->first();
+        if ($apiario) {
+            $validated['apiario_id'] = $apiario->id_apiarios;
+            $validated['apiario_name'] = $apiario->nombre_apiario;
+        } else {
+            $defaultAp = Apiario::first();
+            if ($defaultAp) {
+                $validated['apiario_id'] = $defaultAp->id_apiarios;
+                $validated['apiario_name'] = $defaultAp->nombre_apiario;
+            }
+        }
+
+        $colmena = Colmena::create($validated);
+        $this->syncToColmenasTable($colmena);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Colmena {$colmena->code} creada exitosamente.",
+                'data' => $colmena
+            ], 201);
+        }
+
+        return redirect()->route('apicola.admin.colmenas.index')
+            ->with('success', 'Colmena registrada con éxito.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        $colmena = Colmena::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $colmena
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        $colmena = Colmena::findOrFail($id);
+        return response()->json($colmena);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $colmena = Colmena::findOrFail($id);
+        $codigoAnterior = $colmena->code;
+
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'regex:' . self::FORMATO_CODIGO, 'unique:apicola_colmenas,code,' . $colmena->id],
+            'apiario_name' => 'required|string|max:150',
+            'responsable' => ['required', 'string', 'max:150', 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/u'],
+            'tipo_abeja' => 'nullable|string|max:150',
+            'installation_date' => 'required|date',
+            'last_visit_date' => 'nullable|date',
+            'status' => 'required|in:Activa,En revisión,Inactiva',
+            'notes' => 'nullable|string',
+        ], [
+            'responsable.regex' => 'El responsable es inválido: no puede contener números, solo nombres reales de personas.',
+            'code.regex' => self::MENSAJE_CODIGO,
+            'code.unique' => 'Ya existe una colmena o núcleo con ese código.',
+        ]);
+
+        $validated['responsable'] = Responsable::registrar($validated['responsable']);
+
+        // Si la colmena pasa a Inactiva desde el formulario, el motivo es obligatorio
+        $motivoBaja = ($validated['status'] === 'Inactiva' && $colmena->status !== 'Inactiva')
+            ? MotivoBaja::exigir($request)
+            : null;
+
+        if (empty($validated['last_visit_date'])) {
+            $validated['last_visit_date'] = $colmena->last_visit_date ?? $validated['installation_date'];
+        }
+
+        if (empty($validated['tipo_abeja'])) {
+            $validated['tipo_abeja'] = $colmena->tipo_abeja ?? 'Apis mellifera';
+        }
+
+        $apiario = Apiario::where('nombre_apiario', trim($validated['apiario_name']))
+            ->orWhere('id_apiarios', $request->input('apiario_id'))
+            ->first();
+        if ($apiario) {
+            $validated['apiario_id'] = $apiario->id_apiarios;
+            $validated['apiario_name'] = $apiario->nombre_apiario;
+        }
+
+        $colmena->update($validated);
+
+        // Si cambió el código, la tabla física 'colmenas' también cambia (así sus inspecciones siguen ligadas)
+        if ($codigoAnterior !== $colmena->code) {
+            \Illuminate\Support\Facades\DB::table('colmenas')->where('codigo', $codigoAnterior)->update(['codigo' => $colmena->code]);
+        }
+        $this->syncToColmenasTable($colmena);
+        if ($motivoBaja) {
+            MotivoBaja::registrar('colmena', $colmena->id, $colmena->code, 'desactivar', $motivoBaja);
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Colmena {$colmena->code} actualizada correctamente.",
+                'data' => $colmena
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Colmena {$colmena->code} actualizada.");
+    }
+
+    /**
+     * Toggle status or deactivate/activate colmena.
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $colmena = Colmena::findOrFail($id);
+
+        // Para desactivar es obligatorio indicar el motivo
+        $motivo = $colmena->status !== 'Inactiva' ? MotivoBaja::exigir($request) : null;
+
+        $colmena->status = ($colmena->status === 'Inactiva') ? 'Activa' : 'Inactiva';
+        $colmena->save();
+        if ($motivo) {
+            MotivoBaja::registrar('colmena', $colmena->id, $colmena->code, 'desactivar', $motivo);
+        }
+        $this->syncToColmenasTable($colmena);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Estado de la colmena {$colmena->code} cambiado a {$colmena->status}.",
+            'data' => $colmena
+        ]);
+    }
+
+    /**
+     * Desactiva la colmena (marca su estado como Inactiva sin eliminarla).
+     */
+    public function destroy(Request $request, $id)
+    {
+        $colmena = Colmena::findOrFail($id);
+        $motivo = MotivoBaja::exigir($request);
+        $code = $colmena->code;
+        $colmena->status = 'Inactiva';
+        $colmena->save();
+        MotivoBaja::registrar('colmena', $colmena->id, $code, 'desactivar', $motivo);
+        $this->syncToColmenasTable($colmena, false);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Colmena {$code} desactivada con éxito.",
+                'data' => $colmena
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Colmena {$code} desactivada con éxito.");
+    }
+
+    /**
+     * Sincroniza la colmena con la tabla física 'colmenas' de la base de datos MySQL.
+     */
+    protected function syncToColmenasTable($colmena, $isDelete = false)
+    {
+        try {
+            if ($isDelete) {
+                \Illuminate\Support\Facades\DB::table('colmenas')
+                    ->where('codigo', $colmena->code)
+                    ->orWhere('id_colmenas', $colmena->id)
+                    ->delete();
+                return;
+            }
+
+            $apiarioId = $colmena->apiario_id;
+            if (!$apiarioId) {
+                $ap = Apiario::where('nombre_apiario', $colmena->apiario_name)->first();
+                $apiarioId = $ap ? $ap->id_apiarios : (Apiario::first()->id_apiarios ?? 1);
+            }
+
+            \Illuminate\Support\Facades\DB::table('colmenas')->updateOrInsert(
+                ['codigo' => $colmena->code],
+                [
+                    'fecha_instalacion' => $colmena->installation_date,
+                    'estado' => $colmena->status,
+                    'id_apiario' => $apiarioId,
+                    'updated_at' => now(),
+                    'created_at' => $colmena->created_at ?? now(),
+                ]
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Error sincronizando colmena {$colmena->code} con tabla colmenas: " . $e->getMessage());
+        }
+    }
+}

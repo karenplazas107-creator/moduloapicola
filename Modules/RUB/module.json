@@ -1,0 +1,11 @@
+{
+    "name": "RUB",
+    "alias": "rub",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\RUB\\Providers\\RUBServiceProvider"
+    ],
+    "files": []
+}

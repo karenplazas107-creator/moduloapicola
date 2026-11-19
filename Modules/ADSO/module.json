@@ -1,0 +1,11 @@
+{
+    "name": "ADSO",
+    "alias": "adso",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ADSO\\Providers\\ADSOServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/cefa",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\CEFA\\": "",
+            "Modules\\CEFA\\Database\\Factories\\": "database/factories/",
+            "Modules\\CEFA\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\CEFA\\Tests\\": "tests/"
+        }
+    }
+}

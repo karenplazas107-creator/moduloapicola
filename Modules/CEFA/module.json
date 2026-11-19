@@ -1,0 +1,11 @@
+{
+    "name": "CEFA",
+    "alias": "cefa",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CEFA\\Providers\\CEFAServiceProvider"
+    ],
+    "files": []
+}

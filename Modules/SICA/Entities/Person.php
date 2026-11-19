@@ -93,6 +93,23 @@ class Person extends Model implements Auditable
         ];
         return $document_type_abbreviations[$this->attributes['document_type']].'-'.$this->attributes['document_number'];
     }
+    public function getFichaAttribute(){ // Obtener el código de la ficha del aprendiz (ACCESOR: $person->ficha)
+        $apprentice = $this->apprentices->first();
+        return $apprentice?->course?->code ?? null;
+    }
+    public function getProgramaAttribute(){ // Obtener el nombre del programa de formación (ACCESOR: $person->programa)
+        $apprentice = $this->apprentices->first();
+        return $apprentice?->course?->program?->name ?? null;
+    }
+    public function getFichaProgramaAttribute(){ // Obtener ficha y programa concatenados (ACCESOR: $person->ficha_programa)
+        $apprentice = $this->apprentices->first();
+        if ($apprentice && $apprentice->course) {
+            $code = $apprentice->course->code;
+            $program = $apprentice->course->program?->name ?? 'Sin programa';
+            return "{$code} - {$program}";
+        }
+        return null;
+    }
     public function setAddressAttribute($value){ // Convierte el primer carácter en mayúscula del dato address (MUTADOR)
         $this->attributes['address'] = ucfirst($value);
     }

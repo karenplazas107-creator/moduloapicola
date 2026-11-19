@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/rub",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\RUB\\": "",
+            "Modules\\RUB\\Database\\Factories\\": "database/factories/",
+            "Modules\\RUB\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\RUB\\Tests\\": "tests/"
+        }
+    }
+}

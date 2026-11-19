@@ -2,5 +2,9 @@
     "ADSO": true,
     "Direccion": true,
     "SST": true,
-    "Apicola": true
+    "RUB": true,
+    "CEFA": true,
+    "Apicola": true,
+    "SISGEDI": true,
+    "Evidencias": true
 }
