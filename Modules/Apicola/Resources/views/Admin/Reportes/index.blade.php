@@ -22,19 +22,6 @@
             <h1 class="rep-header-title">Generador de reportes</h1>
         </div>
 
-        <div class="rep-user-chip">
-            <div class="rep-user-avatar">
-                {{ auth()->check() ? strtoupper(substr(auth()->user()->nickname ?? 'AC', 0, 2)) : 'AC' }}
-            </div>
-            <div class="rep-user-info">
-                <span class="rep-user-name">
-                    {{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : 'Andrés Felipe Cuéllar') }}
-                </span>
-                <span class="rep-user-role">
-                    Rol: {{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Administrador' }} <i class="fas fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>
-                </span>
-            </div>
-        </div>
     </div>
 
     <!-- 2. Grid Principal (2 Columnas: Izquierda formulario, Derecha métricas e info) -->
@@ -331,7 +318,7 @@
         previewUrl: "{{ route('apicola.admin.reportes.preview') }}",
         excelUrl: "{{ route('apicola.admin.reportes.excel') }}",
         pdfUrl: "{{ route('apicola.admin.reportes.pdf') }}",
-        userName: '{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? "Administrador") }}',
+        userName: '{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? "Usuario") }}',
         logoUrl: "{{ asset('modules/apicola/img/logo.png') }}",
         logoFallback: "{{ asset('apicola-assets/assets/img/logo-apicola-bee-original.png') }}"
     };

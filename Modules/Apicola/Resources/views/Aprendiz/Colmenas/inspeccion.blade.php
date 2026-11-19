@@ -29,15 +29,6 @@
             </span>
             <h1 class="ap-view-main-title">Inspección</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #f59e0b;">
-                {{ strtoupper(substr(Auth::user()?->nickname ?? 'AP', 0, 2)) }}
-            </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz Apícola') }}</span>
-                <span class="ap-user-chip-role">Rol: Aprendiz Apícola</span>
-            </div>
-        </div>
     </div>
 
     <!-- 3 Tarjetas de Métricas -->

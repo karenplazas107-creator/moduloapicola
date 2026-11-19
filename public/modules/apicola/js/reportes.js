@@ -663,7 +663,7 @@
             `;
         }
 
-        const userName = window.ReportesConfig?.userName || "Administrador";
+        const userName = window.ReportesConfig?.userName || "Usuario";
         const nowStr = new Date().toLocaleString('es-CO');
 
         container.innerHTML = `
@@ -682,7 +682,7 @@
                 <div class="rep-header-right">
                     <div><strong>Fecha de emisión:</strong> ${nowStr}</div>
                     <div><strong>Generado por:</strong> ${userName}</div>
-                    <div><strong>Rol:</strong> Administrador Apícola</div>
+                    <div><strong>Rol:</strong> Apicultor</div>
                 </div>
             </div>
 
@@ -707,7 +707,7 @@
             <div class="rep-signatures">
                 <div class="rep-sign-box">
                     <div class="sign-name">${userName}</div>
-                    <div class="sign-charge">Administrador Unidad Apícola · SENA CEFA</div>
+                    <div class="sign-charge">Apicultor · SENA CEFA</div>
                 </div>
                 <div class="rep-sign-box">
                     <div class="sign-name">Sergio Barrera</div>

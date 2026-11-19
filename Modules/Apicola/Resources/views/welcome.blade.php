@@ -51,7 +51,7 @@
                     </a>
                 @else
                     <a href="{{ route('apicola.admin.dashboard') }}" class="ap-btn-login">
-                        <i class="fas fa-th-large"></i> Panel Admin
+                        <i class="fas fa-th-large"></i> Panel Apicultor
                     </a>
                 @endif
             @else
@@ -59,12 +59,6 @@
                     <i class="fas fa-sign-in-alt"></i> Iniciar sesión
                 </a>
             @endauth
-
-            <div class="ap-lang-selector">
-                <i class="fas fa-globe"></i>
-                ES
-                <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-            </div>
         </div>
     </nav>
 

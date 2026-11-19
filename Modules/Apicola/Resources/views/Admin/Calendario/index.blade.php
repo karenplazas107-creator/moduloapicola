@@ -15,19 +15,6 @@
             <span class="ap-view-subtitle-tag">CALENDARIO FLORAL</span>
             <h1 class="ap-view-main-title">Calendario floral</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #047857;">
-                {{ auth()->check() ? strtoupper(substr(auth()->user()->nickname ?? 'AP', 0, 2)) : 'AP' }}
-            </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name" style="display:flex; align-items:center; gap:5px;">
-                    {{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : 'Administrador Apícola') }}
-                </span>
-                <span class="ap-user-chip-role" style="display:flex; align-items:center; gap:4px;">
-                    Rol: {{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Administrador' }}
-                </span>
-            </div>
-        </div>
     </div>
 
     <!-- Contenedor Principal del Calendario Floral -->

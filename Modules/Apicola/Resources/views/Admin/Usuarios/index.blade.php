@@ -19,19 +19,6 @@
             <span class="ap-view-subtitle-tag">ADMINISTRACIÓN & SEGURIDAD</span>
             <h1 class="ap-view-main-title">Gestión de Usuarios</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #047857;">
-                {{ Auth::user()?->initials ?? 'AD' }}
-            </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">
-                    {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador Apícola') }}
-                </span>
-                <span class="ap-user-chip-role" style="display:flex; align-items:center; gap:4px;">
-                    Rol: {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}
-                </span>
-            </div>
-        </div>
     </div>
 
     <!-- 4 Tarjetas de Métricas -->
@@ -43,9 +30,9 @@
             <div class="ap-metric-card-sub">Cuentas vinculadas al módulo</div>
         </div>
 
-        <!-- 2. Administradores -->
+        <!-- 2. Apicultores -->
         <div class="ap-metric-card border-amber">
-            <div class="ap-metric-card-title">ADMINISTRADORES</div>
+            <div class="ap-metric-card-title">APICULTORES</div>
             <div class="ap-metric-card-num" id="metricAdmins">{{ $metrics['admins'] ?? 0 }}</div>
             <div class="ap-metric-card-sub">Acceso administrativo completo</div>
         </div>
@@ -84,8 +71,8 @@
                 <!-- Filtro por Rol -->
                 <select id="filterRole" class="ap-filter-dropdown">
                     <option value="all">Todos los roles</option>
-                    <option value="apicola.admin">Administrador Apícola</option>
-                    <option value="apicola.aprendiz">Aprendiz Apícola</option>
+                    <option value="apicola.admin">Apicultor</option>
+                    <option value="apicola.aprendiz">Aprendiz</option>
                 </select>
 
                 <!-- Filtro por Estado -->
@@ -189,12 +176,12 @@
                                 @if($isAdmin)
                                     <span class="ap-role-badge admin">
                                         <i class="fas fa-shield-halved"></i>
-                                        <span>Administrador Apícola</span>
+                                        <span>Apicultor</span>
                                     </span>
                                 @elseif($isAprendiz)
                                     <span class="ap-role-badge aprendiz">
                                         <i class="fas fa-graduation-cap"></i>
-                                        <span>Aprendiz Apícola</span>
+                                        <span>Aprendiz</span>
                                     </span>
                                 @else
                                     <span class="ap-role-badge superadmin">
@@ -345,7 +332,7 @@
                                     <i class="fas fa-graduation-cap"></i> Aprendiz
                                 </button>
                                 <button type="button" class="ap-role-pill" id="btnRoleAdmin" onclick="seleccionarRolPill('apicola.admin')">
-                                    <i class="fas fa-shield-halved"></i> Administrador
+                                    <i class="fas fa-shield-halved"></i> Apicultor
                                 </button>
                             </div>
                         </div>

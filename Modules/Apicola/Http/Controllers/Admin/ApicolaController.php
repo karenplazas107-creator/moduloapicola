@@ -14,7 +14,7 @@ use Modules\Apicola\Entities\Produccion;
 class ApicolaController extends Controller
 {
     /**
-     * Dashboard del Administrador Apícola (ApiGestión SENA).
+     * Dashboard del Apicultor (ApiGestión SENA).
      */
     public function dashboard()
     {

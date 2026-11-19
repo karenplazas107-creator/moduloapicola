@@ -97,6 +97,15 @@
                     <i class="fas fa-sun"></i>
                     <span>29°C Campoalegre • Floración Activa</span>
                 </div>
+                <div class="ap-nav-profile-pill" title="Cuenta de usuario">
+                    <div class="ap-nav-profile-avatar">
+                        {{ Auth::user()?->initials ?? strtoupper(substr(Auth::user()?->nickname ?? 'AP', 0, 2)) }}
+                    </div>
+                    <div class="ap-nav-profile-meta">
+                        <span class="ap-nav-profile-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz') }}</span>
+                        <span class="ap-nav-profile-role">Aprendiz</span>
+                    </div>
+                </div>
                 <a href="{{ route('logout', ['redirect' => route('apicola.welcome')]) }}" class="ap-btn-logout-aprendiz" title="Cerrar sesión">
                     <i class="fas fa-arrow-right-from-bracket"></i>
                     <span>Cerrar sesión</span>

@@ -20,19 +20,6 @@
             <span class="inv-subtitle-tag">INVENTARIO</span>
             <h1 class="inv-main-title">Inventario</h1>
         </div>
-        <div class="inv-user-chip">
-            <div class="inv-avatar">
-                {{ Auth::user()?->initials ?? 'JR' }}
-            </div>
-            <div>
-                <div class="inv-user-name">
-                    {{ Auth::user()?->full_name ?? 'Usuario del sistema' }}
-                </div>
-                <div class="inv-user-role">
-                    Rol: Apicultor
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- 4 Tarjetas de Métricas (Imagen 1) -->

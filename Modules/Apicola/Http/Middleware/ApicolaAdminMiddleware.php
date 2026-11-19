@@ -10,7 +10,7 @@ class ApicolaAdminMiddleware
 {
     /**
      * Verifica que el usuario autenticado tenga permisos para administrar el módulo Apícola.
-     * Permite acceso al Administrador Apícola (rol apicola.admin) y al Super Administrador.
+     * Permite acceso al Apicultor (rol apicola.admin) y al Super Administrador.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -24,7 +24,7 @@ class ApicolaAdminMiddleware
         $hasApicolaRole = $user->roles->contains('slug', 'apicola.admin') || $user->hasRole('apicola.admin');
 
         if (!$hasApicolaRole && !$user->hasSuperAdmin()) {
-            abort(403, 'Acceso denegado: Se requiere el rol de Administrador Apícola.');
+            abort(403, 'Acceso denegado: Se requiere el rol de Apicultor.');
         }
 
         return $next($request);

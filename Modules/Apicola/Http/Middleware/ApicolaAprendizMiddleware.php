@@ -10,7 +10,7 @@ class ApicolaAprendizMiddleware
 {
     /**
      * Verifica que el usuario autenticado tenga acceso al panel de Aprendiz del módulo Apícola.
-     * Permite acceso al Aprendiz Apícola (apicola.aprendiz), Administrador Apícola (apicola.admin) y Superadmin.
+     * Permite acceso al Aprendiz (apicola.aprendiz), Apicultor (apicola.admin) y Superadmin.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -25,7 +25,7 @@ class ApicolaAprendizMiddleware
         $hasAdminRole = $user->roles->contains('slug', 'apicola.admin') || $user->hasRole('apicola.admin');
 
         if (!$hasAprendizRole && !$hasAdminRole && !$user->hasSuperAdmin()) {
-            abort(403, 'Acceso denegado: Se requiere el rol de Aprendiz Apícola.');
+            abort(403, 'Acceso denegado: Se requiere el rol de Aprendiz.');
         }
 
         return $next($request);

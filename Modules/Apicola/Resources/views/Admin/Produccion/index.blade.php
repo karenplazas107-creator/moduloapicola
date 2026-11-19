@@ -34,15 +34,6 @@
             </span>
             <h1 class="ap-view-main-title">Producción</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar" style="background: #047857;">
-                {{ auth()->check() ? strtoupper(substr(auth()->user()->nickname ?? 'AP', 0, 2)) : 'AP' }}
-            </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">{{ auth()->check() && auth()->user()->person ? trim(auth()->user()->person->first_name . ' ' . auth()->user()->person->first_last_name) : (auth()->check() ? auth()->user()->nickname : 'Apicultor') }}</span>
-                <span class="ap-user-chip-role">Rol: {{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Apicultor' }}</span>
-            </div>
-        </div>
     </div>
 
     <!-- 3 Tarjetas de Métricas -->

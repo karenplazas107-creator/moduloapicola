@@ -179,7 +179,7 @@
         <header class="ap-top-nav" style="justify-content: flex-end;">
 
             <div class="ap-top-right">
-                <!-- Perfil del Administrador con Dropdown -->
+                <!-- Perfil del usuario con Dropdown -->
                 <div class="ap-profile-dropdown-wrapper">
                     <div class="ap-nav-profile-pill" id="apProfileToggle" onclick="toggleProfileDropdown(event)" title="Cuenta de usuario" role="button" tabindex="0">
                         <div class="ap-nav-profile-avatar">
@@ -190,7 +190,7 @@
                                 {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}
                             </span>
                             <span class="ap-nav-profile-role">
-                                {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}
+                                Apicultor
                             </span>
                         </div>
                         <i class="fas fa-chevron-down ap-profile-chevron" id="apProfileChevron"></i>
@@ -204,7 +204,7 @@
                             </div>
                             <div class="ap-dropdown-user-info">
                                 <div class="ap-dropdown-user-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}</div>
-                                <div class="ap-dropdown-user-role"><i class="fas fa-shield-alt" style="color: #10b981;"></i> {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}</div>
+                                <div class="ap-dropdown-user-role"><i class="fas fa-shield-alt" style="color: #10b981;"></i> Apicultor</div>
                             </div>
                         </div>
                         <div class="ap-dropdown-divider"></div>

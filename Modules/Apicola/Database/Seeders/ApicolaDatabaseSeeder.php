@@ -31,23 +31,23 @@ class ApicolaDatabaseSeeder extends Seeder
             return;
         }
 
-        // 2. Crear o actualizar el rol exclusivo de Administrador Apícola para esta App (compatible con SoftDeletes)
+        // 2. Crear o actualizar el rol exclusivo de Apicultor para esta App (compatible con SoftDeletes)
         $roleAdmin = Role::withTrashed()->where('slug', 'apicola.admin')->first();
         if ($roleAdmin) {
             if (method_exists($roleAdmin, 'trashed') && $roleAdmin->trashed()) {
                 $roleAdmin->restore();
             }
             $roleAdmin->update([
-                'name' => 'Administrador Apícola',
-                'description' => 'Administrador exclusivo del módulo Apícola.',
+                'name' => 'Apicultor',
+                'description' => 'Apicultor del módulo Apícola.',
                 'description_english' => 'Exclusive Administrator for the Beekeeping module.',
                 'app_id' => $app->id,
             ]);
         } else {
             $roleAdmin = Role::create([
                 'slug' => 'apicola.admin',
-                'name' => 'Administrador Apícola',
-                'description' => 'Administrador exclusivo del módulo Apícola.',
+                'name' => 'Apicultor',
+                'description' => 'Apicultor del módulo Apícola.',
                 'description_english' => 'Exclusive Administrator for the Beekeeping module.',
                 'app_id' => $app->id,
             ]);
@@ -58,7 +58,7 @@ class ApicolaDatabaseSeeder extends Seeder
         $populationGroup = PopulationGroup::firstOrCreate(['name' => 'NINGUNA']);
         $pensionEntity = PensionEntity::firstOrCreate(['name' => 'NO REGISTRA']);
 
-        // 4. Crear o actualizar la persona del Administrador Apícola
+        // 4. Crear o actualizar la persona del Apicultor
         $person = Person::withTrashed()->where('document_number', 1075258901)->first();
         if ($person) {
             if (method_exists($person, 'trashed') && $person->trashed()) {
@@ -116,7 +116,7 @@ class ApicolaDatabaseSeeder extends Seeder
                 $roleAprendiz->restore();
             }
             $roleAprendiz->update([
-                'name' => 'Aprendiz Apícola',
+                'name' => 'Aprendiz',
                 'description' => 'Rol de Aprendiz para el módulo Apícola con acceso a consultas y actividades formativas.',
                 'description_english' => 'Apprentice Role for the Beekeeping module.',
                 'app_id' => $app->id,
@@ -124,7 +124,7 @@ class ApicolaDatabaseSeeder extends Seeder
         } else {
             $roleAprendiz = Role::create([
                 'slug' => 'apicola.aprendiz',
-                'name' => 'Aprendiz Apícola',
+                'name' => 'Aprendiz',
                 'description' => 'Rol de Aprendiz para el módulo Apícola con acceso a consultas y actividades formativas.',
                 'description_english' => 'Apprentice Role for the Beekeeping module.',
                 'app_id' => $app->id,
@@ -187,7 +187,7 @@ class ApicolaDatabaseSeeder extends Seeder
 
         if (isset($this->command)) {
             $this->command->info('=============================================');
-            $this->command->info('✅ Administrador de Apícola configurado con éxito:');
+            $this->command->info('✅ Apicultor configurado con éxito:');
             $this->command->info('   - App: ' . $app->name . ' (ID: ' . $app->id . ')');
             $this->command->info('   - Rol: ' . $roleAdmin->name . ' (' . $roleAdmin->slug . ')');
             $this->command->info('   - Persona: ' . $person->first_name . ' ' . $person->first_last_name);

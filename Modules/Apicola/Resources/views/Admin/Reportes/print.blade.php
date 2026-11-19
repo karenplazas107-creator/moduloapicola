@@ -50,8 +50,8 @@
 
             <div class="rep-header-right">
                 <div><strong>Fecha de emisión:</strong> {{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}</div>
-                <div><strong>Generado por:</strong> {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador') }}</div>
-                <div><strong>Rol:</strong> {{ Auth::user()?->primary_role ?? 'Administrador Apícola' }}</div>
+                <div><strong>Generado por:</strong> {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Usuario') }}</div>
+                <div><strong>Rol:</strong> Apicultor</div>
             </div>
         </header>
 
@@ -293,8 +293,8 @@
         <!-- 5. Firmas Institucionales Compactas -->
         <div class="rep-signatures">
             <div class="rep-sign-box">
-                <div class="sign-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Administrador') }}</div>
-                <div class="sign-charge">Administrador Unidad Apícola · SENA CEFA</div>
+                <div class="sign-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Usuario') }}</div>
+                <div class="sign-charge">Apicultor · SENA CEFA</div>
             </div>
 
             <div class="rep-sign-box">

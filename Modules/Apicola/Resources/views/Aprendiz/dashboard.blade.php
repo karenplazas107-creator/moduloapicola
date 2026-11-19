@@ -17,15 +17,6 @@
             <span class="ap-view-subtitle-tag"><i class="fas fa-graduation-cap"></i> MODO FORMATIVO • APRENDIZ</span>
             <h1 class="ap-view-main-title">Panel de Aprendizaje Apícola</h1>
         </div>
-        <div class="ap-user-chip">
-            <div class="ap-user-chip-avatar">
-                {{ strtoupper(substr(Auth::user()?->nickname ?? 'AP', 0, 2)) }}
-            </div>
-            <div class="ap-user-chip-info">
-                <span class="ap-user-chip-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Aprendiz SENA') }}</span>
-                <span class="ap-user-chip-role">Rol: Aprendiz Apícola</span>
-            </div>
-        </div>
     </div>
 
     <!-- Banner Formativo de Bienvenida -->

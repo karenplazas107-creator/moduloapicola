@@ -580,7 +580,7 @@ let colmenasList = window.ColmenasConfig?.colmenasList || [];
                 last_visit_date: rawFecha,
                 status: estado,
                 motivo: motivo,
-                notes: id ? undefined : 'Colmena registrada a través del panel administrativo.'
+                notes: id ? undefined : 'Colmena registrada desde el panel del apicultor.'
             };
 
             const response = await fetch(url, {

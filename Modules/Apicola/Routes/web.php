@@ -52,7 +52,7 @@ Route::get('apicola/auth-redirect', function () {
     return redirect()->route('apicola.welcome');
 })->name('apicola.auth.redirect');
 
-// Rutas protegidas - Panel de administración exclusivo para Administrador Apícola (y Superadmin)
+// Rutas protegidas - Panel de administración exclusivo para el Apicultor (y Superadmin)
 Route::prefix('apicola')->middleware(['auth', 'apicola.admin'])->group(function () {
     Route::get('admin', [ApicolaController::class, 'dashboard'])->name('apicola.admin.dashboard');
     Route::get('dashboard', [ApicolaController::class, 'dashboard'])->name('apicola.dashboard');
@@ -131,7 +131,7 @@ Route::middleware(['auth', 'apicola.admin'])->group(function () {
     Route::resource('apicolas', ApicolaController::class)->names('apicola');
 });
 
-// Rutas exclusivas para el rol de Aprendiz Apícola (Módulo único: Colmenas)
+// Rutas exclusivas para el rol de Aprendiz (Módulo único: Colmenas)
 Route::prefix('apicola/aprendiz')->middleware(['auth', 'apicola.aprendiz'])->group(function () {
     Route::get('/', [AprendizColmenaController::class, 'index'])->name('apicola.aprendiz.dashboard');
     Route::get('dashboard', [AprendizColmenaController::class, 'index'])->name('apicola.aprendiz.dashboard.alias');

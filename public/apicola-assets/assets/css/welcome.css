@@ -164,23 +164,6 @@ img {
     color: var(--ap-white);
 }
 
-.ap-lang-selector {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--ap-gray-600);
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: 8px;
-    transition: var(--ap-transition);
-}
-
-.ap-lang-selector:hover {
-    background: var(--ap-gray-100);
-}
-
 /* Mobile menu toggle */
 .ap-menu-toggle {
     display: none;
@@ -759,10 +742,6 @@ img {
 
     .ap-nav-actions {
         gap: 8px;
-    }
-
-    .ap-lang-selector {
-        display: none;
     }
 }
 

@@ -667,8 +667,8 @@ class UserController extends Controller
         Role::firstOrCreate(
             ['slug' => 'apicola.admin'],
             [
-                'name' => 'Administrador Apícola',
-                'description' => 'Administrador exclusivo del módulo Apícola.',
+                'name' => 'Apicultor',
+                'description' => 'Apicultor del módulo Apícola.',
                 'description_english' => 'Exclusive Administrator for the Beekeeping module.',
                 'app_id' => $appId,
             ]
@@ -677,7 +677,7 @@ class UserController extends Controller
         Role::firstOrCreate(
             ['slug' => 'apicola.aprendiz'],
             [
-                'name' => 'Aprendiz Apícola',
+                'name' => 'Aprendiz',
                 'description' => 'Rol de Aprendiz para el módulo Apícola.',
                 'description_english' => 'Apprentice Role for the Beekeeping module.',
                 'app_id' => $appId,
