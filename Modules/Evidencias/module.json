@@ -1,0 +1,11 @@
+{
+    "name": "Evidencias",
+    "alias": "evidencias",
+    "description": "Panel de administración de evidencias para el gestor autorizado.",
+    "keywords": ["evidencias", "gestion", "dashboard"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Evidencias\\Providers\\EvidenciasServiceProvider"
+    ],
+    "files": []
+}

@@ -17,7 +17,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Modules\\Apicola\\": "app/",
+            "Modules\\Apicola\\": "",
             "Modules\\Apicola\\Database\\Factories\\": "database/factories/",
             "Modules\\Apicola\\Database\\Seeders\\": "database/seeders/"
         }

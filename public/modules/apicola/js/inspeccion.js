@@ -1,0 +1,1689 @@
+// ==================== ESTADO Y DATOS DE INSPECCIÓN ====================
+    let activeColmena = window.InspeccionConfig?.activeColmena || "";
+
+    // Lista de inspecciones sincronizada con la base de datos registro_inspeccion (panel administrador)
+    let inspeccionesList = window.InspeccionConfig?.inspeccionesList || [];
+    try {
+        localStorage.removeItem('apicola_inspecciones_list');
+    } catch(e) {}
+    inspeccionesList.forEach(v => {
+        if (!v.estado) v.estado = 'Activa';
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderVisitasTable();
+        updateInspeccionMetrics();
+    });
+
+    // ==================== PRODUCCIÓN RELACIONADA (misma colmena) ====================
+    function renderRelatedProduccion() {
+        const box = document.getElementById('relatedProduccion');
+        if (!box) return;
+        const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const titulo = (txt, link) => `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.95rem; font-weight:800; color:#0f172a; margin-bottom:0.6rem;">
+            <span><i class="fas fa-jar" style="color:#047857;"></i> ${txt}</span>${link || ''}</div>`;
+
+        if (!activeColmena) {
+            box.innerHTML = titulo('Producción') + '<p style="font-size:0.85rem; color:#64748b; font-style:italic; margin:4px 0;">Elige una colmena para ver su producción relacionada.</p>';
+            return;
+        }
+
+        const resumen = (window.InspeccionConfig?.produccionResumen || {})[activeColmena];
+        const url = `${window.InspeccionConfig?.produccionBaseUrl || '/apicola/colmenas'}/${encodeURIComponent(activeColmena)}/producciones`;
+        const enlace = `<a href="${url}" style="font-size:0.82rem; font-weight:700; color:#047857; text-decoration:none;">Ver producción <i class="fas fa-arrow-right"></i></a>`;
+
+        if (!resumen || !resumen.registros) {
+            const kgSoloInsp = inspeccionesList
+                .filter(v => v.colmena === activeColmena && v.estado !== 'Inactiva')
+                .reduce((t, v) => t + (parseFloat(v.mielKg) || 0), 0);
+            box.innerHTML = titulo(`Producción de la colmena ${esc(activeColmena)} (0)`, enlace)
+                + '<p style="font-size:0.85rem; color:#64748b; font-style:italic; margin:4px 0;">Esta colmena todavía no tiene producción registrada.</p>'
+                + `<div style="display:flex; justify-content:space-between; gap:10px; padding:9px 0 0; border-top:1px solid #e2e8f0; font-size:0.85rem; font-weight:800; color:#0f172a;"><span>Miel total de la colmena (producción + inspecciones)</span><span>${kgSoloInsp.toFixed(1).replace('.', ',')} kg</span></div>`;
+            return;
+        }
+
+        const kgProd = parseFloat(resumen.kg) || 0;
+        const kgInsp = inspeccionesList
+            .filter(v => v.colmena === activeColmena && v.estado !== 'Inactiva')
+            .reduce((t, v) => t + (parseFloat(v.mielKg) || 0), 0);
+        const totalMiel = `<div style="display:flex; justify-content:space-between; gap:10px; padding:9px 0 0; border-top:1px solid #e2e8f0; font-size:0.85rem; font-weight:800; color:#0f172a;">
+            <span>Miel total de la colmena (producción + inspecciones)</span>
+            <span>${(kgProd + kgInsp).toFixed(1).replace('.', ',')} kg</span></div>`;
+
+        const filas = (resumen.lista || []).map(p => `
+            <div style="display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-top:1px solid #f1f5f9; font-size:0.85rem; color:#334155;">
+                <span><strong>${esc(p.regNumber)}</strong> · ${esc(p.fecha)}</span>
+                <span style="font-weight:700;">${parseFloat(p.mielKg).toFixed(1).replace('.', ',')} kg</span>
+            </div>`).join('');
+
+        box.innerHTML = titulo(`Producción de la colmena ${esc(activeColmena)} (${resumen.registros} · ${parseFloat(resumen.kg).toFixed(1).replace('.', ',')} kg)`, enlace) + filas + totalMiel;
+    }
+
+    document.addEventListener('DOMContentLoaded', renderRelatedProduccion);
+
+    function changeActiveColmena(newCode) {
+        activeColmena = newCode;
+        renderRelatedProduccion();
+        const curEl = document.getElementById('currentColmenaCode');
+        if (curEl) curEl.textContent = newCode || 'Sin colmena';
+        const colmTag = document.getElementById('colmenaTag');
+        if (colmTag) colmTag.textContent = newCode || 'GENERAL';
+        const subEl = document.getElementById('metricColmenaSub');
+        if (subEl) subEl.textContent = newCode ? `Colmena ${newCode}` : 'Colmenas registradas';
+        const titleEl = document.getElementById('historyColmenaTitle');
+        if (titleEl) titleEl.textContent = newCode ? `Historial de la colmena ${newCode}` : 'Historial de inspecciones';
+        const modalColm = document.getElementById('modalVisitaColmena');
+        if (modalColm) modalColm.value = newCode;
+        
+        renderVisitasTable();
+        updateInspeccionMetrics();
+    }
+
+    // Actualizar 3 tarjetas superiores
+    function updateInspeccionMetrics() {
+        const filtered = getFilteredVisitas();
+        const activeVisitas = filtered.filter(v => v.estado !== 'Inactiva');
+        const totalVisitas = filtered.length;
+        const mielAcumulada = activeVisitas.reduce((sum, v) => sum + (parseFloat(v.mielKg) || 0), 0);
+        const alertasSanitarias = activeVisitas.filter(v => v.enfermedades && v.enfermedades.length > 0).length;
+
+        document.getElementById('metricTotalVisitas').textContent = totalVisitas;
+        document.getElementById('metricMielTotal').textContent = mielAcumulada.toFixed(1).replace('.', ',');
+        document.getElementById('metricAlertasTotal').textContent = alertasSanitarias;
+
+        const fIni = document.getElementById('filterFechaInicio')?.value;
+        const fFin = document.getElementById('filterFechaFin')?.value;
+        if (fIni && fFin) {
+            document.getElementById('visitasSummaryText').textContent = `${totalVisitas} visitas entre el ${fIni} y el ${fFin}`;
+        } else {
+            document.getElementById('visitasSummaryText').textContent = `${totalVisitas} visitas registradas`;
+        }
+        document.getElementById('mielHarvestSummaryText').textContent = `Total cosechado: ${mielAcumulada.toFixed(1).replace('.', ',')} kg`;
+    }
+
+    function parseDateDMY(dmyStr) {
+        if (!dmyStr) return null;
+        if (dmyStr.includes('/')) {
+            const parts = dmyStr.split('/');
+            if (parts.length === 3) {
+                return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            }
+        }
+        if (dmyStr.includes('-')) {
+            const parts = dmyStr.split('-');
+            if (parts.length === 3) {
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            }
+        }
+        return null;
+    }
+
+    function toIsoDate(dateStr) {
+        if (!dateStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+        return '';
+    }
+
+    function toDmyDate(isoStr) {
+        if (!isoStr) return '';
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(isoStr)) return isoStr;
+        const parts = isoStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+        }
+        return isoStr;
+    }
+
+    function getFilteredVisitas() {
+        const fInicio = parseDateDMY(document.getElementById('filterFechaInicio')?.value);
+        const fFin = parseDateDMY(document.getElementById('filterFechaFin')?.value);
+
+        return inspeccionesList.filter(item => {
+            const vDate = parseDateDMY(item.fecha);
+            if (!vDate) return true;
+            if (fInicio && vDate < fInicio) return false;
+            if (fFin && vDate > fFin) return false;
+            return true;
+        });
+    }
+
+    function filterVisitas() {
+        renderVisitasTable();
+        updateInspeccionMetrics();
+    }
+
+    function renderVisitasTable() {
+        const tbody = document.getElementById('visitasTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const items = getFilteredVisitas();
+
+        if (items.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align:center; padding: 2.5rem 1rem; color: #94a3b8;">
+                        <i class="fas fa-search" style="font-size: 1.5rem; margin-bottom: 0.5rem; display:block;"></i>
+                        No se encontraron visitas registradas.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        items.forEach(v => {
+            const tr = document.createElement('tr');
+            const isInactive = v.estado === 'Inactiva';
+            if (isInactive) {
+                tr.style.opacity = '0.65';
+                tr.style.backgroundColor = '#f8fafc';
+            }
+
+            // Enfermedad badge
+            let enfermedadesHtml = '<span style="color: #64748b;">Ninguna</span>';
+            if (v.enfermedades && v.enfermedades.length > 0) {
+                enfermedadesHtml = v.enfermedades.map(enf => `<span class="ap-status-badge alerta" style="font-size:0.75rem; padding: 2px 10px;">${enf}</span>`).join(' ');
+            }
+
+            tr.innerHTML = `
+                <td style="font-weight: 700; color: #0f172a;">${v.fecha}</td>
+                <td style="color: #475569; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem;">
+                    ${v.regNumber}
+                    ${isInactive ? '<span class="ap-status-badge inactiva" style="margin-left: 6px; font-size: 0.68rem; padding: 2px 7px;">Inactiva</span>' : ''}
+                </td>
+                <td style="color: #334155;">${v.estadoGeneral}</td>
+                <td style="color: #334155;">${v.presenciaMiel}</td>
+                <td style="color: #0f172a; font-weight: 700;">${parseFloat(v.mielKg).toFixed(1)}</td>
+                <td>${enfermedadesHtml}</td>
+                <td style="color: #334155;">${v.responsable}</td>
+                <td style="text-align: center;">
+                    <div class="ap-actions-group" style="justify-content: center;">
+                        <button type="button" class="ap-action-btn view" onclick="openVisitaDetailModal(${v.id})" title="Ver detalle"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="ap-action-btn edit" onclick="openEditVisitaModal(${v.id})" title="Editar visita"><i class="fas fa-pen-to-square"></i></button>
+                        ${isInactive
+                            ? `<button type="button" class="ap-action-btn activate" style="color: #059669;" onclick="toggleVisitaStatus(${v.id}, '${v.regNumber}')" title="Activar visita"><i class="fas fa-circle-check"></i></button>`
+                            : `<button type="button" class="ap-action-btn deactivate" style="color: #ef4444;" onclick="desactivarVisita(${v.id}, '${v.regNumber}')" title="Desactivar visita"><i class="fas fa-ban"></i></button>`
+                        }
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ==================== MODAL DE NUEVA / EDITAR VISITA ====================
+    function setEstadoGeneral(val) {
+        document.getElementById('modalVisitaEstadoGeneral').value = val;
+        document.getElementById('btnEstGenBueno').className = 'ap-status-pill-btn' + (val === 'Bueno' ? ' selected-bueno' : '');
+        document.getElementById('btnEstGenRegular').className = 'ap-status-pill-btn' + (val === 'Regular' ? ' selected-regular' : '');
+        document.getElementById('btnEstGenMalo').className = 'ap-status-pill-btn' + (val === 'Malo' ? ' selected-malo' : '');
+    }
+
+    function setPresenciaMiel(val) {
+        document.getElementById('modalVisitaPresenciaMiel').value = val;
+        document.getElementById('btnPresMielBueno').className = 'ap-status-pill-btn' + (val === 'Bueno' ? ' selected-bueno' : '');
+        document.getElementById('btnPresMielRegular').className = 'ap-status-pill-btn' + (val === 'Regular' ? ' selected-regular' : '');
+        document.getElementById('btnPresMielMalo').className = 'ap-status-pill-btn' + (val === 'Malo' ? ' selected-malo' : '');
+    }
+
+    function toggleCheckboxCard(checkbox, labelId) {
+        const lbl = document.getElementById(labelId);
+        if (!lbl) return;
+        if (checkbox.checked) {
+            lbl.classList.add('is-checked');
+        } else {
+            lbl.classList.remove('is-checked');
+        }
+    }
+
+    // ==================== MANEJO DE COLOR DE LA REINA ====================
+    function handleColorMarcaChange(val) {
+        const wrap = document.getElementById('wrapperColorMarcaOtro');
+        const input = document.getElementById('modalVisitaColorMarcaOtro');
+        if (!wrap) return;
+        if (val === 'Otro') {
+            wrap.style.display = 'block';
+            if (input) input.focus();
+        } else {
+            wrap.style.display = 'none';
+        }
+    }
+
+    function agregarColorMarcaCustom() {
+        const input = document.getElementById('modalVisitaColorMarcaOtro');
+        const select = document.getElementById('modalVisitaColorMarca');
+        const errorSpan = document.getElementById('errorColorMarcaOtro') || document.getElementById('errorColorMarcaOtroAprendiz');
+        if (!input || !select) return;
+        const val = input.value.trim();
+        if (!val) {
+            input.focus();
+            return;
+        }
+
+        // Validación: no números
+        if (/\d/.test(val)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            input.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Color inválido',
+                    text: 'No se permiten números en el color de la reina. Solo se permiten letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el color de la reina. Solo se permiten letras.');
+            }
+            input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        input.style.borderColor = '#cbd5e1';
+
+        let found = false;
+        for (let opt of select.options) {
+            if (opt.value.toLowerCase() === val.toLowerCase()) {
+                select.value = opt.value;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            const newOpt = document.createElement('option');
+            newOpt.value = val;
+            newOpt.textContent = val + ' (Personalizado)';
+            const otroOpt = Array.from(select.options).find(o => o.value === 'Otro');
+            if (otroOpt) {
+                select.insertBefore(newOpt, otroOpt);
+            } else {
+                select.appendChild(newOpt);
+            }
+            select.value = val;
+        }
+        document.getElementById('wrapperColorMarcaOtro').style.display = 'none';
+    }
+
+    // ==================== HELPER ESCAPE HTML ====================
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // ==================== GESTIÓN DE CATÁLOGO DE ENFERMEDADES ====================
+    let enfermedadesCatalogo = window.InspeccionConfig?.enfermedadesList || [];
+
+    function openEnfermedadesModal() {
+        const modal = document.getElementById('modalEnfermedadesBackdrop');
+        if (!modal) return;
+        modal.classList.add('is-open');
+
+        const input = document.getElementById('inputNuevaEnfermedadCatalogo');
+        const err = document.getElementById('errorNuevaEnfermedadCatalogo');
+        if (input) {
+            input.value = '';
+            input.style.borderColor = '#10b981';
+            setTimeout(() => input.focus(), 150);
+        }
+        if (err) err.style.display = 'none';
+
+        cargarEnfermedadesCatalogo();
+    }
+
+    function closeEnfermedadesModal() {
+        const modal = document.getElementById('modalEnfermedadesBackdrop');
+        if (modal) modal.classList.remove('is-open');
+    }
+
+    function cargarEnfermedadesCatalogo() {
+        const url = window.InspeccionConfig?.enfermedadesUrl || (window.AprendizInspeccionConfig?.enfermedadesUrl);
+        if (!url) {
+            renderEnfermedadesCatalogo(enfermedadesCatalogo);
+            return;
+        }
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success && Array.isArray(res.data)) {
+                enfermedadesCatalogo = res.data;
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
+            } else {
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+            }
+        })
+        .catch(() => {
+            renderEnfermedadesCatalogo(enfermedadesCatalogo);
+        });
+    }
+
+    function renderEnfermedadesCatalogo(lista) {
+        const container = document.getElementById('listaEnfermedadesCatalogo');
+        const badge = document.getElementById('badgeTotalEnfermedades');
+        if (badge) {
+            badge.textContent = `${lista.length} registrada${lista.length === 1 ? '' : 's'}`;
+        }
+        if (!container) return;
+
+        if (!lista || lista.length === 0) {
+            container.innerHTML = '<p style="margin: 12px 0; font-size: 0.85rem; color: #64748b; font-style: italic; width: 100%; text-align: center;">No hay enfermedades registradas en el catálogo. Use el campo superior para registrar una nueva enfermedad.</p>';
+            return;
+        }
+
+        container.innerHTML = lista.map(enf => {
+            const nombre = typeof enf === 'string' ? enf : (enf.nombre || '');
+
+            return `
+                <div class="ap-enf-pill" style="display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #065f46; border: 1.5px solid #a7f3d0; padding: 6px 14px; border-radius: 20px; font-size: 0.86rem; font-weight: 700;">
+                    <i class="fas fa-virus" style="color: #059669; font-size: 0.82rem;"></i>
+                    <span>${escapeHtml(nombre)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function guardarNuevaEnfermedadCatalogo() {
+        const input = document.getElementById('inputNuevaEnfermedadCatalogo');
+        const err = document.getElementById('errorNuevaEnfermedadCatalogo');
+        const btn = document.getElementById('btnGuardarEnfermedadCatalogo');
+        const valor = (input ? input.value : '').trim();
+
+        if (!valor) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre requerido',
+                    text: 'Por favor escribe el nombre de la enfermedad.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Por favor escribe el nombre de la enfermedad.');
+            }
+            if (input) input.focus();
+            return;
+        }
+
+        // Validación: NO números permitidos
+        if (/\d/.test(valor)) {
+            if (err) err.style.display = 'block';
+            if (input) input.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Enfermedad inválida',
+                    text: 'No se permiten números en el nombre de la enfermedad. Solo se permiten letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el nombre de la enfermedad. Solo se permiten letras.');
+            }
+            if (input) input.focus();
+            return;
+        }
+
+        if (err) err.style.display = 'none';
+        if (input) input.style.borderColor = '#10b981';
+
+        const url = window.InspeccionConfig?.enfermedadesUrl || window.AprendizInspeccionConfig?.enfermedadesUrl;
+        const csrf = window.InspeccionConfig?.csrfToken || window.AprendizInspeccionConfig?.csrfToken;
+
+        if (btn) btn.disabled = true;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre: valor })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(({ status, body }) => {
+            if (btn) btn.disabled = false;
+            if (status === 201 || body.success) {
+                if (input) input.value = '';
+                if (Array.isArray(body.data)) {
+                    enfermedadesCatalogo = body.data;
+                } else if (body.enfermedad) {
+                    enfermedadesCatalogo.push(body.enfermedad);
+                }
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo);
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Operación Exitosa!',
+                        text: body.message || 'Enfermedad registrada exitosa.',
+                        confirmButtonColor: '#059669',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            container: 'swal2-high-priority'
+                        }
+                    });
+                } else {
+                    alert('¡Operación Exitosa!\n' + (body.message || 'Enfermedad registrada exitosa.'));
+                }
+                if (input) input.focus();
+            } else {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Atención',
+                        text: body.message || 'No fue posible registrar la enfermedad.',
+                        confirmButtonColor: '#286043'
+                    });
+                } else {
+                    alert(body.message || 'No fue posible registrar la enfermedad.');
+                }
+            }
+        })
+        .catch(err => {
+            if (btn) btn.disabled = false;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'Ocurrió un problema al guardar la enfermedad.',
+                    confirmButtonColor: '#286043'
+                });
+            }
+        });
+    }
+
+    function renderVisitaEnfermedadesCheckboxes(lista, marcar) {
+        const container = document.getElementById('containerEnfermedades');
+        if (!container) return;
+
+        // Conservar las que actualmente están marcadas (y las que se pidan marcar ahora)
+        const currentlyChecked = new Set();
+        container.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
+            currentlyChecked.add(cb.value.toLowerCase());
+        });
+        (marcar || []).forEach(n => currentlyChecked.add(String(n).toLowerCase()));
+
+        const nombres = (lista || []).map(enf => typeof enf === 'string' ? enf : (enf.nombre || '')).filter(Boolean);
+
+        // Conservar también las marcadas que no estén en el catálogo (p. ej. de una visita antigua)
+        container.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
+            if (!nombres.some(n => n.toLowerCase() === cb.value.toLowerCase())) nombres.push(cb.value);
+        });
+
+        const cards = nombres.map(nombre => {
+            const slug = nombre.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const enfId = 'lblEnf_' + slug;
+            const isChecked = currentlyChecked.has(nombre.toLowerCase());
+
+            return `
+                <label class="ap-checkbox-card ${isChecked ? 'is-checked' : ''}" id="${enfId}">
+                    <input type="checkbox" name="enfermedades" value="${escapeHtml(nombre)}" ${isChecked ? 'checked' : ''} onchange="toggleCheckboxCard(this, '${enfId}')">
+                    <span>${escapeHtml(nombre)}</span>
+                </label>
+            `;
+        }).join('');
+
+        const botonRegistrar = `
+            <label class="ap-checkbox-card" id="lblEnfRegistrar" onclick="toggleSeccionNuevaEnfermedad(event)" style="border-style: dashed; border-color: #059669; color: #047857; font-weight: 700; cursor: pointer;">
+                <span>➕ Registrar</span>
+            </label>`;
+
+        container.innerHTML = cards + botonRegistrar;
+    }
+
+    // ==================== REGISTRAR UNA NUEVA ENFERMEDAD DESDE EL CHECKLIST DE LA VISITA ====================
+    function toggleSeccionNuevaEnfermedad(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const container = document.getElementById('containerNuevaEnfermedad');
+        const input = document.getElementById('inputNuevaEnfermedadTexto');
+        const errorSpan = document.getElementById('errorNuevaEnfermedad');
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#cbd5e1';
+        if (!container) return;
+
+        if (container.style.display === 'none' || !container.style.display) {
+            container.style.display = 'block';
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    // Agrega (o marca) una enfermedad en el checklist sin pasar por el servidor
+    function agregarNuevaEnfermedad(nombre, marcada) {
+        const valor = String(nombre || '').trim();
+        if (!valor) return;
+        const container = document.getElementById('containerEnfermedades');
+        if (!container) return;
+
+        const existente = Array.from(container.querySelectorAll('input[name="enfermedades"]'))
+            .find(cb => cb.value.toLowerCase() === valor.toLowerCase());
+        if (existente) {
+            existente.checked = !!marcada;
+            const lbl = existente.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.toggle('is-checked', !!marcada);
+            return;
+        }
+
+        const lista = (enfermedadesCatalogo || []).slice();
+        renderVisitaEnfermedadesCheckboxes(lista.concat([valor]), marcada ? [valor] : []);
+    }
+
+    // Registra la enfermedad en el catálogo (queda guardada para todas las visitas) y la marca en esta visita
+    function confirmarNuevaEnfermedad() {
+        const input = document.getElementById('inputNuevaEnfermedadTexto');
+        const errorSpan = document.getElementById('errorNuevaEnfermedad');
+        const valor = (input ? input.value : '').trim();
+
+        const avisar = (icon, title, text) => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon, title, text, confirmButtonColor: '#286043' });
+            } else {
+                alert(text);
+            }
+        };
+
+        if (!valor) {
+            avisar('warning', 'Nombre requerido', 'Por favor escribe el nombre de la enfermedad.');
+            if (input) input.focus();
+            return;
+        }
+        if (/\d/.test(valor) || valor.length < 2) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            if (input) input.style.borderColor = '#dc2626';
+            avisar('error', 'Enfermedad inválida', 'No se permiten números en el nombre de la enfermedad. Solo se permiten letras.');
+            if (input) input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#10b981';
+
+        const url = window.InspeccionConfig?.enfermedadesUrl;
+        const csrf = window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ nombre: valor })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, body: data })))
+        .then(({ status, body }) => {
+            if (status === 201 || body.success) {
+                if (Array.isArray(body.data)) enfermedadesCatalogo = body.data;
+                const guardada = (body.enfermedad && body.enfermedad.nombre) ? body.enfermedad.nombre : valor;
+                renderEnfermedadesCatalogo(enfermedadesCatalogo);
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo, [guardada]);
+
+                const container = document.getElementById('containerNuevaEnfermedad');
+                if (container) container.style.display = 'none';
+                if (input) input.value = '';
+                showToast(body.message || 'Enfermedad registrada y marcada en esta visita.');
+            } else if (status === 422 && /ya se encuentra registrada/i.test(body.message || '')) {
+                // Ya existía: simplemente se marca en la visita
+                renderVisitaEnfermedadesCheckboxes(enfermedadesCatalogo, [valor]);
+                const container = document.getElementById('containerNuevaEnfermedad');
+                if (container) container.style.display = 'none';
+                if (input) input.value = '';
+                showToast(body.message);
+            } else {
+                avisar('warning', 'Atención', body.message || 'No fue posible registrar la enfermedad.');
+            }
+        })
+        .catch(() => avisar('error', 'Error de conexión', 'Ocurrió un problema al guardar la enfermedad.'));
+    }
+
+    // ==================== MANEJO DE OTRAS LABORES (ESTILO IDÉNTICO A OTRA ENFERMEDAD) ====================
+    function toggleSeccionNuevaLabor(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const container = document.getElementById('containerNuevaLabor');
+        const input = document.getElementById('inputNuevaLaborTexto');
+        const errorSpan = document.getElementById('errorNuevaLabor') || document.getElementById('errorNuevaLaborAprendiz');
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#cbd5e1';
+        if (!container) return;
+
+        if (container.style.display === 'none' || !container.style.display) {
+            container.style.display = 'block';
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function confirmarNuevaLabor() {
+        const input = document.getElementById('inputNuevaLaborTexto');
+        const errorSpan = document.getElementById('errorNuevaLabor') || document.getElementById('errorNuevaLaborAprendiz');
+        const valor = (input ? input.value : '').trim();
+        if (!valor) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre requerido',
+                    text: 'Por favor escribe el nombre de la labor realizada.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Por favor escribe el nombre de la labor realizada.');
+            }
+            if (input) input.focus();
+            return;
+        }
+
+        // Validación: no números
+        if (/\d/.test(valor)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            if (input) input.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Labor inválida',
+                    text: 'No se permiten números en el nombre de la labor. Solo se permiten letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el nombre de la labor. Solo se permiten letras.');
+            }
+            if (input) input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#cbd5e1';
+
+        agregarNuevaLabor(valor, true);
+
+        const container = document.getElementById('containerNuevaLabor');
+        if (container) container.style.display = 'none';
+        if (input) input.value = '';
+    }
+
+    function toggleLaborOtra(cb) {
+        toggleSeccionNuevaLabor();
+    }
+
+    function agregarNuevaLabor(nombreForzado = null, isChecked = true) {
+        const input = document.getElementById('inputNuevaLaborTexto') || document.getElementById('txtNuevaLabor');
+        const errorSpan = document.getElementById('errorNuevaLabor') || document.getElementById('errorNuevaLaborAprendiz');
+        const valor = (nombreForzado !== null ? nombreForzado : (input ? input.value : '')).trim();
+        if (!valor) {
+            if (input) input.focus();
+            return;
+        }
+
+        // Validación: no números
+        if (/\d/.test(valor)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            if (input) input.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Labor inválida',
+                    text: 'No se permiten números en el nombre de la labor. Solo se permiten letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el nombre de la labor. Solo se permiten letras.');
+            }
+            if (input) input.focus();
+            return;
+        }
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (input) input.style.borderColor = '#cbd5e1';
+
+        const container = document.getElementById('containerLabores');
+        if (!container) return;
+
+        const existing = container.querySelector(`input[name="labores"][value="${CSS.escape(valor)}"]`);
+        if (existing) {
+            existing.checked = true;
+            const parentLbl = existing.closest('.ap-checkbox-card');
+            if (parentLbl) parentLbl.classList.add('is-checked');
+            if (input && nombreForzado === null) input.value = '';
+            return;
+        }
+
+        const customId = 'lblLabCust_' + Math.random().toString(36).substring(2, 9);
+        const label = document.createElement('label');
+        label.className = 'ap-checkbox-card is-custom-card' + (isChecked ? ' is-checked' : '');
+        label.id = customId;
+
+        label.innerHTML = `
+            <input type="checkbox" name="labores" value="${valor}" ${isChecked ? 'checked' : ''} onchange="toggleCheckboxCard(this, '${customId}')">
+            <span style="flex: 1; word-break: break-word;">${valor}</span>
+            <button type="button" class="ap-btn-remove-card" onclick="removerCardItem(event, '${customId}')" title="Eliminar">&times;</button>
+        `;
+
+        const otraLabel = document.getElementById('lblLabOtra');
+        if (otraLabel && otraLabel.parentNode === container) {
+            container.insertBefore(label, otraLabel);
+        } else {
+            container.appendChild(label);
+        }
+
+        if (input && nombreForzado === null) {
+            input.value = '';
+        }
+    }
+
+    function removerCardItem(e, id) {
+        e.stopPropagation();
+        e.preventDefault();
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+
+    // ==================== GESTIÓN DE RESPONSABLE (SOLO SERGIO O NUEVO) ====================
+    function validarTextoSinNumerosVisita(input, errorSpanId) {
+        const errorSpan = document.getElementById(errorSpanId);
+        if (/\d/.test(input.value)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            input.style.borderColor = '#dc2626';
+        } else {
+            if (errorSpan) errorSpan.style.display = 'none';
+            input.style.borderColor = '#cbd5e1';
+        }
+    }
+
+    function handleVisitaRespSelect(val) {
+        const container = document.getElementById('containerOtroRespVisita');
+        const inputOtro = document.getElementById('modalVisitaOtroRespInput');
+        const hidden = document.getElementById('modalVisitaResponsable');
+        const errorSpan = document.getElementById('errorNumeroRespVisita');
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        if (inputOtro) inputOtro.style.borderColor = '#cbd5e1';
+
+        if (val === '__otro__') {
+            if (container) container.style.display = 'block';
+            if (inputOtro) {
+                inputOtro.value = '';
+                inputOtro.focus();
+            }
+            if (hidden) hidden.value = '';
+        } else {
+            if (container) container.style.display = 'none';
+            if (hidden) hidden.value = val;
+        }
+    }
+
+    // ==================== RESPONSABLES COMPARTIDOS ====================
+    // La lista viene del servidor (tabla apicola_responsables + responsables ya usados) y es la misma
+    // en apiarios, colmenas e inspecciones.
+    function buildResponsablesOptions(placeholder, selectedVal) {
+        const cfg = window.InspeccionConfig || {};
+        const lista = Array.isArray(cfg.responsables) ? cfg.responsables.slice() : [];
+        if (!lista.some(n => String(n).toLowerCase() === 'sergio barrera')) lista.unshift('SERGIO BARRERA');
+        if (selectedVal && !lista.some(n => String(n).toLowerCase() === String(selectedVal).toLowerCase())) lista.push(selectedVal);
+        const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        const sel = selectedVal ? String(selectedVal).toLowerCase() : '';
+        return `<option value="" disabled ${sel ? '' : 'selected'}>${placeholder}</option>`
+            + lista.map(n => `<option value="${esc(n)}" ${String(n).toLowerCase() === sel ? 'selected' : ''}>${esc(n)}</option>`).join('')
+            + `<option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>`;
+    }
+
+    function guardarResponsableServidor(nombre) {
+        const cfg = window.InspeccionConfig || {};
+        if (!Array.isArray(cfg.responsables)) cfg.responsables = [];
+        if (!cfg.responsables.some(n => String(n).toLowerCase() === nombre.toLowerCase())) cfg.responsables.push(nombre);
+        if (!cfg.responsablesUrl) return;
+        fetch(cfg.responsablesUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': cfg.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')
+            },
+            body: JSON.stringify({ nombre })
+        }).catch(() => {});
+    }
+
+    function confirmarOtroResponsableVisita() {
+        const inputOtro = document.getElementById('modalVisitaOtroRespInput');
+        const select = document.getElementById('modalVisitaRespSelect');
+        const hidden = document.getElementById('modalVisitaResponsable');
+        const container = document.getElementById('containerOtroRespVisita');
+        const errorSpan = document.getElementById('errorNumeroRespVisita');
+
+        const nuevo = (inputOtro?.value || '').trim();
+        if (!nuevo) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Nombre requerido',
+                    text: 'Por favor escribe el nombre del responsable para poder guardarlo.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Por favor escribe el nombre del responsable para poder guardarlo.');
+            }
+            inputOtro?.focus();
+            return false;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE
+        if (/\d/.test(nuevo)) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Nombre inválido',
+                    text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el responsable. Solo se aceptan datos reales de personas.');
+            }
+            inputOtro.focus();
+            return false;
+        }
+
+        const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\.\'-]+$/;
+        if (!regexSoloLetras.test(nuevo) || nuevo.length < 3) {
+            if (errorSpan) errorSpan.style.display = 'block';
+            inputOtro.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Nombre inválido',
+                    text: 'Por favor ingresa un nombre real de persona válido (solo letras, mínimo 3 caracteres).',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Por favor ingresa un nombre real de persona válido (solo letras, mínimo 3 caracteres).');
+            }
+            inputOtro.focus();
+            return false;
+        }
+
+        if (errorSpan) errorSpan.style.display = 'none';
+        inputOtro.style.borderColor = '#10b981';
+
+        let existingOpt = Array.from(select.options).find(o => o.value.toLowerCase() === nuevo.toLowerCase());
+        if (!existingOpt) {
+            const opt = new Option(nuevo, nuevo, true, true);
+            const otroOpt = Array.from(select.options).find(o => o.value === '__otro__');
+            if (otroOpt) select.insertBefore(opt, otroOpt);
+            else select.appendChild(opt);
+        }
+
+        guardarResponsableServidor(nuevo);
+        const valorFinal = existingOpt ? existingOpt.value : nuevo;
+        select.value = valorFinal;
+        if (hidden) hidden.value = valorFinal;
+        if (container) container.style.display = 'none';
+        return true;
+    }
+
+    function openNewVisitaModal() {
+        document.getElementById('modalVisitaTitle').textContent = 'Registrar inspección';
+        document.getElementById('modalVisitaId').value = '';
+        
+        // Fecha por defecto hoy en formato ISO para el calendario
+        const todayIso = new Date().toISOString().split('T')[0];
+        document.getElementById('modalVisitaFecha').value = todayIso;
+        document.getElementById('modalVisitaColmena').value = activeColmena || '';
+        
+        // Reset responsable
+        const selectResp = document.getElementById('modalVisitaRespSelect');
+        const hiddenResp = document.getElementById('modalVisitaResponsable');
+        const containerOtro = document.getElementById('containerOtroRespVisita');
+        const inputOtro = document.getElementById('modalVisitaOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroRespVisita');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        if (selectResp) {
+            selectResp.innerHTML = buildResponsablesOptions('Selecciona responsable...', '');
+            selectResp.value = '';
+        }
+        if (hiddenResp) hiddenResp.value = '';
+
+        document.getElementById('modalVisitaMielKg').value = '';
+        document.getElementById('modalVisitaAlimentacion').value = '';
+        document.getElementById('modalVisitaObservaciones').value = '';
+
+        setEstadoGeneral('Bueno');
+        setPresenciaMiel('Bueno');
+
+        // Reina (desmarcada por defecto)
+        const chkReina = document.getElementById('chkSeVioReina');
+        chkReina.checked = false;
+        toggleCheckboxCard(chkReina, 'lblSeVioReina');
+
+        const chkMarcada = document.getElementById('chkEstaMarcada');
+        chkMarcada.checked = false;
+        toggleCheckboxCard(chkMarcada, 'lblEstaMarcada');
+
+        // Color de la marca
+        document.getElementById('modalVisitaColorMarca').value = 'Sin marcar';
+        const wrapColor = document.getElementById('wrapperColorMarcaOtro');
+        if (wrapColor) wrapColor.style.display = 'none';
+        const inputColor = document.getElementById('modalVisitaColorMarcaOtro');
+        if (inputColor) inputColor.value = '';
+
+        // Limpiar cards personalizadas previas
+        document.querySelectorAll('.is-custom-card').forEach(el => el.remove());
+
+        // Enfermedades (todas desmarcadas)
+        document.querySelectorAll('input[name="enfermedades"]').forEach(cb => {
+            cb.checked = false;
+            const lbl = cb.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.remove('is-checked');
+        });
+        const chkEnfOtra = document.getElementById('chkEnfOtra');
+        if (chkEnfOtra) {
+            chkEnfOtra.checked = false;
+            toggleEnfermedadOtra(chkEnfOtra);
+        }
+        const txtEnfOtra = document.getElementById('modalVisitaEnfOtraTexto');
+        if (txtEnfOtra) txtEnfOtra.value = '';
+        const txtNewEnf = document.getElementById('txtNuevaEnfermedad');
+        if (txtNewEnf) txtNewEnf.value = '';
+        const containerNewEnf = document.getElementById('containerNuevaEnfermedad');
+        if (containerNewEnf) containerNewEnf.style.display = 'none';
+        const inputNewEnf = document.getElementById('inputNuevaEnfermedadTexto');
+        if (inputNewEnf) inputNewEnf.value = '';
+
+        // Labores (todas desmarcadas)
+        document.querySelectorAll('input[name="labores"]').forEach(cb => {
+            cb.checked = false;
+            const lbl = cb.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.remove('is-checked');
+        });
+        const contNewLab = document.getElementById('containerNuevaLabor');
+        if (contNewLab) contNewLab.style.display = 'none';
+        const txtNewLab = document.getElementById('inputNuevaLaborTexto');
+        if (txtNewLab) {
+            txtNewLab.value = '';
+            txtNewLab.style.borderColor = '#cbd5e1';
+        }
+        const errNewLab = document.getElementById('errorNuevaLabor') || document.getElementById('errorNuevaLaborAprendiz');
+        if (errNewLab) errNewLab.style.display = 'none';
+
+        document.getElementById('modalVisitaBackdrop').classList.add('is-open');
+    }
+
+    function openEditVisitaModal(id) {
+        const item = inspeccionesList.find(v => v.id === id);
+        if (!item) return;
+
+        document.getElementById('modalVisitaTitle').textContent = 'Editar inspección';
+        document.getElementById('modalVisitaId').value = item.id;
+        document.getElementById('modalVisitaFecha').value = toIsoDate(item.fecha);
+        document.getElementById('modalVisitaColmena').value = item.colmena;
+
+        // Asignar responsable
+        const respVal = item.responsable || '';
+        const selectResp = document.getElementById('modalVisitaRespSelect');
+        const hiddenResp = document.getElementById('modalVisitaResponsable');
+        const containerOtro = document.getElementById('containerOtroRespVisita');
+        const inputOtro = document.getElementById('modalVisitaOtroRespInput');
+        const errorResp = document.getElementById('errorNumeroRespVisita');
+
+        if (containerOtro) containerOtro.style.display = 'none';
+        if (inputOtro) {
+            inputOtro.value = '';
+            inputOtro.style.borderColor = '#cbd5e1';
+        }
+        if (errorResp) errorResp.style.display = 'none';
+
+        if (hiddenResp) hiddenResp.value = respVal;
+
+        if (selectResp) {
+            selectResp.innerHTML = buildResponsablesOptions('Selecciona responsable...', respVal);
+        }
+
+        document.getElementById('modalVisitaMielKg').value = item.mielKg;
+        document.getElementById('modalVisitaAlimentacion').value = item.alimenSuministrada || '';
+        document.getElementById('modalVisitaObservaciones').value = item.notas || '';
+
+        setEstadoGeneral(item.estadoGeneral);
+        setPresenciaMiel(item.presenciaMiel);
+
+        // Reina
+        const chkReina = document.getElementById('chkSeVioReina');
+        chkReina.checked = !!item.reinaVista;
+        toggleCheckboxCard(chkReina, 'lblSeVioReina');
+
+        const chkMarcada = document.getElementById('chkEstaMarcada');
+        chkMarcada.checked = !!item.reinaMarcada;
+        toggleCheckboxCard(chkMarcada, 'lblEstaMarcada');
+
+        // Color de la marca
+        const color = item.colorMarca || 'Sin marcar';
+        const selColor = document.getElementById('modalVisitaColorMarca');
+        const wrapColor = document.getElementById('wrapperColorMarcaOtro');
+        const inputColor = document.getElementById('modalVisitaColorMarcaOtro');
+
+        let colorFound = false;
+        for (let opt of selColor.options) {
+            if (opt.value.toLowerCase() === color.toLowerCase()) {
+                selColor.value = opt.value;
+                colorFound = true;
+                break;
+            }
+        }
+        if (!colorFound && color !== 'Sin marcar') {
+            const newOpt = document.createElement('option');
+            newOpt.value = color;
+            newOpt.textContent = color + ' (Personalizado)';
+            const otroOpt = Array.from(selColor.options).find(o => o.value === 'Otro');
+            if (otroOpt) selColor.insertBefore(newOpt, otroOpt);
+            else selColor.appendChild(newOpt);
+            selColor.value = color;
+        }
+        if (wrapColor) {
+            if (selColor.value === 'Otro') {
+                wrapColor.style.display = 'block';
+                if (inputColor) inputColor.value = color !== 'Otro' ? color : '';
+            } else {
+                wrapColor.style.display = 'none';
+                if (inputColor) inputColor.value = '';
+            }
+        }
+
+        // Limpiar cards personalizadas previas
+        document.querySelectorAll('.is-custom-card').forEach(el => el.remove());
+
+        // Enfermedades
+        const chkEnfOtra = document.getElementById('chkEnfOtra');
+        const txtEnfOtra = document.getElementById('modalVisitaEnfOtraTexto');
+        if (chkEnfOtra) chkEnfOtra.checked = false;
+        if (txtEnfOtra) txtEnfOtra.value = '';
+        const containerNewEnf = document.getElementById('containerNuevaEnfermedad');
+        if (containerNewEnf) containerNewEnf.style.display = 'none';
+        const inputNewEnf = document.getElementById('inputNuevaEnfermedadTexto');
+        if (inputNewEnf) inputNewEnf.value = '';
+
+        document.querySelectorAll('input[name="enfermedades"]').forEach(cb => {
+            cb.checked = false;
+            const lbl = cb.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.remove('is-checked');
+        });
+
+        (item.enfermedades || []).forEach(enf => {
+            const existing = document.querySelector(`input[name="enfermedades"][value="${CSS.escape(enf)}"]`);
+            if (existing) {
+                existing.checked = true;
+                const lbl = existing.closest('.ap-checkbox-card');
+                if (lbl) lbl.classList.add('is-checked');
+            } else if (enf === 'Otra') {
+                if (chkEnfOtra) chkEnfOtra.checked = true;
+            } else {
+                agregarNuevaEnfermedad(enf, true);
+            }
+        });
+        if (chkEnfOtra) toggleEnfermedadOtra(chkEnfOtra);
+
+        // Labores
+        const chkLabOtra = document.getElementById('chkLabOtra');
+        const txtLabOtra = document.getElementById('modalVisitaLabOtraTexto');
+        if (chkLabOtra) chkLabOtra.checked = false;
+        if (txtLabOtra) txtLabOtra.value = '';
+
+        document.querySelectorAll('input[name="labores"]').forEach(cb => {
+            cb.checked = false;
+            const lbl = cb.closest('.ap-checkbox-card');
+            if (lbl) lbl.classList.remove('is-checked');
+        });
+
+        (item.labores || []).forEach(lab => {
+            const existing = document.querySelector(`input[name="labores"][value="${CSS.escape(lab)}"]`);
+            if (existing) {
+                existing.checked = true;
+                const lbl = existing.closest('.ap-checkbox-card');
+                if (lbl) lbl.classList.add('is-checked');
+            } else if (lab === 'Otra') {
+                if (chkLabOtra) chkLabOtra.checked = true;
+            } else {
+                agregarNuevaLabor(lab, true);
+            }
+        });
+        if (chkLabOtra) toggleLaborOtra(chkLabOtra);
+
+        document.getElementById('modalVisitaBackdrop').classList.add('is-open');
+    }
+
+    function closeVisitaModal() {
+        document.getElementById('modalVisitaBackdrop').classList.remove('is-open');
+    }
+
+    async function saveVisitaForm(e) {
+        e.preventDefault();
+
+        const id = document.getElementById('modalVisitaId').value;
+        const rawFecha = document.getElementById('modalVisitaFecha').value.trim();
+        const fecha = toDmyDate(rawFecha) || rawFecha;
+        const colmena = document.getElementById('modalVisitaColmena').value.trim();
+
+        const selectResp = document.getElementById('modalVisitaRespSelect');
+        const inputOtroResp = document.getElementById('modalVisitaOtroRespInput');
+        const hiddenResp = document.getElementById('modalVisitaResponsable');
+        const errorResp = document.getElementById('errorNumeroRespVisita');
+
+        if (!selectResp || !selectResp.value) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Responsable requerido',
+                    text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la visita.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la visita.');
+            }
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        if (selectResp.value === '__otro__') {
+            const nuevo = (inputOtroResp?.value || '').trim();
+            if (!nuevo) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Nombre requerido',
+                        text: 'Debes escribir el nombre del nuevo responsable para poder guardar la visita.',
+                        confirmButtonColor: '#286043'
+                    });
+                } else {
+                    alert('Debes escribir el nombre del nuevo responsable para poder guardar la visita.');
+                }
+                if (inputOtroResp) inputOtroResp.focus();
+                return;
+            }
+            const confirmOk = confirmarOtroResponsableVisita();
+            if (!confirmOk) {
+                return;
+            }
+        }
+
+        let responsable = (hiddenResp && hiddenResp.value ? hiddenResp.value : (selectResp && selectResp.value !== '__otro__' ? selectResp.value : '')).trim();
+
+        if (!responsable || responsable === '__otro__') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Responsable requerido',
+                    text: 'Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la visita.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('Debes seleccionar a SERGIO BARRERA o añadir a otro responsable para poder guardar la visita.');
+            }
+            if (selectResp) selectResp.focus();
+            return;
+        }
+
+        // Validación estricta: NO NÚMEROS EN RESPONSABLE
+        if (/\d/.test(responsable)) {
+            if (errorResp) errorResp.style.display = 'block';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Responsable inválido',
+                    text: 'No se permiten números en el responsable. Solo se aceptan datos reales de personas.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en el responsable. Solo se aceptan datos reales de personas.');
+            }
+            if (inputOtroResp) {
+                inputOtroResp.style.borderColor = '#dc2626';
+                inputOtroResp.focus();
+            }
+            return;
+        }
+
+        const estadoGeneral = document.getElementById('modalVisitaEstadoGeneral').value;
+        const presenciaMiel = document.getElementById('modalVisitaPresenciaMiel').value;
+        const mielKg = parseFloat(document.getElementById('modalVisitaMielKg').value) || 0;
+        
+        const reinaVista = document.getElementById('chkSeVioReina').checked;
+        const reinaMarcada = document.getElementById('chkEstaMarcada').checked;
+        
+        // Color reina
+        let colorMarca = document.getElementById('modalVisitaColorMarca').value;
+        if (colorMarca === 'Otro') {
+            const inputColorOtro = document.getElementById('modalVisitaColorMarcaOtro');
+            const errorColorOtro = document.getElementById('errorColorMarcaOtro') || document.getElementById('errorColorMarcaOtroAprendiz');
+            const custom = (inputColorOtro?.value || '').trim();
+            if (custom && /\d/.test(custom)) {
+                if (errorColorOtro) errorColorOtro.style.display = 'block';
+                if (inputColorOtro) inputColorOtro.style.borderColor = '#dc2626';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Color inválido',
+                        text: 'No se permiten números en el color de la reina. Solo se permiten letras.',
+                        confirmButtonColor: '#286043'
+                    });
+                } else {
+                    alert('No se permiten números en el color de la reina. Solo se permiten letras.');
+                }
+                if (inputColorOtro) inputColorOtro.focus();
+                return;
+            }
+            colorMarca = custom || 'Otro';
+        }
+
+        // Enfermedades
+        const enfermedades = [];
+        document.querySelectorAll('input[name="enfermedades"]:checked').forEach(cb => {
+            enfermedades.push(cb.value);
+        });
+        const inputNuevaEnf = document.getElementById('inputNuevaEnfermedadTexto');
+        if (inputNuevaEnf && inputNuevaEnf.value.trim()) {
+            const extraEnf = inputNuevaEnf.value.trim();
+            if (/\d/.test(extraEnf)) {
+                const errEnf = document.getElementById('errorNuevaEnfermedad') || document.getElementById('errorNuevaEnfermedadAprendiz');
+                if (errEnf) errEnf.style.display = 'block';
+                inputNuevaEnf.style.borderColor = '#dc2626';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Enfermedad inválida',
+                        text: 'No se permiten números en el nombre de la enfermedad. Solo se permiten letras.',
+                        confirmButtonColor: '#286043'
+                    });
+                }
+                inputNuevaEnf.focus();
+                return;
+            }
+            if (!enfermedades.includes(extraEnf)) {
+                enfermedades.push(extraEnf);
+            }
+        }
+
+        // Labores
+        const labores = [];
+        document.querySelectorAll('input[name="labores"]:checked').forEach(cb => {
+            labores.push(cb.value);
+        });
+
+        const inputNuevaLab = document.getElementById('inputNuevaLaborTexto');
+        if (inputNuevaLab && inputNuevaLab.value.trim()) {
+            const extraLab = inputNuevaLab.value.trim();
+            if (/\d/.test(extraLab)) {
+                const errLab = document.getElementById('errorNuevaLabor') || document.getElementById('errorNuevaLaborAprendiz');
+                if (errLab) errLab.style.display = 'block';
+                inputNuevaLab.style.borderColor = '#dc2626';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Labor inválida',
+                        text: 'No se permiten números en el nombre de la labor. Solo se permiten letras.',
+                        confirmButtonColor: '#286043'
+                    });
+                }
+                inputNuevaLab.focus();
+                return;
+            }
+            if (!labores.includes(extraLab)) {
+                labores.push(extraLab);
+            }
+        }
+
+        const inputAlimen = document.getElementById('modalVisitaAlimentacion');
+        const errorAlimen = document.getElementById('errorAlimentacion') || document.getElementById('errorAlimentacionAprendiz');
+        const alimenSuministrada = (inputAlimen?.value || '').trim();
+
+        if (alimenSuministrada && /\d/.test(alimenSuministrada)) {
+            if (errorAlimen) errorAlimen.style.display = 'block';
+            if (inputAlimen) inputAlimen.style.borderColor = '#dc2626';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Alimentación inválida',
+                    text: 'No se permiten números en la alimentación suministrada. Solo se permiten letras.',
+                    confirmButtonColor: '#286043'
+                });
+            } else {
+                alert('No se permiten números en la alimentación suministrada. Solo se permiten letras.');
+            }
+            if (inputAlimen) inputAlimen.focus();
+            return;
+        }
+        if (errorAlimen) errorAlimen.style.display = 'none';
+        if (inputAlimen) inputAlimen.style.borderColor = '#cbd5e1';
+
+        const notas = document.getElementById('modalVisitaObservaciones').value.trim();
+
+        // Fecha en formato ISO para el servidor
+        const formattedIso = toIsoDate(rawFecha) || (fecha.includes('/') ? `${fecha.split('/')[2]}-${fecha.split('/')[1]}-${fecha.split('/')[0]}` : new Date().toISOString().split('T')[0]);
+
+        const esEdicion = !!id;
+        const itemExistente = esEdicion ? inspeccionesList.find(v => v.id === parseInt(id)) : null;
+
+        // Número de registro: se conserva al editar y es el siguiente al crear
+        let regNumber;
+        if (itemExistente) {
+            regNumber = itemExistente.regNumber;
+        } else {
+            const maxReg = inspeccionesList.reduce((max, v) => {
+                const match = (v.regNumber || '').match(/REG-(\d+)/);
+                return match && parseInt(match[1]) > max ? parseInt(match[1]) : max;
+            }, 0);
+            regNumber = `REG-${String(maxReg + 1).padStart(4, '0')}`;
+        }
+
+        const payload = {
+            registration_number: regNumber,
+            colmena_code: colmena,
+            date: formattedIso,
+            responsable: responsable,
+            general_state: estadoGeneral,
+            honey_presence: presenciaMiel,
+            harvested_honey_kg: mielKg,
+            queen_seen: reinaVista,
+            queen_marked: reinaMarcada,
+            queen_color: colorMarca,
+            diseases: enfermedades,
+            tasks: labores,
+            feed_supplied: alimenSuministrada,
+            notes: notas
+        };
+
+        // Se guarda primero en el servidor: si falla (p. ej. apiario desactivado) no se agrega nada en pantalla
+        const btnGuardar = document.querySelector('#formVisita button[type="submit"]');
+        if (btnGuardar) btnGuardar.disabled = true;
+
+        let respuesta;
+        try {
+            const baseUrl = window.InspeccionConfig?.baseUrl || "/apicola/inspecciones";
+            const resp = await fetch(esEdicion ? `${baseUrl}/${id}` : (window.InspeccionConfig?.storeUrl || "/apicola/inspecciones"), {
+                method: esEdicion ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            respuesta = await resp.json();
+            if (!resp.ok || respuesta.success === false) {
+                let msg = respuesta.message || 'No se pudo guardar la inspección.';
+                if (respuesta.errors) msg = Object.values(respuesta.errors).flat().join(' | ');
+                throw new Error(msg);
+            }
+        } catch (err) {
+            if (btnGuardar) btnGuardar.disabled = false;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'No se pudo guardar', text: err.message, confirmButtonColor: '#286043' });
+            } else {
+                alert(err.message);
+            }
+            return;
+        }
+        if (btnGuardar) btnGuardar.disabled = false;
+
+        if (itemExistente) {
+            itemExistente.fecha = fecha;
+            itemExistente.colmena = colmena;
+            itemExistente.responsable = responsable;
+            itemExistente.estadoGeneral = estadoGeneral;
+            itemExistente.presenciaMiel = presenciaMiel;
+            itemExistente.mielKg = mielKg;
+            itemExistente.reinaVista = reinaVista;
+            itemExistente.reinaMarcada = reinaMarcada;
+            itemExistente.colorMarca = colorMarca;
+            itemExistente.enfermedades = enfermedades;
+            itemExistente.labores = labores;
+            itemExistente.alimenSuministrada = alimenSuministrada;
+            itemExistente.notas = notas;
+            showToast(`Inspección ${itemExistente.regNumber} actualizada con éxito.`);
+        } else {
+            inspeccionesList.unshift({
+                id: respuesta.id_registro,
+                regNumber: regNumber,
+                colmena: colmena,
+                fecha: fecha,
+                estadoGeneral: estadoGeneral,
+                presenciaMiel: presenciaMiel,
+                mielKg: mielKg,
+                enfermedades: enfermedades,
+                responsable: responsable,
+                reinaVista: reinaVista,
+                reinaMarcada: reinaMarcada,
+                colorMarca: colorMarca,
+                labores: labores,
+                alimenSuministrada: alimenSuministrada,
+                notas: notas,
+                estado: 'Activa'
+            });
+            showToast(`Inspección ${regNumber} registrada exitosamente.`);
+        }
+
+        closeVisitaModal();
+        renderVisitasTable();
+        updateInspeccionMetrics();
+        renderRelatedProduccion();
+    }
+
+    // Desactivar visita (sin eliminar de la base de datos)
+    async function desactivarVisita(id, regNumber) {
+        const motivo = await pedirMotivoBaja({
+            titulo: '¿Desactivar visita?',
+            texto: `Vas a desactivar la visita <b>${String(regNumber).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+            confirmar: 'Sí, desactivar'
+        });
+        if (!motivo) return;
+
+        try {
+            const response = await fetch(`${window.InspeccionConfig?.baseUrl || "/apicola/inspecciones"}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ motivo })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'No se pudo desactivar la visita.');
+            }
+        } catch (err) {
+            console.warn('Persistencia en backend:', err.message);
+            showToast(err.message || 'No se pudo desactivar la visita.');
+            return;
+        }
+
+        const item = inspeccionesList.find(v => v.id === id);
+        if (item) {
+            item.estado = 'Inactiva';
+        }
+        try {
+            localStorage.setItem('apicola_inspecciones_list', JSON.stringify(inspeccionesList));
+        } catch(e) {
+            console.error(e);
+        }
+        showToast(`Visita "${regNumber}" desactivada con éxito.`);
+        renderVisitasTable();
+        updateInspeccionMetrics();
+    }
+
+    // Activar o Alternar estado de la visita
+    async function toggleVisitaStatus(id, regNumber) {
+        const item = inspeccionesList.find(v => v.id === id);
+        if (!item) return;
+
+        const nuevoEstado = (item.estado === 'Inactiva') ? 'Activa' : 'Inactiva';
+        const accionStr = (nuevoEstado === 'Activa') ? 'activar' : 'desactivar';
+
+        // Para desactivar hay que indicar el motivo; reactivar solo pide confirmación
+        let motivo = null;
+        if (nuevoEstado === 'Inactiva') {
+            motivo = await pedirMotivoBaja({
+                titulo: '¿Desactivar visita?',
+                texto: `Vas a desactivar la visita <b>${String(regNumber).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</b>.`,
+                confirmar: 'Sí, desactivar'
+            });
+            if (!motivo) return;
+        } else if (!confirm(`¿Estás seguro de que deseas ${accionStr} la visita "${regNumber}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${window.InspeccionConfig?.baseUrl || "/apicola/inspecciones"}/${id}/toggle-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (window.InspeccionConfig?.csrfToken || (document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '')),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ motivo })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'No se pudo cambiar el estado de la visita.');
+            }
+            if (result.nuevo_estado) {
+                item.estado = result.nuevo_estado;
+            } else {
+                item.estado = nuevoEstado;
+            }
+        } catch (err) {
+            console.warn('Persistencia en backend:', err.message);
+            item.estado = nuevoEstado;
+        }
+
+        try {
+            localStorage.setItem('apicola_inspecciones_list', JSON.stringify(inspeccionesList));
+        } catch(e) {
+            console.error(e);
+        }
+        showToast(`Visita "${regNumber}" marcada como ${item.estado}.`);
+        renderVisitasTable();
+        updateInspeccionMetrics();
+    }
+
+    // ==================== MODAL DE DETALLE DE VISITA ====================
+    function openVisitaDetailModal(id) {
+        const item = inspeccionesList.find(v => v.id === id);
+        if (!item) return;
+
+        document.getElementById('detailVisitaRegNum').textContent = item.regNumber;
+        const badgeEstado = document.getElementById('detailVisitaEstadoBadge');
+        if (badgeEstado) {
+            const isInactive = item.estado === 'Inactiva';
+            badgeEstado.textContent = isInactive ? 'Inactiva' : 'Activa';
+            badgeEstado.className = 'ap-status-badge ' + (isInactive ? 'inactiva' : 'bueno');
+        }
+        document.getElementById('detailVisitaColmena').textContent = `Inspección Colmena ${item.colmena}`;
+        document.getElementById('detailVisitaFecha').textContent = item.fecha;
+        document.getElementById('detailVisitaResp').textContent = item.responsable;
+        document.getElementById('detailVisitaMielKg').textContent = `${parseFloat(item.mielKg).toFixed(1)} kg`;
+
+        const badgeEstGen = document.getElementById('detailVisitaEstadoGen');
+        badgeEstGen.textContent = item.estadoGeneral;
+        badgeEstGen.className = 'ap-status-badge ' + (item.estadoGeneral === 'Bueno' ? 'bueno' : (item.estadoGeneral === 'Regular' ? 'regular' : 'malo'));
+
+        const badgePresMiel = document.getElementById('detailVisitaPresMiel');
+        badgePresMiel.textContent = item.presenciaMiel;
+        badgePresMiel.className = 'ap-status-badge ' + (item.presenciaMiel === 'Bueno' ? 'bueno' : (item.presenciaMiel === 'Regular' ? 'regular' : 'malo'));
+
+        const enfContainer = document.getElementById('detailVisitaEnfermedades');
+        if (item.enfermedades && item.enfermedades.length > 0) {
+            enfContainer.textContent = item.enfermedades.join(', ');
+            enfContainer.className = 'ap-status-badge alerta';
+        } else {
+            enfContainer.textContent = 'Ninguna';
+            enfContainer.className = 'ap-status-badge bueno';
+        }
+
+        // Reina
+        let reinaStr = item.reinaVista ? 'Se vio la reina' : 'No se vio la reina';
+        if (item.reinaMarcada) reinaStr += ` • Marcada (${item.colorMarca})`;
+        document.getElementById('detailVisitaReinaInfo').textContent = reinaStr;
+
+        // Labores
+        let laboresStr = (item.labores && item.labores.length > 0) ? item.labores.join(', ') : 'Ninguna registrada';
+        if (item.alimenSuministrada) laboresStr += ` [Alimentación: ${item.alimenSuministrada}]`;
+        document.getElementById('detailVisitaLabores').textContent = laboresStr;
+
+        document.getElementById('detailVisitaNotas').textContent = item.notas || 'Sin observaciones adicionales.';
+
+        document.getElementById('btnEditFromVisitaDetail').onclick = () => {
+            closeVisitaDetailModal();
+            openEditVisitaModal(item.id);
+        };
+
+        document.getElementById('modalVisitaDetailBackdrop').classList.add('is-open');
+    }
+
+    function closeVisitaDetailModal() {
+        document.getElementById('modalVisitaDetailBackdrop').classList.remove('is-open');
+    }
+
+    // Exponer globalmente en window para llamadas inline HTML
+    window.openNewVisitaModal = openNewVisitaModal;
+    window.openEditVisitaModal = openEditVisitaModal;
+    window.closeVisitaModal = closeVisitaModal;
+    window.saveVisitaForm = saveVisitaForm;
+    window.toggleCheckboxCard = toggleCheckboxCard;
+    window.handleColorMarcaChange = handleColorMarcaChange;
+    window.agregarColorMarcaCustom = agregarColorMarcaCustom;
+    window.openEnfermedadesModal = openEnfermedadesModal;
+    window.closeEnfermedadesModal = closeEnfermedadesModal;
+    window.guardarNuevaEnfermedadCatalogo = guardarNuevaEnfermedadCatalogo;
+    window.cargarEnfermedadesCatalogo = cargarEnfermedadesCatalogo;
+    window.renderEnfermedadesCatalogo = renderEnfermedadesCatalogo;
+    window.renderVisitaEnfermedadesCheckboxes = renderVisitaEnfermedadesCheckboxes;
+    window.removerCardItem = removerCardItem;
+    window.toggleLaborOtra = toggleLaborOtra;
+    window.toggleSeccionNuevaLabor = toggleSeccionNuevaLabor;
+    window.confirmarNuevaLabor = confirmarNuevaLabor;
+    window.agregarNuevaLabor = agregarNuevaLabor;
+    window.toggleSeccionNuevaEnfermedad = toggleSeccionNuevaEnfermedad;
+    window.confirmarNuevaEnfermedad = confirmarNuevaEnfermedad;
+    window.agregarNuevaEnfermedad = agregarNuevaEnfermedad;
+    window.handleVisitaRespSelect = handleVisitaRespSelect;
+    window.confirmarOtroResponsableVisita = confirmarOtroResponsableVisita;
+    window.validarTextoSinNumerosVisita = validarTextoSinNumerosVisita;
+    window.openVisitaDetailModal = openVisitaDetailModal;
+    window.closeVisitaDetailModal = closeVisitaDetailModal;
+    window.changeActiveColmena = changeActiveColmena;
+    window.filterVisitas = filterVisitas;
+    window.toggleVisitaStatus = toggleVisitaStatus;
+    window.desactivarVisita = desactivarVisita;

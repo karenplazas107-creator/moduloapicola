@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Alias para el panel exclusivo de gestión de evidencias (solo usuario ID 124)
+        $middleware->alias([
+            'gestor.evidencias' => \Modules\Evidencias\Http\Middleware\EsGestorEvidencias::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

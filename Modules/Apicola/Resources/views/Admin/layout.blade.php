@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Panel de Administración • SENA APÍCOLA')</title>
+    <link rel="icon" type="image/png" href="{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}">
+
+    <!-- Google Fonts: Nunito + Open Sans (Tipografía oficial ERP SENA Empresa) + Caveat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+
+    <!-- Mapbox GL JS (Mapas interactivos de apiarios) -->
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" />
+
+    <link rel="stylesheet" href="{{ asset('modules/apicola/css/layout.css') }}">
+
+    @yield('styles')
+</head>
+<body>
+
+    <!-- ================= BARRA LATERAL (SIDEBAR) ================= -->
+    <aside class="ap-sidebar" id="apSidebar">
+        
+        <!-- Encabezado del Logo SENA APÍCOLA -->
+        <div class="ap-sidebar-header" style="gap: 14px; padding: 1.35rem 1.25rem;">
+            <div class="ap-logo-hex" style="border-radius: 14px; border: 2px solid #fbbf24; background: #ffffff;">
+                <img src="{{ asset('modules/apicola/img/bee_mascot.jpg') }}?v={{ time() }}" 
+                     alt="SENA Apícola" 
+                     class="ap-logo-img"
+                     onerror="this.onerror=null; this.src='{{ asset('modules/apicola/img/logo.png') }}?v={{ time() }}';">
+            </div>
+            <div class="ap-brand-info">
+                <div class="ap-brand-title" style="font-size: 1.18rem; font-weight: 800; letter-spacing: -0.3px;">
+                    <span style="color: #ffffff;">SENA </span><span style="color: #fbbf24;">APÍCOLA</span>
+                </div>
+                <div class="ap-brand-sub" style="font-size: 0.72rem; color: #a7f3d0; letter-spacing: 0.5px; font-weight: 600;">SENA - LA ANGOSTURA</div>
+            </div>
+        </div>
+
+        <!-- Menú de Navegación -->
+        <ul class="ap-nav-list" id="apNavList">
+
+            <!-- 1. Inicio -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.dashboard') || request()->routeIs('apicola.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.dashboard') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-house"></i>
+                    </span>
+                    <span>Inicio</span>
+                </a>
+            </li>
+
+            <!-- 2. Usuarios -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.usuarios.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.usuarios.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="far fa-user"></i>
+                    </span>
+                    <span>Usuarios</span>
+                </a>
+            </li>
+
+            <!-- 3. Apiarios -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.apiarios.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.apiarios.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-location-dot"></i>
+                    </span>
+                    <span>Apiarios</span>
+                </a>
+            </li>
+
+            @php
+                $isInspeccionRoute = request()->routeIs('apicola.admin.inspecciones.*') 
+                    || request()->routeIs('apicola.admin.colmenas.inspecciones')
+                    || request()->is('*inspeccion*');
+                $isProduccionRoute = request()->routeIs('apicola.admin.producciones.*')
+                    || request()->routeIs('apicola.admin.colmenas.producciones')
+                    || request()->is('apicola/producciones*')
+                    || request()->is('apicola/colmenas/*/producciones');
+                $isColmenaDirect = (request()->routeIs('apicola.colmenas.*') || request()->routeIs('apicola.admin.colmenas.*') || request()->is('apicola/colmenas*')) && !$isInspeccionRoute && !$isProduccionRoute;
+            @endphp
+            <!-- 4. Módulo: Colmenas -->
+            <li class="ap-nav-item {{ $isColmenaDirect ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.colmenas.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </span>
+                    <span>Colmenas</span>
+                </a>
+                <!-- Submódulos: Inspección y Producción -->
+                <ul class="ap-sub-list">
+                    <li>
+                        <a href="{{ route('apicola.admin.inspecciones.index') }}" 
+                           class="ap-sub-link {{ $isInspeccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-clipboard-check" style="font-size: 0.78rem;"></i>
+                            <span>Inspección</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('apicola.admin.producciones.index') }}" 
+                           class="ap-sub-link {{ $isProduccionRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-jar" style="font-size: 0.78rem;"></i>
+                            <span>Producción</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            @php
+                $isMovimientosRoute = request()->routeIs('apicola.admin.inventario.movimientos.*') 
+                    || request()->is('apicola/inventario/movimientos*')
+                    || request()->is('apicola/movimientos*');
+                $isInventarioDirect = (request()->routeIs('apicola.admin.inventario.*') || request()->is('apicola/inventario*')) && !$isMovimientosRoute;
+            @endphp
+            <!-- 5. Inventario -->
+            <li class="ap-nav-item {{ $isInventarioDirect ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.inventario.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-box-archive"></i>
+                    </span>
+                    <span>Inventario</span>
+                </a>
+                <!-- Submódulo: Movimientos -->
+                <ul class="ap-sub-list">
+                    <li>
+                        <a href="{{ route('apicola.admin.inventario.movimientos.index') }}" 
+                           class="ap-sub-link {{ $isMovimientosRoute ? 'active-sub' : '' }}">
+                            <i class="fas fa-arrow-right-arrow-left" style="font-size: 0.78rem;"></i>
+                            <span>Movimientos</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- 6. Calendario Floral -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.calendario.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.calendario.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-calendar-days"></i>
+                    </span>
+                    <span>Calendario floral</span>
+                </a>
+            </li>
+
+            <!-- 7. Reportes -->
+            <li class="ap-nav-item {{ request()->routeIs('apicola.admin.reportes.*') ? 'active' : '' }}">
+                <a href="{{ route('apicola.admin.reportes.index') }}" class="ap-nav-link">
+                    <span class="ap-nav-icon">
+                        <i class="fas fa-chart-column"></i>
+                    </span>
+                    <span>Reportes</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Slogan Sostenible Artístico en el pie del Sidebar -->
+        <div class="ap-sidebar-slogan-box">
+            <span class="ap-slogan-handwritten">Juntos por una apicultura sostenible</span>
+            <div class="ap-slogan-bee-deco">
+                <i class="fas fa-seedling"></i>
+                <span style="font-size: 0.75rem; letter-spacing: 1px;">SENA CEFA</span>
+                <i class="fas fa-feather-pointed"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <div class="ap-main-area">
+
+        <!-- Barra Superior ApiGestión -->
+        <header class="ap-top-nav" style="justify-content: flex-end;">
+
+            <div class="ap-top-right">
+                <!-- Perfil del usuario con Dropdown -->
+                <div class="ap-profile-dropdown-wrapper">
+                    <div class="ap-nav-profile-pill" id="apProfileToggle" onclick="toggleProfileDropdown(event)" title="Cuenta de usuario" role="button" tabindex="0">
+                        <div class="ap-nav-profile-avatar">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <div class="ap-nav-profile-meta">
+                            <span class="ap-nav-profile-name">
+                                {{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}
+                            </span>
+                            <span class="ap-nav-profile-role">
+                                Apicultor
+                            </span>
+                        </div>
+                        <i class="fas fa-chevron-down ap-profile-chevron" id="apProfileChevron"></i>
+                    </div>
+
+                    <!-- Menú Desplegable de Usuario -->
+                    <div class="ap-profile-dropdown-menu" id="apProfileMenu">
+                        <div class="ap-dropdown-header">
+                            <div class="ap-dropdown-avatar">
+                                {{ Auth::user()?->initials ?? strtoupper(substr(Auth::user()?->nickname ?? 'SB', 0, 2)) }}
+                            </div>
+                            <div class="ap-dropdown-user-info">
+                                <div class="ap-dropdown-user-name">{{ Auth::user()?->full_name ?? (Auth::user()?->nickname ?? 'Sergio Barrera') }}</div>
+                                <div class="ap-dropdown-user-role"><i class="fas fa-shield-alt" style="color: #10b981;"></i> Apicultor</div>
+                            </div>
+                        </div>
+                        <div class="ap-dropdown-divider"></div>
+                        <a href="{{ route('logout', ['redirect' => route('apicola.welcome')]) }}" class="ap-dropdown-item logout-action">
+                            <i class="fas fa-arrow-right-from-bracket"></i>
+                            <span>Cerrar sesión</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenido Específico de cada Vista -->
+        <main class="ap-inner-content">
+            @yield('content')
+        </main>
+    </div>
+
+    <!-- Modales inyectados por cada submódulo -->
+    @yield('modals')
+
+    <!-- Toast Alert Flotante -->
+    <div class="ap-toast-alert" id="apToast">
+        <i class="fas fa-check-circle" style="color: #34d399; font-size: 1.15rem;"></i>
+        <span id="apToastText">Acción completada con éxito</span>
+    </div>
+
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Scripts Globales -->
+    <script src="{{ asset('modules/apicola/js/layout.js') }}"></script>
+
+    @yield('scripts')
+</body>
+</html>

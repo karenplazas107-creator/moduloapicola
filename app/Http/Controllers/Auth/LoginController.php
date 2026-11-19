@@ -16,8 +16,24 @@ class LoginController extends Controller
     public function showLoginForm(Request $request)
     {
         if (Auth::check()) {
-            $redirect = $request->query('redirect', route('direccion.welcome'));
-            return redirect($redirect)->with('info', 'Ya has iniciado sesión como ' . Auth::user()->full_name);
+            $user = Auth::user();
+            $redirect = $request->query('redirect', '');
+            if (!empty($redirect)) {
+                return redirect($redirect)->with('info', 'Ya has iniciado sesión como ' . $user->full_name);
+            }
+
+            if ($user->roles->contains('slug', 'apicola.admin') || $user->hasSuperAdmin()) {
+                return redirect()->route('apicola.admin.dashboard')
+                    ->with('info', 'Ya has iniciado sesión como ' . $user->full_name);
+            }
+
+            if ($user->roles->contains('slug', 'apicola.aprendiz')) {
+                return redirect()->route('apicola.aprendiz.dashboard')
+                    ->with('info', 'Ya has iniciado sesión como ' . $user->full_name);
+            }
+
+            return redirect(route('direccion.welcome'))
+                ->with('info', 'Ya has iniciado sesión como ' . $user->full_name);
         }
 
         $redirect = $request->query('redirect', '');
@@ -53,6 +69,17 @@ class LoginController extends Controller
             $redirectUrl = $request->input('redirect');
             if (!empty($redirectUrl) && (str_starts_with($redirectUrl, '/') || str_starts_with($redirectUrl, url('/')))) {
                 return redirect($redirectUrl)->with('success', '¡Bienvenido(a) a SENA Empresa, ' . $user->full_name . '!');
+            }
+
+            // Redirigir según el rol del módulo
+            if ($user->roles->contains('slug', 'apicola.admin') || $user->hasSuperAdmin()) {
+                return redirect()->route('apicola.admin.dashboard')
+                    ->with('success', '¡Bienvenido(a) al Panel Apícola, ' . $user->full_name . '!');
+            }
+
+            if ($user->roles->contains('slug', 'apicola.aprendiz')) {
+                return redirect()->route('apicola.aprendiz.dashboard')
+                    ->with('success', '¡Bienvenido(a) al Panel Apícola, ' . $user->full_name . '!');
             }
 
             return redirect()->intended(route('direccion.welcome'))->with('success', '¡Bienvenido(a) a SENA Empresa, ' . $user->full_name . '!');

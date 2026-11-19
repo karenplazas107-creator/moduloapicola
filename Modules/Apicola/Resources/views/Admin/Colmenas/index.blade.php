@@ -1,0 +1,333 @@
+@extends('apicola::Admin.layout')
+
+@section('title', 'Gestión de Colmenas • SENA APÍCOLA')
+
+@section('breadcrumb')
+    <a href="{{ route('apicola.admin.colmenas.index') }}">Colmenas</a>
+    <span>/</span>
+    <span class="active-page">Gestión de colmenas</span>
+@endsection
+
+@section('content')
+    <!-- Encabezado de la vista con perfil apicultor -->
+    <div class="ap-view-header-row">
+        <div>
+            <span class="ap-view-subtitle-tag">COLMENAS</span>
+            <h1 class="ap-view-main-title">Gestión de colmenas</h1>
+        </div>
+    </div>
+
+    <!-- 4 Tarjetas de Métricas (Exactas al diseño) -->
+    <div class="ap-metrics-grid">
+        <div class="ap-metric-card border-green">
+            <div class="ap-metric-card-title">COLMENAS REGISTRADAS</div>
+            <div class="ap-metric-card-num" id="colmenaMetricTotal">{{ $metrics['total'] ?? 0 }}</div>
+            <div class="ap-metric-card-sub">Apiario SENA La Angostura</div>
+        </div>
+
+        <div class="ap-metric-card border-green">
+            <div class="ap-metric-card-title">ACTIVAS</div>
+            <div class="ap-metric-card-num" id="colmenaMetricActivas">{{ $metrics['activas'] ?? 0 }}</div>
+            <div class="ap-metric-card-sub">En producción</div>
+        </div>
+
+        <div class="ap-metric-card border-amber">
+            <div class="ap-metric-card-title">EN REVISIÓN</div>
+            <div class="ap-metric-card-num" id="colmenaMetricRevision">{{ $metrics['en_revision'] ?? 0 }}</div>
+            <div class="ap-metric-card-sub">Requieren seguimiento</div>
+        </div>
+
+        <div class="ap-metric-card border-red">
+            <div class="ap-metric-card-title">INACTIVAS</div>
+            <div class="ap-metric-card-num" id="colmenaMetricInactivas">{{ $metrics['inactivas'] ?? 0 }}</div>
+            <div class="ap-metric-card-sub">Fuera de operación</div>
+        </div>
+    </div>
+
+    <!-- Sección: Listado de Colmenas -->
+    <div class="ap-list-section">
+        <div class="ap-list-top-bar">
+            <h2 class="ap-list-title">Listado de colmenas</h2>
+            <p class="ap-list-desc">Colmenas del Apiario SENA La Angostura.</p>
+        </div>
+
+        <!-- Fila de Controles: Búsqueda, Filtros y Botón Nuevo -->
+        <div class="ap-controls-bar">
+            <div class="ap-controls-left" style="max-width: 680px;">
+                <div class="ap-search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="colmenaSearchInput" placeholder="Buscar por código..." oninput="filterColmenas()">
+                </div>
+                <select id="colmenaApiarioFilter" class="ap-filter-select" onchange="filterColmenas()">
+                    <option value="all">Apiario: todos</option>
+                    @foreach($apiarios as $ap)
+                        <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}</option>
+                    @endforeach
+                </select>
+                <select id="colmenaEstadoFilter" class="ap-filter-select" onchange="filterColmenas()">
+                    <option value="all">Estado: todos</option>
+                    <option value="Activa">Activa</option>
+                    <option value="En revisión">En revisión</option>
+                    <option value="Inactiva">Inactiva</option>
+                </select>
+            </div>
+
+            <div class="ap-controls-right">
+                <button type="button" class="ap-btn-solid-green" onclick="openNewColmenaModal()">
+                    <i class="fas fa-plus"></i> Nueva colmena
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla de Colmenas -->
+        <div class="ap-table-card">
+            <div class="ap-table-scroll">
+                <table class="ap-table">
+                    <thead>
+                        <tr>
+                            <th>CÓDIGO</th>
+                            <th>APIARIO</th>
+                            <th>TIPO DE ABEJA</th>
+                            <th>RESPONSABLE</th>
+                            <th>INSTALACIÓN</th>
+                            <th>ÚLTIMA VISITA</th>
+                            <th>ESTADO</th>
+                            <th style="text-align: center;">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="colmenasTableBody">
+                        <!-- Generado dinámicamente con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="ap-table-footer-row">
+                <div>
+                    Mostrando <strong id="colmenasShownCount">0</strong> de <strong id="colmenasTotalCount">0</strong> colmenas
+                </div>
+                <div>
+                    Gestión técnica de colmenas • Centro La Angostura
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('modals')
+    <!-- ==================== MODAL: NUEVA / EDITAR COLMENA (DISEÑO EXACTO A LA CAPTURA) ==================== -->
+    <div class="ap-modal-backdrop" id="modalColmenaBackdrop">
+        <div class="ap-modal-window" style="max-width: 500px; border-radius: 18px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+            <div class="ap-modal-body" style="padding: 2.2rem 2.2rem 1.75rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.25rem;">
+                    <div>
+                        <h2 class="ap-modal-title" id="modalColmenaTitle" style="font-size: 1.6rem; font-weight: 900; color: #0f172a; margin: 0 0 4px 0; letter-spacing: -0.02em;">Nueva colmena</h2>
+                        <p style="font-size: 0.88rem; color: #64748b; margin: 0;">Toda colmena pertenece a un apiario activo.</p>
+                    </div>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeColmenaModal()" title="Cerrar">&times;</button>
+                </div>
+
+                <form id="formColmena" onsubmit="saveColmenaForm(event)">
+                    <input type="hidden" id="modalColmenaId" value="">
+
+                    <!-- Fila 1: CÓDIGO (izq) y FECHA DE INSTALACIÓN (der) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem;">
+                        <div>
+                            <label class="ap-field-label" for="modalColmenaCode" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">CÓDIGO</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="modalColmenaTipoCodigo" class="ap-field-input" onchange="sugerirCodigoColmena(this.value)" title="Tipo" style="width: 112px; padding: 10px 8px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.88rem; color: #0f172a; background: #ffffff;">
+                                    <option value="COL">Colmena</option>
+                                    <option value="NUC">Núcleo</option>
+                                </select>
+                                <input type="text" id="modalColmenaCode" class="ap-field-input" placeholder="Ej: COL-001" maxlength="7" pattern="(COL|NUC)-[0-9]{3}" title="Formato COL-001 (colmena) o NUC-001 (núcleo)" oninput="this.value = this.value.toUpperCase()" required style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            </div>
+                            <p style="font-size: 0.72rem; color: #64748b; margin: 5px 0 0;">Formato: COL-001 (colmena) o NUC-001 (núcleo).</p>
+                        </div>
+                        <div>
+                            <label class="ap-field-label" for="modalColmenaFecha" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">FECHA DE INSTALACIÓN</label>
+                            <input type="date" id="modalColmenaFecha" class="ap-field-input" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a;">
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: APIARIO (ancho completo) -->
+                    <div class="ap-form-field" style="margin-bottom: 1.25rem;">
+                        <label class="ap-field-label" for="modalColmenaApiario" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">APIARIO</label>
+                        <select id="modalColmenaApiario" class="ap-field-input" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            @foreach($apiarios as $ap)
+                                <option value="{{ $ap->nombre_apiario }}">{{ $ap->nombre_apiario }}{{ $ap->estado !== 'Activo' ? ' (Inactivo)' : '' }}</option>
+                            @endforeach
+                        </select>
+                        <p class="ap-field-hint" style="color: #94a3b8; font-size: 0.76rem; margin-top: 5px; margin-bottom: 0;">Se listan todos los apiarios registrados.</p>
+                    </div>
+
+                    <!-- Fila 3: TIPO DE ABEJA (izq) y ESTADO (der) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.25rem;">
+                        <div>
+                            <label class="ap-field-label" for="modalColmenaTipoAbeja" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">TIPO DE ABEJA</label>
+                            <select id="modalColmenaTipoAbeja" class="ap-field-input" required onchange="handleTipoAbejaChange(this.value)" style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                                @foreach($tiposAbeja as $tipo)
+                                    <option value="{{ $tipo }}" {{ $loop->first ? 'selected' : '' }}>{{ $tipo }}</option>
+                                @endforeach
+                                <option value="__otra__" style="color: #047857; font-weight: 700;">➕ Otra / Registrar nueva...</option>
+                            </select>
+
+                            <!-- Contenedor para registrar una nueva especie de abeja -->
+                            <div id="containerOtroTipoAbeja" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                                <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nueva especie:</label>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" id="modalColmenaOtroTipoAbeja" class="ap-field-input" placeholder="Nombre de la nueva abeja..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosColmena(this, 'errorTipoAbeja')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarNuevoTipoAbeja();}">
+                                    <button type="button" onclick="confirmarNuevoTipoAbeja()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                        <i class="fas fa-plus"></i> Agregar
+                                    </button>
+                                </div>
+                                <span id="errorTipoAbeja" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                    <i class="fas fa-circle-exclamation"></i> Especie inválida: no se permiten números, solo letras.
+                                </span>
+                                <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Quedará guardada para esta y futuras colmenas.</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="ap-field-label" for="modalColmenaEstado" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">ESTADO</label>
+                            <select id="modalColmenaEstado" class="ap-field-input" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                                <option value="Activa" selected>Activa</option>
+                                <option value="En revisión">En revisión</option>
+                                <option value="Inactiva">Inactiva</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: RESPONSABLE -->
+                    <div class="ap-form-field" style="margin-bottom: 1.5rem;">
+                        <label class="ap-field-label" for="modalColmenaRespSelect" style="color: #64748b; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; display: block;">RESPONSABLE</label>
+                        <select id="modalColmenaRespSelect" class="ap-field-input" onchange="handleColmenaRespSelect(this.value)" required style="width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.90rem; color: #0f172a; background: #ffffff;">
+                            <option value="" disabled selected>Selecciona un responsable...</option>
+                            @foreach(($responsablesSugeridos ?? ['SERGIO BARRERA']) as $resp)
+                            <option value="{{ $resp }}">{{ $resp }}</option>
+                            @endforeach
+                            <option value="__otro__" style="color: #047857; font-weight: 700;">➕ Añadir a otro...</option>
+                        </select>
+
+                        <!-- Contenedor para añadir a otro responsable -->
+                        <div id="containerOtroRespColmena" style="display: none; margin-top: 8px; background: #f0fdf4; padding: 10px; border-radius: 10px; border: 1px solid #bbf7d0;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #166534; margin-bottom: 4px; text-transform: uppercase;">Nombre del nuevo responsable:</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="modalColmenaOtroRespInput" class="ap-field-input" placeholder="Escribe el nombre del nuevo responsable..." style="flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid #10b981; font-size: 0.85rem; color: #0f172a; background: #ffffff;" oninput="validarTextoSinNumerosColmena(this, 'errorNumeroRespColmena')" onkeydown="if(event.key==='Enter'){event.preventDefault(); confirmarOtroResponsableColmena();}">
+                                <button type="button" onclick="confirmarOtroResponsableColmena()" style="background: #047857; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                                    <i class="fas fa-plus"></i> Usar este
+                                </button>
+                            </div>
+                            <span id="errorNumeroRespColmena" style="display:none; color:#dc2626; font-size:0.75rem; font-weight:700; margin-top:4px;">
+                                <i class="fas fa-circle-exclamation"></i> Responsable inválido: no se permiten números, solo nombres reales de personas.
+                            </span>
+                            <span style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 4px;">Debes ingresar solo nombres reales de personas (sin números).</span>
+                        </div>
+
+                        <!-- Input oculto para enviar al backend -->
+                        <input type="hidden" id="modalColmenaResponsable" value="" required>
+                    </div>
+
+                    <!-- Botones footer (idénticos a la captura) -->
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 1.75rem;">
+                        <button type="button" class="ap-btn-modal-cancel" onclick="closeColmenaModal()" style="background: #ffffff; color: #475569; border: 1px solid #cbd5e1; padding: 10px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer;">Cancelar</button>
+                        <button type="submit" class="ap-btn-modal-save" id="btnSaveColmena" style="background: #047857; color: #ffffff; border: none; padding: 10px 22px; border-radius: 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer;">Guardar colmena</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: DETALLE DE COLMENA ==================== -->
+    <div class="ap-modal-backdrop" id="modalColmenaDetailBackdrop">
+        <div class="ap-modal-window">
+            <div class="ap-modal-body">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                    <div>
+                        <span class="ap-view-subtitle-tag" id="colmenaDetailBadge">DETALLE DE LA COLMENA</span>
+                        <h2 class="ap-modal-title" id="colmenaDetailCode" style="margin-bottom:0;">COL-011</h2>
+                    </div>
+                    <button type="button" class="ap-modal-close-btn" onclick="closeColmenaDetailModal()" title="Cerrar">&times;</button>
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.25rem; margin-bottom:1.25rem;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:0.75rem;">
+                        <div>
+                            <span class="ap-field-label">APIARIO</span>
+                            <strong id="colmenaDetailApiario" style="font-size:0.95rem; color:#0f172a;">-</strong>
+                        </div>
+                        <div>
+                            <span class="ap-field-label">ESTADO</span>
+                            <span id="colmenaDetailStatusBadge" class="ap-status-badge activa">Activa</span>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:0.75rem;">
+                        <div>
+                            <span class="ap-field-label">RESPONSABLE</span>
+                            <span id="colmenaDetailResp" style="font-size:0.88rem; color:#334155; font-weight:600;">-</span>
+                        </div>
+                        <div>
+                            <span class="ap-field-label">FECHA DE INSTALACIÓN</span>
+                            <span id="colmenaDetailInstall" style="font-size:0.88rem; color:#334155;">-</span>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        <div>
+                            <span class="ap-field-label">ÚLTIMA VISITA</span>
+                            <span id="colmenaDetailLastVisit" style="font-size:0.88rem; color:#059669; font-weight:700;">-</span>
+                        </div>
+                        <div>
+                            <span class="ap-field-label">TIPO DE CAJA</span>
+                            <span style="font-size:0.88rem; color:#334155;">Langstroth Estándar</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="colmenaDetailNotas" style="font-size:0.85rem; color:#475569; line-height:1.5; margin-bottom:1.25rem;"></p>
+
+                <div class="ap-modal-footer" style="padding:0; border:none; justify-content:space-between;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <a href="#" id="linkIrInspeccionColmena" class="ap-btn-outline-green" style="font-size:0.84rem;">
+                            <i class="fas fa-clipboard-check"></i> Ver inspección
+                        </a>
+                        <a href="#" id="linkIrProduccionColmena" class="ap-btn-outline-green" style="font-size:0.84rem;">
+                            <i class="fas fa-jar"></i> Ver producción
+                        </a>
+                    </div>
+                    <div>
+                        <button type="button" class="ap-btn-modal-cancel" onclick="closeColmenaDetailModal()">Cerrar</button>
+                        <button type="button" class="ap-btn-modal-save" id="btnEditFromColmenaDetail">Editar colmena</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+
+@section('scripts')
+    @php
+        $colmenasFormatted = $colmenas->map(function($c) {
+            return [
+                'id' => $c->id,
+                'code' => $c->code,
+                'apiario' => $c->apiario_name,
+                'tipoAbeja' => $c->tipo_abeja ?? 'Apis mellifera',
+                'responsable' => $c->responsable,
+                'instalacion' => $c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('d/m/Y') : '',
+                'instalacionRaw' => $c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('Y-m-d') : '',
+                'ultimaVisita' => $c->last_visit_date ? \Carbon\Carbon::parse($c->last_visit_date)->format('d/m/Y') : ($c->installation_date ? \Carbon\Carbon::parse($c->installation_date)->format('d/m/Y') : '-'),
+                'ultimaVisitaRaw' => $c->last_visit_date ? \Carbon\Carbon::parse($c->last_visit_date)->format('Y-m-d') : '',
+                'estado' => $c->status,
+                'notas' => $c->notes ?? 'Sin observaciones.',
+            ];
+        });
+    @endphp
+<script>
+    window.ColmenasConfig = {
+        colmenasList: @json($colmenasFormatted),
+        responsables: @json($responsablesSugeridos ?? []),
+        responsablesUrl: "{{ route('apicola.admin.responsables.store') }}",
+        baseUrl: "{{ url('apicola/colmenas') }}",
+        storeUrl: "{{ route('apicola.admin.colmenas.store') }}",
+        csrfToken: "{{ csrf_token() }}"
+    };
+</script>
+<script src="{{ asset('modules/apicola/js/colmenas.js') }}?v={{ time() }}"></script>
+@endsection

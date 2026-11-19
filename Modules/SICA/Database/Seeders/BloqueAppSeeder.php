@@ -100,15 +100,6 @@ class BloqueAppSeeder extends Seeder
             'description_english' => 'Supplier management, quotations, supply requests and purchase orders.'
         ]);
 
-        App::updateOrCreate(['name' => 'Apicola'], [
-'bloque_id' => $misional->id, // O $misional->id o $apoyo->id
-'url' => '/nombredelmodulo',
-'color' => '#05bed2', // Color del botón y detalles
-'icon' => 'fas fa-clipboard-check', // Icono de FontAwesome
-'description' => 'Breve descripción de la funcionalidad del submódulo para la tarjeta.',
-'description_english' => 'Short description in english.'
-]);
-
         // Submódulos de Apoyo
         App::updateOrCreate(['name' => 'Contabilidad'], [
             'bloque_id' => $apoyo->id,
@@ -128,6 +119,13 @@ class BloqueAppSeeder extends Seeder
             'description_english' => 'Management of apprentices, instructors, operational shifts and attendance control.'
         ]);
 
-        
+        App::updateOrCreate(['name' => 'SISGEDI'], [
+            'bloque_id' => $apoyo->id, // Asignado a Procesos de Apoyo
+            'url' => '/sisgedi',
+            'color' => '#e65100', // Color para el bloque de apoyo
+            'icon' => 'fas fa-folder-open', // Icono de FontAwesome
+            'description' => 'Sistema de Gestión Documental para el control de listados maestros y formatos.',
+            'description_english' => 'Document Management System for master list control and formats.'
+        ]);
     }
 }

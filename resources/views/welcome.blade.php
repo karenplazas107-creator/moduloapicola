@@ -95,6 +95,20 @@
         background: rgba(var(--sena-green-rgb), 0.9) !important;
     }
     
+    /* Custom icon for Apicola (fa-bee) */
+    .fa-bee, .fas.fa-bee {
+      display: inline-block;
+      width: 1.25em;
+      height: 1.25em;
+      vertical-align: -0.2em;
+      background-color: currentColor;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8 2 1.88 1.88'/%3E%3Cpath d='M14.12 3.88 16 2'/%3E%3Cpath d='M9 7V6a3 3 0 1 1 6 0v1'/%3E%3Cpath d='M5 7a3 3 0 1 0 2.2 5.1C9.1 10 12 7 12 7s2.9 3 4.8 5.1A3 3 0 1 0 19 7Z'/%3E%3Cpath d='M7.56 12h8.87'/%3E%3Cpath d='M7.5 17h9'/%3E%3Cpath d='M15.5 10.7c.9.9 1.4 2.1 1.5 3.3 0 5.8-5 8-5 8s-5-2.2-5-8c.1-1.2.6-2.4 1.5-3.3'/%3E%3C/svg%3E") no-repeat center / contain;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m8 2 1.88 1.88'/%3E%3Cpath d='M14.12 3.88 16 2'/%3E%3Cpath d='M9 7V6a3 3 0 1 1 6 0v1'/%3E%3Cpath d='M5 7a3 3 0 1 0 2.2 5.1C9.1 10 12 7 12 7s2.9 3 4.8 5.1A3 3 0 1 0 19 7Z'/%3E%3Cpath d='M7.56 12h8.87'/%3E%3Cpath d='M7.5 17h9'/%3E%3Cpath d='M15.5 10.7c.9.9 1.4 2.1 1.5 3.3 0 5.8-5 8-5 8s-5-2.2-5-8c.1-1.2.6-2.4 1.5-3.3'/%3E%3C/svg%3E") no-repeat center / contain;
+    }
+    .fa-bee::before, .fas.fa-bee::before {
+      content: "" !important;
+    }
+
     /* Dark Navy SENA Footer Styling */
     #footer {
         background: #001A29 !important;
@@ -1000,8 +1014,20 @@
                   <div class="col-xl-{{ count($bloque->apps) <= 2 ? '6' : '4' }} col-md-6" data-aos="zoom-in">
                     <div class="icon-box h-100 p-4 rounded-3 border bg-light shadow-sm hover-lift">
                       <div class="d-flex align-items-center mb-3">
-                        <div class="icon-circle p-3 rounded-3 me-3 text-white" style="background-color: {{ $app->color ?? $bloque->color ?? '#39A900' }};">
-                          <i class="{{ $app->icon ?? 'fas fa-cube' }} fs-4"></i>
+                        <div class="icon-circle p-3 rounded-3 me-3 text-white d-flex align-items-center justify-content-center" style="background-color: {{ $app->color ?? $bloque->color ?? '#39A900' }}; min-width: 52px; min-height: 52px;">
+                          @if(Str::lower($app->name) == 'apicola' || Str::lower($app->name) == 'gestión apícola' || ($app->icon ?? '') == 'fas fa-bee')
+                            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="d-block" style="width: 1.55rem; height: 1.55rem;">
+                              <path d="m8 2 1.88 1.88" />
+                              <path d="M14.12 3.88 16 2" />
+                              <path d="M9 7V6a3 3 0 1 1 6 0v1" />
+                              <path d="M5 7a3 3 0 1 0 2.2 5.1C9.1 10 12 7 12 7s2.9 3 4.8 5.1A3 3 0 1 0 19 7Z" />
+                              <path d="M7.56 12h8.87" />
+                              <path d="M7.5 17h9" />
+                              <path d="M15.5 10.7c.9.9 1.4 2.1 1.5 3.3 0 5.8-5 8-5 8s-5-2.2-5-8c.1-1.2.6-2.4 1.5-3.3" />
+                            </svg>
+                          @else
+                            <i class="{{ $app->icon ?? 'fas fa-cube' }} fs-4"></i>
+                          @endif
                         </div>
                         <div>
                           <h4 class="mb-0 fs-5 fw-bold"><a href="{{ url($app->url) }}" class="text-dark">{{ $app->name }}</a></h4>
